@@ -52,4 +52,9 @@ class Item extends Model
     {
         return $this->hasMany(ItemUnit::class);
     }
+
+    public function getRouteKeyName(): string
+    {
+        return 'short_id';
+    }
 }

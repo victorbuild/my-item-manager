@@ -71,9 +71,9 @@ onMounted(() => fetchItems())
 
                 <!-- 操作按鈕區域（放到底部右邊） -->
                 <div class="flex justify-end gap-4 text-sm mt-4">
-                    <router-link :to="`/items/${item.id}`" class="text-gray-600 hover:text-gray-800">🔍 查看</router-link>
-                    <router-link :to="`/edit/${item.id}`" class="text-blue-600 hover:text-blue-800">✏️ 編輯</router-link>
-                    <button @click="confirmDelete(item.id)" class="text-red-500 hover:text-red-700">🗑️ 刪除</button>
+                    <router-link :to="`/items/${item.short_id}`" class="text-gray-600 hover:text-gray-800">🔍 查看</router-link>
+                    <router-link :to="`/edit/${item.short_id}`" class="text-blue-600 hover:text-blue-800">✏️ 編輯</router-link>
+                    <button @click="confirmDelete(item.short_id)" class="text-red-500 hover:text-red-700">🗑️ 刪除</button>
                 </div>
             </li>
         </ul>

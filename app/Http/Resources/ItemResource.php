@@ -22,12 +22,15 @@ class ItemResource extends JsonResource
             'quantity' => $this->quantity,
             'price' => $this->price,
             'purchased_at' => $this->purchased_at,
+            'discarded_at' => $this->discarded_at,
+            'is_discarded' => $this->is_discarded,
             'images' => $this->images->map(function ($img) {
                 return [
                     'id' => $img->id,
                     'url' => $img->url, // 假設你有 accessor：getUrlAttribute()
                 ];
             }),
+            'units' => $this->units,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

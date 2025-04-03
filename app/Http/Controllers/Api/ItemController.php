@@ -50,6 +50,8 @@ class ItemController extends Controller
             'purchased_at' => 'nullable|date',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'url',
+            'units' => 'nullable|array',
+            'units.*' => 'nullable|string|max:255',
         ]);
 
         $item = Item::create($validated);
@@ -70,19 +72,40 @@ class ItemController extends Controller
             }
         }
 
+        // 單品處理
+        $units = $request->input('units');
+        if ($units && is_array($units) && count(array_filter($units))) {
+            foreach ($units as $index => $unitName) {
+                $item->units()->create([
+                    'unit_number' => $index + 1,
+                    'notes' => $unitName,
+                ]);
+            }
+        } else {
+            // 如果沒提供單品，自動新增一個
+            $item->units()->create([
+                'unit_number' => 1,
+                'notes' => null,
+            ]);
+        }
+
         return response()->json($item, 201);
     }
 
     /**
-     * @param Item $item
+     * @param string $shortId
      * @return JsonResponse
      */
-    public function show(Item $item)
+    public function show(string $shortId): JsonResponse
     {
+        $item = Item::where('short_id', $shortId)->with(['images', 'units'])->firstOrFail();
+
         return response()->json([
             'success' => true,
             'message' => '資料載入成功',
-            'data' => new ItemResource($item->load(['images', 'units'])),
+            'items' => [
+                new ItemResource($item->load(['images', 'units']))
+            ],
         ]);
     }
 
