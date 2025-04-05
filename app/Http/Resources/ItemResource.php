@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 
 class ItemResource extends JsonResource
 {
@@ -25,10 +26,10 @@ class ItemResource extends JsonResource
             'purchased_at' => $this->purchased_at,
             'discarded_at' => $this->discarded_at,
             'is_discarded' => $this->is_discarded,
-            'images' => $this->images->map(function ($img) {
+            'images' => $this->images->map(function ($img)  {
                 return [
                     'id' => $img->id,
-                    'url' => $img->url, // 假設你有 accessor：getUrlAttribute()
+                    'preview_url' => Storage::disk('local')->url("item-images/{$this->uuid}/preview/{$img->image_path}.webp")
                 ];
             }),
             'units' => $this->units,

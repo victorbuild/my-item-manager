@@ -64,7 +64,7 @@ onMounted(() => fetchItems())
                     <img
                         v-for="(img, idx) in item.images.slice(0, 4)"
                         :key="img.id || idx"
-                        :src="img.url"
+                        :src="img.thumb_url"
                         class="w-20 h-20 object-cover rounded border shrink-0"
                     />
                 </div>

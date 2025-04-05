@@ -17,7 +17,6 @@
                 type="file"
                 accept="image/*"
                 @change="uploadImage"
-                capture="environment"
                 class="w-full"
             />
             <div class="flex flex-wrap gap-2">

@@ -34,7 +34,7 @@
                     <img
                         v-for="(img, idx) in item.images"
                         :key="img.id || idx"
-                        :src="img.url"
+                        :src="img.preview_url"
                         class="w-full h-32 object-cover rounded border"
                         :alt="item.name"
                     />

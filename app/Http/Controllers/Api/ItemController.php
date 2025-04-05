@@ -9,17 +9,32 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class ItemController extends Controller
 {
     /**
      * @return JsonResponse
      */
-    public function index()
+    public function index(): JsonResponse
     {
         $items = Item::with(['images', 'units'])
             ->orderBy('id', 'desc')
             ->paginate(10);
+
+        $itemsTransformed = $items->getCollection()->map(function ($item) {
+            $item->images = $item->images->map(function ($image) use ($item) {
+                $uuid = $item->uuid;
+                $filename = $image->image_path;
+
+                $image->thumb_url = Storage::disk('local')->url("item-images/{$uuid}/thumb/{$filename}.webp");
+
+                return $image;
+            });
+
+            return $item;
+        });
 
         return response()->json([
             'success' => true,
@@ -30,10 +45,9 @@ class ItemController extends Controller
                 'per_page' => $items->perPage(),
                 'total' => $items->total(),
             ],
-            'items' => $items->items(),
+            'items' => $itemsTransformed,
         ]);
     }
-
 
     /**
      * @param Request $request
@@ -56,19 +70,43 @@ class ItemController extends Controller
 
         $item = Item::create($validated);
 
+        $disk = Storage::disk('public');
+        $manager = new ImageManager(
+            new Driver()
+        );
+
         // 移動圖片到正式資料夾
         if (!empty($request->image_urls)) {
             foreach ($request->image_urls as $tempUrl) {
                 $tempPath = str_replace('/storage/', '', parse_url($tempUrl, PHP_URL_PATH)); // 轉相對路徑
-                $extension = pathinfo($tempPath, PATHINFO_EXTENSION) ?: 'png'; // 預設 png
-                $newPath = 'item-images/' . $item->id . '/' . Str::random(40) . '.' . $extension;
 
-                if (Storage::disk('public')->exists($tempPath)) {
-                    Storage::disk('public')->move($tempPath, $newPath);
-                    $item->images()->create([
-                        'image_path' => $newPath
-                    ]);
-                }
+                if (!$disk->exists($tempPath)) continue;
+
+                $imageData = $disk->get($tempPath);
+                $img = $manager->read($imageData);
+
+                $extension = pathinfo($tempPath, PATHINFO_EXTENSION) ?: 'png';
+                $uuid = $item->uuid;
+                $basename = Str::random(40);
+                $originalName = "{$basename}.{$extension}";
+                $webpName = "{$basename}.webp";
+
+                // 原圖：保留原格式
+                $disk->move($tempPath, "item-images/{$uuid}/original/{$originalName}");
+                $width = $img->width();
+                $height = $img->height();
+
+                // 預覽圖與縮圖（webp）
+                $preview = $img->scaleDown(width: 600, height: 800)->toWebp(85);
+                $thumb = $img->scaleDown(width: 300, height: 400)->toWebp(75);
+
+                $disk->put("item-images/{$uuid}/preview/{$webpName}", $preview);
+                $disk->put("item-images/{$uuid}/thumb/{$webpName}", $thumb);
+
+                $item->images()->create([
+                    'image_path' => $basename,
+                    'original_extension' => strtolower($extension),
+                ]);
             }
         }
 
