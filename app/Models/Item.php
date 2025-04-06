@@ -43,7 +43,7 @@ class Item extends Model
         });
     }
 
-    public function images()
+    public function images(): HasMany
     {
         return $this->hasMany(ItemImage::class);
     }

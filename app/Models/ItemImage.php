@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Storage;
 class ItemImage extends Model
 {
     protected $fillable = [
-        'image_path'
+        'image_path',
+        'original_extension'
     ];
 
     protected $appends = ['url'];
