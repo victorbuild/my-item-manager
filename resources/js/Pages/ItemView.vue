@@ -22,6 +22,7 @@
                     <div>💰 金額：{{ formatPrice(item.price) }}</div>
                     <div>📅 購買日期：{{ item.purchased_at }}</div>
                     <div>📦 條碼：{{ item.barcode || '（無）' }}</div>
+                    <div>📂 分類：{{ item.category?.name || '（未分類）' }}</div>
                     <div>
                         🗑️ 狀態：
                         <span v-if="item.is_discarded" class="text-green-600">✅ 已報廢</span>
@@ -77,6 +78,15 @@
                                 @change="(e) => updateDiscardDate(unit.id, e.target.value)"
                             />
                         </div>
+
+                        <div class="text-sm text-gray-600">
+                            ⏳ 使用天數：
+                            <span v-if="getUsageDays(unit)">{{ getUsageDays(unit) }} 天</span>
+                            <span v-else class="text-gray-400">尚未開始</span>
+                        </div>
+                        <div class="text-sm text-gray-600" v-if="getCostPerDay(unit)">
+                            💰 每日成本：{{ getCostPerDay(unit) }} 元
+                        </div>
                     </div>
                 </div>
             </div>
@@ -96,9 +106,12 @@
 import {ref, onMounted} from 'vue'
 import {useRoute} from 'vue-router'
 import axios from 'axios'
+import dayjs from 'dayjs'
 
 const route = useRoute()
 const item = ref(null)
+
+const today = dayjs()
 
 const fetchItem = async () => {
     const res = await axios.get(`/api/items/${route.params.id}`)
@@ -111,6 +124,24 @@ const formatPrice = (val) => {
     if (val == null) return '—'
     return Number(val).toLocaleString()
 }
+
+// 計算使用天數
+const getUsageDays = (unit) => {
+    if (!unit.used_at) return null
+    const start = dayjs(unit.used_at)
+    const end = unit.discarded_at ? dayjs(unit.discarded_at) : today
+    return end.diff(start, 'day') + 1
+}
+
+// 計算每日成本
+const getCostPerDay = (unit) => {
+    const days = getUsageDays(unit)
+    if (!days || !item.value?.price || item.value.quantity === 0) return null
+
+    const unitPrice = item.value.price / item.value.quantity
+    return (unitPrice / days).toFixed(2)
+}
+
 
 const updateDiscardDate = async (unitId, date) => {
     if (!confirm('確定要設定丟棄時間？')) return

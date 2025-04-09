@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,7 @@ class Item extends Model
         'quantity',
         'price',
         'purchased_at',
+        'category_id',
         'barcode',
         'uuid',
         'short_id',
@@ -26,7 +28,7 @@ class Item extends Model
     protected static function booted()
     {
         static::creating(function ($item) {
-            $item->uuid = (string) Str::uuid();
+            $item->uuid = (string)Str::uuid();
 
             // 自訂字元集：a-zA-Z0-9_-（共64個字元）
             $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
@@ -50,11 +52,16 @@ class Item extends Model
 
     public function units(): HasMany
     {
-        return $this->hasMany(ItemUnit::class);
+        return $this->hasMany(ItemUnit::class)->orderBy('id');
     }
 
     public function getRouteKeyName(): string
     {
         return 'short_id';
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 }

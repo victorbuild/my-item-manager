@@ -62,6 +62,7 @@ class ItemController extends Controller
             'quantity' => 'nullable|integer|min:1',
             'price' => 'nullable|numeric',
             'purchased_at' => 'nullable|date',
+            'category_id' => 'nullable|exists:categories,id',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'url',
             'units' => 'nullable|array',
@@ -142,7 +143,7 @@ class ItemController extends Controller
             'success' => true,
             'message' => '資料載入成功',
             'items' => [
-                new ItemResource($item->load(['images', 'units']))
+                new ItemResource($item->load(['images', 'units', 'category']))
             ],
         ]);
     }

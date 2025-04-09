@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Item;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
@@ -32,6 +33,7 @@ class ItemResource extends JsonResource
                     'preview_url' => Storage::disk('local')->url("item-images/{$this->uuid}/preview/{$img->image_path}.webp")
                 ];
             }),
+            'category' => $this->category,
             'units' => $this->units,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
