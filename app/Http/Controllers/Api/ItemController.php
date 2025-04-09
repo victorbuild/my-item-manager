@@ -28,6 +28,15 @@ class ItemController extends Controller
             $query->where('name', 'like', '%' . $keyword . '%');
         }
 
+        // 分類篩選（如果有傳 category_id）
+        if ($request->filled('category_id')) {
+            if ($request->input('category_id') === 'none') {
+                $query->whereNull('category_id');
+            } else {
+                $query->where('category_id', $request->input('category_id'));
+            }
+        }
+
         // 分頁 + 排序
         $items = $query->orderBy('id', 'desc')->paginate(10);
 

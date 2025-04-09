@@ -1,6 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+
+const route = useRoute()
+const router = useRouter()
 
 const items = ref([])
 const pagination = ref({
@@ -8,9 +12,26 @@ const pagination = ref({
     last_page: 1,
 })
 
-const search = ref('')
+const search = ref(route.query.search || '')
+
+const category = ref(route.query.category_id || '')
+const categories = ref([])
+
+
+const fetchCategories = async () => {
+    const res = await axios.get('/api/categories')
+    categories.value = res.data
+}
 
 const doSearch = () => {
+    router.push({
+        path: '/',
+        query: {
+            ...(search.value ? { search: search.value } : {}),
+            ...(category.value ? { category_id: category.value } : {}),
+        },
+    })
+
     fetchItems(1)
 }
 
@@ -23,12 +44,12 @@ const fetchItems = async (page = 1) => {
     const res = await axios.get('/api/items', {
         params: {
             page,
-            search: search.value || undefined, // 傳送 search 參數
+            search: search.value || undefined,
+            category_id: category.value || undefined,
         },
     })
     items.value = res.data.items
     pagination.value = res.data.meta
-    pagination.value.current_page = res.data.meta.current_page
 }
 
 const confirmDelete = async (id) => {
@@ -38,7 +59,10 @@ const confirmDelete = async (id) => {
     }
 }
 
-onMounted(() => fetchItems())
+onMounted(() => {
+    fetchCategories()
+    fetchItems(Number(route.query.page) || 1)
+})
 </script>
 
 <template>
@@ -51,25 +75,36 @@ onMounted(() => fetchItems())
         </div>
 
         <!-- 搜尋列 -->
-        <form @submit.prevent="doSearch" class="mb-4 flex gap-2">
+        <form @submit.prevent="doSearch" class="mb-6 flex flex-wrap gap-3 items-center">
             <input
                 v-model="search"
                 type="text"
-                placeholder="搜尋名稱"
-                class="flex-1 p-2 border border-gray-300 rounded"
+                placeholder="🔍 搜尋名稱"
+                class="flex-1 min-w-[150px] px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
+
+            <select
+                v-model="category"
+                class="min-w-[120px] px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+                <option value="">📂 所有分類</option>
+                <option value="none">🚫 未分類</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                    📁 {{ cat.name }}
+                </option>
+            </select>
 
             <button
                 type="submit"
-                class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                class="px-5 py-2 bg-blue-500 text-white font-medium rounded-xl shadow hover:bg-blue-600 transition"
             >
                 🔍 搜尋
             </button>
 
             <button
-                v-if="search"
+                v-if="search || category"
                 type="button"
-                @click="search = ''; fetchItems(1)"
+                @click="search = ''; category = ''; fetchItems(1)"
                 class="text-sm text-gray-500 underline ml-2"
             >
                 ❌ 清除
