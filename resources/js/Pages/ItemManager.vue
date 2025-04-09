@@ -8,15 +8,27 @@ const pagination = ref({
     last_page: 1,
 })
 
+const search = ref('')
+
+const doSearch = () => {
+    fetchItems(1)
+}
+
 const formatPrice = (val) => {
     if (val == null) return '-'
     return Number(val).toLocaleString('zh-TW')
 }
 
 const fetchItems = async (page = 1) => {
-    const res = await axios.get(`/api/items?page=${page}`)
+    const res = await axios.get('/api/items', {
+        params: {
+            page,
+            search: search.value || undefined, // 傳送 search 參數
+        },
+    })
     items.value = res.data.items
     pagination.value = res.data.meta
+    pagination.value.current_page = res.data.meta.current_page
 }
 
 const confirmDelete = async (id) => {
@@ -37,6 +49,32 @@ onMounted(() => fetchItems())
                 新增
             </router-link>
         </div>
+
+        <!-- 搜尋列 -->
+        <form @submit.prevent="doSearch" class="mb-4 flex gap-2">
+            <input
+                v-model="search"
+                type="text"
+                placeholder="搜尋名稱"
+                class="flex-1 p-2 border border-gray-300 rounded"
+            />
+
+            <button
+                type="submit"
+                class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+                🔍 搜尋
+            </button>
+
+            <button
+                v-if="search"
+                type="button"
+                @click="search = ''; fetchItems(1)"
+                class="text-sm text-gray-500 underline ml-2"
+            >
+                ❌ 清除
+            </button>
+        </form>
 
         <ul class="space-y-4">
             <li

@@ -15,14 +15,23 @@ use Intervention\Image\ImageManager;
 class ItemController extends Controller
 {
     /**
+     * @param Request $request
      * @return JsonResponse
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $items = Item::with(['images', 'units'])
-            ->orderBy('id', 'desc')
-            ->paginate(10);
+        $query = Item::with(['images', 'units']);
 
+        // 搜尋關鍵字處理
+        if ($request->filled('search')) {
+            $keyword = $request->input('search');
+            $query->where('name', 'like', '%' . $keyword . '%');
+        }
+
+        // 分頁 + 排序
+        $items = $query->orderBy('id', 'desc')->paginate(10);
+
+        // 加工圖片網址
         $itemsTransformed = $items->getCollection()->map(function ($item) {
             $item->images = $item->images->map(function ($image) use ($item) {
                 $uuid = $item->uuid;
