@@ -76,6 +76,7 @@ class ItemController extends Controller
             'image_urls.*' => 'url',
             'units' => 'nullable|array',
             'units.*' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
         ]);
 
         $item = Item::create($validated);
