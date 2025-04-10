@@ -25,7 +25,7 @@ const fetchCategories = async () => {
 
 const doSearch = () => {
     router.push({
-        path: '/',
+        path: '/items',
         query: {
             ...(search.value ? { search: search.value } : {}),
             ...(category.value ? { category_id: category.value } : {}),
@@ -69,7 +69,7 @@ onMounted(() => {
     <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">📦 物品列表</h1>
-            <router-link to="/create" class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
+            <router-link to="/items/create" class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
                 新增
             </router-link>
         </div>
@@ -145,7 +145,7 @@ onMounted(() => {
                 <!-- 操作按鈕區域（放到底部右邊） -->
                 <div class="flex justify-end gap-4 text-sm mt-4">
                     <router-link :to="`/items/${item.short_id}`" class="text-gray-600 hover:text-gray-800">🔍 查看</router-link>
-                    <router-link :to="`/edit/${item.short_id}`" class="text-blue-600 hover:text-blue-800">✏️ 編輯</router-link>
+                    <router-link :to="`/items/${item.short_id}/edit`" class="text-blue-600 hover:text-blue-800">✏️ 編輯</router-link>
                     <button @click="confirmDelete(item.short_id)" class="text-red-500 hover:text-red-700">🗑️ 刪除</button>
                 </div>
             </li>

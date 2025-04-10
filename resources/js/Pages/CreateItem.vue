@@ -3,7 +3,7 @@
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">📥 新增物品</h1>
             <router-link
-                to="/"
+                to="/items"
                 class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded"
             >
                 ⬅ 返回列表
@@ -239,7 +239,7 @@ const submitForm = async (stay = false) => {
             alert('✅ 已新增成功，可以繼續新增')
             resetForm()
         } else {
-            router.push('/')
+            router.push('/items')
         }
     } catch (error) {
         console.error('❌ 儲存失敗', error.response?.data ?? error)

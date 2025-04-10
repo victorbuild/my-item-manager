@@ -8,7 +8,7 @@
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
                     <router-link
-                        :to="`/edit/${item.short_id}`"
+                        :to="`/items/${item.short_id}/edit`"
                         class="text-sm text-blue-600 hover:underline"
                     >
                         ✏️ 編輯
@@ -92,7 +92,7 @@
             </div>
 
             <div class="pt-6">
-                <router-link to="/" class="text-blue-500 hover:underline">← 返回列表</router-link>
+                <router-link to="/items" class="text-blue-500 hover:underline">← 返回列表</router-link>
             </div>
         </template>
 
