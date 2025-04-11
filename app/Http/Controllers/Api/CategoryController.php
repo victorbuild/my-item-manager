@@ -3,16 +3,20 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Category;
+use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class CategoryController
 {
-    public function index()
+    public function __construct(private readonly CategoryService $categoryService)
     {
-        return Category::select('id', 'name')
-            ->orderBy('name')
-            ->get();
+    }
+
+    public function index(): Collection
+    {
+        return $this->categoryService->getAll();
     }
 
     public function store(Request $request): JsonResponse
