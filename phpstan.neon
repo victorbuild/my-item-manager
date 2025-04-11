@@ -7,49 +7,44 @@ parameters:
     level: 5
     paths:
         - app
-
     disallowedMethodCalls:
         - method: Illuminate\Database\Eloquent\Model::save
-          message: "❌ 禁止在 Controller 內直接使用 save()，請使用 Mutations！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 save()。"
+          disallowIn:
             - app/Http/Controllers/*
 
         - method: Illuminate\Database\Eloquent\Model::update
-          message: "❌ 禁止在 Controller 內直接使用 update()，請使用 Mutations！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 update()。"
+          disallowIn:
             - app/Http/Controllers/*
 
         - method: Illuminate\Database\Eloquent\Model::delete
-          message: "❌ 禁止在 Controller 內直接使用 delete()，請使用 Mutations！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 delete()。"
+          disallowIn:
             - app/Http/Controllers/*
 
         - method: Illuminate\Database\Eloquent\Builder::where
-          message: "❌ 禁止在 Controller 內直接使用 where()，請使用 Queries！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 where()。"
+          disallowIn:
             - app/Http/Controllers/*
 
         - method: Illuminate\Database\Eloquent\Builder::find
-          message: "❌ 禁止在 Controller 內直接使用 find()，請使用 Queries！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 find()。"
+          disallowIn:
             - app/Http/Controllers/*
 
         - method: Illuminate\Database\Eloquent\Builder::first
-          message: "❌ 禁止在 Controller 內直接使用 first()，請使用 Queries！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 first()。"
+          disallowIn:
             - app/Http/Controllers/*
 
         - method: Illuminate\Database\Eloquent\Builder::get
-          message: "❌ 禁止在 Controller 內直接使用 get()，請使用 Queries！"
-          disallowedIn:
+          message: "❌ 禁止在 Controller 內直接使用 get()。"
+          disallowIn:
             - app/Http/Controllers/*
 
-        - method: App\Services\*::*
-          message: "❌ 禁止在 Controller 內使用 Service！請使用 Mutations！"
-          disallowedIn:
-            - app/Http/Controllers/*
-
-        - method: App\Repositories\*::*
-          message: "❌ 禁止在 Controller 內使用 Repository！請使用 Queries！"
-          disallowedIn:
+    disallowedStaticCalls:
+        - method: Illuminate\Database\Eloquent\Builder::create
+          message: "❌ 禁止在 Controller 內直接使用 create()。"
+          disallowIn:
             - app/Http/Controllers/*
