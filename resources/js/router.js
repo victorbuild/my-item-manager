@@ -4,6 +4,7 @@ import ItemManager from './Pages/ItemManager.vue'
 import CreateItem from './Pages/CreateItem.vue'
 import ItemView from './Pages/ItemView.vue'
 import EditItem from './Pages/EditItem.vue'
+import NotFound from './Pages/NotFound.vue'
 
 const routes = [
     {
@@ -31,6 +32,11 @@ const routes = [
         name: 'ItemEdit',
         component: EditItem
     },
+    {
+        path: '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: NotFound
+    }
 ]
 
 export default createRouter({

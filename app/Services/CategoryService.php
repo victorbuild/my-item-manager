@@ -3,21 +3,22 @@
 namespace App\Services;
 
 use App\Models\Category;
+use App\Repositories\CategoryRepository;
 use Illuminate\Support\Collection;
 
-class CategoryService
+readonly class CategoryService
 {
+    public function __construct(private CategoryRepository $categoryRepository)
+    {
+    }
+
     public function getAll(): Collection
     {
-        return Category::select('id', 'name')
-            ->orderBy('name')
-            ->get();
+        return $this->categoryRepository->getAll();
     }
 
     public function create(array $data): Category
     {
-        return Category::create([
-            'name' => $data['name']
-        ]);
+        return $this->categoryRepository->create($data);
     }
 }

@@ -104,18 +104,29 @@
 
 <script setup>
 import {ref, onMounted} from 'vue'
-import {useRoute} from 'vue-router'
+import {useRoute, useRouter} from 'vue-router'
 import axios from 'axios'
 import dayjs from 'dayjs'
 
 const route = useRoute()
+const router = useRouter()
 const item = ref(null)
 
 const today = dayjs()
 
 const fetchItem = async () => {
-    const res = await axios.get(`/api/items/${route.params.id}`)
-    item.value = res.data.items[0]
+    try {
+        const res = await axios.get(`/api/items/${route.params.id}`)
+        item.value = res.data.items[0]
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            // ✅ 跳轉 Vue 的 404 NotFound 頁面
+            router.push({ name: 'NotFound' })
+        } else {
+            // ✅ 可選：處理其他錯誤
+            console.error('載入失敗', error)
+        }
+    }
 }
 
 onMounted(fetchItem)

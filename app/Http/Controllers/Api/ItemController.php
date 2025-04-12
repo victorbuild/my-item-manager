@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreItemRequest;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
+use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,45 +16,22 @@ use Intervention\Image\ImageManager;
 
 class ItemController extends Controller
 {
+    public function __construct(private readonly ItemService $itemService)
+    {
+    }
+
     /**
      * @param Request $request
      * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Item::with(['images', 'units']);
+        $filters = [
+            'search' => $request->input('search'),
+            'category_id' => $request->input('category_id'),
+        ];
 
-        // 搜尋關鍵字處理
-        if ($request->filled('search')) {
-            $keyword = $request->input('search');
-            $query->where('name', 'like', '%' . $keyword . '%');
-        }
-
-        // 分類篩選（如果有傳 category_id）
-        if ($request->filled('category_id')) {
-            if ($request->input('category_id') === 'none') {
-                $query->whereNull('category_id');
-            } else {
-                $query->where('category_id', $request->input('category_id'));
-            }
-        }
-
-        // 分頁 + 排序
-        $items = $query->orderBy('id', 'desc')->paginate(10);
-
-        // 加工圖片網址
-        $itemsTransformed = $items->getCollection()->map(function ($item) {
-            $item->images = $item->images->map(function ($image) use ($item) {
-                $uuid = $item->uuid;
-                $filename = $image->image_path;
-
-                $image->thumb_url = Storage::disk('local')->url("item-images/{$uuid}/thumb/{$filename}.webp");
-
-                return $image;
-            });
-
-            return $item;
-        });
+        $items = $this->itemService->paginateWithFilters($filters);
 
         return response()->json([
             'success' => true,
@@ -63,32 +42,19 @@ class ItemController extends Controller
                 'per_page' => $items->perPage(),
                 'total' => $items->total(),
             ],
-            'items' => $itemsTransformed,
+            'items' => $items->items(),
         ]);
     }
 
     /**
-     * @param Request $request
+     * @param StoreItemRequest $request
      * @return JsonResponse
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreItemRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'quantity' => 'nullable|integer|min:1',
-            'price' => 'nullable|numeric',
-            'purchased_at' => 'nullable|date',
-            'category_id' => 'nullable|exists:categories,id',
-            'image_urls' => 'nullable|array',
-            'image_urls.*' => 'url',
-            'units' => 'nullable|array',
-            'units.*' => 'nullable|string|max:255',
-            'barcode' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
-        $item = Item::create($validated);
+        $item = $this->itemService->create($validated);
 
         $disk = Storage::disk('public');
         $manager = new ImageManager(
@@ -113,8 +79,6 @@ class ItemController extends Controller
 
                 // 原圖：保留原格式
                 $disk->move($tempPath, "item-images/{$uuid}/original/{$originalName}");
-                $width = $img->width();
-                $height = $img->height();
 
                 // 預覽圖與縮圖（webp）
                 $preview = $img->scaleDown(width: 600, height: 800)->toWebp(85);
@@ -156,7 +120,7 @@ class ItemController extends Controller
      */
     public function show(string $shortId): JsonResponse
     {
-        $item = Item::where('short_id', $shortId)->with(['images', 'units'])->firstOrFail();
+        $item = $this->itemService->findByShortIdOrFail($shortId);
 
         return response()->json([
             'success' => true,
