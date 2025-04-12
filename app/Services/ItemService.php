@@ -54,4 +54,9 @@ class ItemService
             ->where('short_id', $shortId)
             ->firstOrFail();
     }
+
+    public function delete(Item $item): void
+    {
+        $item->delete();
+    }
 }

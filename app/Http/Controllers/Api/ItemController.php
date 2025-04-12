@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
+use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
 {
@@ -160,8 +161,8 @@ class ItemController extends Controller
      */
     public function destroy(Item $item): JsonResponse
     {
-        $item->delete();
+        $this->itemService->delete($item);
 
-        return response()->json(['message' => 'Item deleted.']);
+        return response()->json(null, Response::HTTP_NO_CONTENT);
     }
 }
