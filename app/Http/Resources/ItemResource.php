@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
 
+/**
+ * @mixin Item
+ */
 class ItemResource extends JsonResource
 {
     /**
@@ -25,12 +28,13 @@ class ItemResource extends JsonResource
             'quantity' => $this->quantity,
             'price' => $this->price,
             'purchased_at' => $this->purchased_at,
+            'barcode' => $this->barcode,
             'discarded_at' => $this->discarded_at,
             'is_discarded' => $this->is_discarded,
             'images' => $this->images->map(function ($img)  {
                 return [
                     'id' => $img->id,
-                    'preview_url' => Storage::disk('local')->url("item-images/{$this->uuid}/preview/{$img->image_path}.webp")
+                    'preview_url' => Storage::disk('local')->url("item-images/$this->uuid/preview/$img->image_path.webp")
                 ];
             }),
             'category' => $this->category,
