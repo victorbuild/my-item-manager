@@ -1,16 +1,28 @@
-import {createRouter, createWebHistory} from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import Home from './Pages/Home.vue'
 import ItemManager from './Pages/ItemManager.vue'
 import CreateItem from './Pages/CreateItem.vue'
 import ItemView from './Pages/ItemView.vue'
 import EditItem from './Pages/EditItem.vue'
 import NotFound from './Pages/NotFound.vue'
+import Login from './Pages/LoginView.vue'
+import Register from './Pages/RegisterView.vue'
 
 const routes = [
     {
         path: '/',
         name: 'Home',
         component: Home
+    },
+    {
+        path: '/login',
+        name: 'Login',
+        component: Login
+    },
+    {
+        path: '/register',
+        name: 'Register',
+        component: Register
     },
     {
         path: '/items',

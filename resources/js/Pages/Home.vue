@@ -1,6 +1,29 @@
 <template>
     <div class="min-h-screen bg-gray-50 p-8">
-        <h1 class="text-2xl font-bold mb-6">物品管理首頁</h1>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">物品管理首頁</h1>
+            <div>
+                <template v-if="isLoggedIn">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white">
+                            👤
+                        </div>
+                        <span class="text-sm text-gray-700">{{ user?.name }}</span>
+                        <button @click="logout" class="text-sm text-red-600 hover:underline">登出</button>
+                    </div>
+                </template>
+                <template v-else>
+                    <router-link
+                        to="/login"
+                        class="text-sm text-blue-600 hover:underline mr-4"
+                    >登入</router-link>
+                    <router-link
+                        to="/register"
+                        class="text-sm text-blue-600 hover:underline"
+                    >註冊</router-link>
+                </template>
+            </div>
+        </div>
 
         <ul class="space-y-4">
             <li>
@@ -47,4 +70,29 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue';
+import axios from 'axios';
+
+const isLoggedIn = ref(false);
+const user = ref(null);
+
+onMounted(async () => {
+    try {
+        const res = await axios.get('/api/user');
+        isLoggedIn.value = true;
+        user.value = res.data;
+    } catch {
+        isLoggedIn.value = false;
+    }
+});
+
+const logout = async () => {
+    try {
+        await axios.post('/logout');
+        localStorage.removeItem('loggedIn');
+        location.reload();
+    } catch (e) {
+        console.error('登出失敗', e);
+    }
+};
 </script>
