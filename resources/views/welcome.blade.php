@@ -12,25 +12,8 @@
     <!-- Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class=" bg-[#f5f5f5] text-black p-4 min-h-screen">
+<body class=" bg-[#f5f5f5] text-black min-h-screen">
 
-<!-- 登入導覽 -->
-<header class="mb-4">
-    @if (Route::has('login'))
-        <nav class="flex justify-end gap-2 text-sm">
-            @auth
-                <a href="{{ url('/dashboard') }}" class="text-blue-600 underline">Dashboard</a>
-            @else
-                <a href="{{ route('login') }}" class="text-blue-600 underline">登入</a>
-                @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="text-blue-600 underline">註冊</a>
-                @endif
-            @endauth
-        </nav>
-    @endif
-</header>
-
-<!-- Vue 掛載點 -->
 <main id="app" class="max-w-md mx-auto"></main>
 
 </body>

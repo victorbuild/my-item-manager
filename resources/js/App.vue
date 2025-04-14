@@ -1,7 +1,5 @@
 <template>
-    <div class="min-h-screen p-4">
-        <router-view />
-    </div>
+    <router-view />
 </template>
 
 <script setup>

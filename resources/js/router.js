@@ -7,6 +7,7 @@ import EditItem from './Pages/EditItem.vue'
 import NotFound from './Pages/NotFound.vue'
 import Login from './Pages/LoginView.vue'
 import Register from './Pages/RegisterView.vue'
+import ProductList from './Pages/Products/List.vue'
 
 const routes = [
     {
@@ -23,6 +24,26 @@ const routes = [
         path: '/register',
         name: 'Register',
         component: Register
+    },
+    {
+        path: '/products',
+        name: 'ProductList',
+        component: ProductList
+    },
+    {
+        path: '/products/create',
+        name: 'ProductCreate',
+        component: ProductList
+    },
+    {
+        path: '/products/:id',
+        name: 'ProductView',
+        component: ProductList
+    },
+    {
+        path: '/products/:id/edit',
+        name: 'Productdit',
+        component: ProductList
     },
     {
         path: '/items',

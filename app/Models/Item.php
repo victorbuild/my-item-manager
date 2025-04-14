@@ -52,6 +52,8 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Item whereShortId($value)
  * @method static Builder<static>|Item whereUpdatedAt($value)
  * @method static Builder<static>|Item whereUuid($value)
+ * @property int|null $product_id 對應的產品
+ * @method static Builder<static>|Item whereProductId($value)
  * @mixin Eloquent
  */
 class Item extends Model

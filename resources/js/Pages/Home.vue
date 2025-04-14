@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gray-50 p-8">
+    <div class="min-h-screen p-4">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">物品管理首頁</h1>
             <div>
@@ -16,11 +16,13 @@
                     <router-link
                         to="/login"
                         class="text-sm text-blue-600 hover:underline mr-4"
-                    >登入</router-link>
+                    >登入
+                    </router-link>
                     <router-link
                         to="/register"
                         class="text-sm text-blue-600 hover:underline"
-                    >註冊</router-link>
+                    >註冊
+                    </router-link>
                 </template>
             </div>
         </div>
@@ -28,11 +30,21 @@
         <ul class="space-y-4">
             <li>
                 <router-link
+                    to="/products"
+                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-indigo-50 transition"
+                >
+                    🏷️ 產品定義<br/>
+                    <span class="text-sm text-gray-500">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
+                </router-link>
+            </li>
+
+            <li>
+                <router-link
                     to="/items"
                     class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-blue-50 transition"
                 >
-                    📦 物品管理<br />
-                    <span class="text-sm text-gray-500">定義產品類型，例如鞋子、電腦、書等</span>
+                    📦 我的物品<br/>
+                    <span class="text-sm text-gray-500">我實際擁有的東西，例如這本書或這雙鞋</span>
                 </router-link>
             </li>
 
@@ -41,8 +53,8 @@
                     to="/item-units"
                     class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-green-50 transition"
                 >
-                    📋 單品管理<br />
-                    <span class="text-sm text-gray-500">實際持有的物品，含序號、購買日與價格</span>
+                    📋 單品細節<br/>
+                    <span class="text-sm text-gray-500">進一步紀錄子項目，如書本的書衣、鞋盒等</span>
                 </router-link>
             </li>
 
@@ -51,8 +63,8 @@
                     to="/usage-records"
                     class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-yellow-50 transition"
                 >
-                    🕓 使用紀錄<br />
-                    <span class="text-sm text-gray-500">紀錄每次使用情境、時間、地點</span>
+                    🕓 使用紀錄<br/>
+                    <span class="text-sm text-gray-500">每次使用的時間與情境</span>
                 </router-link>
             </li>
 
@@ -61,8 +73,8 @@
                     to="/discarded"
                     class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-red-50 transition"
                 >
-                    🗑️ 報廢項目<br />
-                    <span class="text-sm text-gray-500">查看已淘汰或不再使用的物品</span>
+                    🗑️ 已報廢物品<br/>
+                    <span class="text-sm text-gray-500">不再使用的物品（含主品與單品）</span>
                 </router-link>
             </li>
         </ul>
@@ -70,7 +82,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import {onMounted, ref} from 'vue';
 import axios from 'axios';
 
 const isLoggedIn = ref(false);
