@@ -10,6 +10,58 @@
             </router-link>
         </div>
 
+        <!-- 產品選擇 Multiselect -->
+        <Multiselect
+            v-model="selectedProduct"
+            :options="products"
+            :searchable="true"
+            :custom-label="option => option.name"
+            :track-by="'id'"
+            placeholder="請輸入或選擇產品"
+            :internal-search="false"
+            @search-change="searchProduct"
+            @select="onProductSelect"
+        />
+
+        <!-- 如果選到 isNew，顯示建立表單 -->
+        <div v-if="creatingProduct" class="mt-3 space-y-2 bg-white p-4 rounded shadow border">
+            <label class="block font-medium">🆕 建立新產品</label>
+            <input v-model="newProduct.name" type="text" class="w-full p-2 border rounded" placeholder="產品名稱（必填）" />
+            <input v-model="newProduct.brand" type="text" class="w-full p-2 border rounded" placeholder="品牌（可選）" />
+            <Multiselect
+                v-model="newProduct.category"
+                :options="categories"
+                :searchable="true"
+                :custom-label="opt => opt.name"
+                :track-by="'id'"
+                placeholder="選擇分類"
+            />
+            <input v-model="newProduct.model" type="text" class="w-full p-2 border rounded" placeholder="型號（可選）" />
+            <input v-model="newProduct.spec" type="text" class="w-full p-2 border rounded" placeholder="規格（如顏色、容量等）" />
+            <input v-model="newProduct.barcode" type="text" class="w-full p-2 border rounded" placeholder="條碼（可掃描或輸入）" />
+            <div class="flex gap-4">
+                <button @click="confirmCreateProduct" class="bg-blue-600 text-white px-4 py-1 rounded">✅ 建立</button>
+                <button @click="cancelCreateProduct" class="text-gray-500 underline">取消</button>
+            </div>
+        </div>
+
+        <!-- 成功選到產品後顯示卡片 -->
+        <div
+            v-if="selectedProduct && !creatingProduct"
+            class="bg-white border rounded p-4 mt-4 shadow space-y-1 text-sm text-gray-700"
+        >
+            <div class="text-lg font-bold">{{ selectedProduct.name }}</div>
+
+            <div v-if="selectedProduct.brand">🏷️ 品牌：{{ selectedProduct.brand }}</div>
+            <div v-if="selectedProduct.category">📂 分類：{{ selectedProduct.category.name }}</div>
+            <div v-if="selectedProduct.model">🧾 型號：{{ selectedProduct.model }}</div>
+            <div v-if="selectedProduct.spec">⚙️ 規格：{{ selectedProduct.spec }}</div>
+            <div v-if="selectedProduct.barcode">🔢 條碼：{{ selectedProduct.barcode }}</div>
+            <div>📦 目前已有物品數量：{{ selectedProduct.items_count ?? 0 }}</div>
+        </div>
+
+        <hr>
+
         <form @submit.prevent="submitForm(false)" class="space-y-4">
             <!-- 圖片上傳 -->
             <label class="block font-medium">📷 上傳圖片或拍照</label>
@@ -36,21 +88,6 @@
             <div>
                 <label class="block font-medium">描述</label>
                 <textarea v-model="form.description" class="w-full p-2 border rounded"></textarea>
-            </div>
-
-            <div>
-                <label class="block font-medium mb-1">分類</label>
-                <Multiselect
-                    v-model="selectedCategory"
-                    :options="categories"
-                    :searchable="true"
-                    :custom-label="option => option.name"
-                    :track-by="'id'"
-                    placeholder="請輸入或選擇分類"
-                    :internal-search="false"
-                    @search-change="onSearch"
-                    @select="onSelect"
-                />
             </div>
 
             <div>
@@ -138,6 +175,70 @@ const showScanner = ref(false)
 const isSubmitting = ref(false)
 const imageUrls = ref([])
 const units = ref([''])
+
+const selectedProduct = ref(null)
+const products = ref([])
+
+const searchProduct = async (query) => {
+    try {
+        const res = await axios.get('/api/products', { params: { q: query } })
+        products.value = res.data.items || res.data // 視 API 結構調整
+
+        if (!products.value.find(p => p.name === query)) {
+            products.value.unshift({
+                id: '__create__',
+                name: `➕ 點選建立新產品：「${query}」`,
+                _rawName: query,
+                isNew: true,
+            })
+        }
+    } catch (e) {
+        console.error('搜尋產品失敗', e)
+    }
+}
+
+
+const creatingProduct = ref(false)
+const newProduct = ref({
+    name: '',
+    brand: '',
+    category: null
+})
+
+const onProductSelect = (option) => {
+    if (option.isNew) {
+        creatingProduct.value = true
+        newProduct.value.name = option._rawName
+    } else {
+        selectedProduct.value = option
+        creatingProduct.value = false
+    }
+}
+
+const confirmCreateProduct = async () => {
+    try {
+        const res = await axios.post('/api/products', {
+            name: newProduct.value.name,
+            brand: newProduct.value.brand,
+            category_id: newProduct.value.category?.id,
+            model: newProduct.value.model,
+            spec: newProduct.value.spec,
+            barcode: newProduct.value.barcode,
+        })
+
+        selectedProduct.value = res.data.items?.[0]
+        creatingProduct.value = false
+    } catch (e) {
+        alert('❌ 建立產品失敗，請確認欄位是否正確')
+    }
+}
+
+
+const cancelCreateProduct = () => {
+    creatingProduct.value = false
+    selectedProduct.value = null
+}
+
 
 const form = ref({
     name: '',

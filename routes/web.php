@@ -19,6 +19,7 @@ Route::prefix('api')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products', [ProductController::class, 'index']);
+        Route::post('/products', [ProductController::class, 'store']);
     });
 
     Route::apiResource('items', ItemController::class);

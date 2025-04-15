@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -27,6 +28,33 @@ class ProductController extends Controller
                 'total' => $products->total(),
             ],
             'items' => $products->items(),
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'model' => 'nullable|string|max:255',
+            'spec' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
+        ]);
+
+        $product = Product::create([
+            ...$validated,
+            'user_id' => $request->user()->id, // 如果有 user 綁定
+            'uuid' => (string)Str::uuid(),
+            'short_id' => Str::random(8),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => '建立成功',
+            'items' => [
+                $product
+            ],
         ]);
     }
 }
