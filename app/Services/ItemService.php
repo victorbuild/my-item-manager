@@ -21,6 +21,8 @@ class ItemService
     {
         $query = Item::with(['images', 'units']);
 
+        $query->where('user_id', auth()->id());
+
         // 搜尋關鍵字
         if (!empty($filters['search'])) {
             $query->where('name', 'like', '%' . $filters['search'] . '%');
