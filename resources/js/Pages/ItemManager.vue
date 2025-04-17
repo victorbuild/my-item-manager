@@ -124,7 +124,6 @@ onMounted(() => {
                     </div>
                     <div class="text-sm text-gray-500 mt-1">
                         💰 金額：{{ formatPrice(item.price) }}<br />
-                        📦 數量：{{ item.quantity }}<br />
                         📅 購買日：{{ item.purchased_at }}
                     </div>
                 </div>
@@ -139,6 +138,7 @@ onMounted(() => {
                         :key="img.id || idx"
                         :src="img.thumb_url"
                         class="w-20 h-20 object-cover rounded border shrink-0"
+                        :alt="item.name + '-' + (idx+1)"
                     />
                 </div>
 

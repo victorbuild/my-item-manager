@@ -25,20 +25,31 @@ class ItemResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'location' => $this->location,
-            'quantity' => $this->quantity,
             'price' => $this->price,
-            'purchased_at' => $this->purchased_at,
             'barcode' => $this->barcode,
+            'serial_number' => $this->serial_number,
+            'notes' => $this->notes,
+
+            // 時間欄位
+            'purchased_at' => $this->purchased_at,
+            'received_at' => $this->received_at,
+            'used_at' => $this->used_at,
             'discarded_at' => $this->discarded_at,
+
+            // 狀態與關聯
             'is_discarded' => $this->is_discarded,
-            'images' => $this->images->map(function ($img)  {
-                return [
-                    'id' => $img->id,
-                    'preview_url' => Storage::disk('local')->url("item-images/$this->uuid/preview/$img->image_path.webp")
-                ];
-            }),
             'category' => $this->category,
             'units' => $this->units,
+
+            // 圖片
+            'images' => $this->images->map(function ($img) {
+                return [
+                    'id' => $img->id,
+                    'preview_url' => Storage::disk('local')->url("item-images/{$this->uuid}/preview/{$img->image_path}.webp"),
+                ];
+            }),
+
+            // 系統時間
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

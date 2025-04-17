@@ -18,9 +18,10 @@
                 <div class="text-sm text-gray-700 space-y-1">
                     <div>📄 描述：{{ item.description || '（無）' }}</div>
                     <div>📍 位置：{{ item.location || '（未指定）' }}</div>
-                    <div>📦 數量：{{ item.quantity }}</div>
                     <div>💰 金額：{{ formatPrice(item.price) }}</div>
                     <div>📅 購買日期：{{ item.purchased_at }}</div>
+                    <div>📦 到貨日期：{{ item.received_at || '（未填寫）' }}</div>
+                    <div>🚀 開始使用日期：{{ item.used_at || '（未填寫）' }}</div>
                     <div>📦 條碼：{{ item.barcode || '（無）' }}</div>
                     <div>📂 分類：{{ item.category?.name || '（未分類）' }}</div>
                     <div>
@@ -40,6 +41,46 @@
                         :alt="item.name"
                     />
                 </div>
+
+                <div class="space-y-2">
+                    <div>
+                        📅 購買日期：
+                        <input
+                            type="date"
+                            class="p-1 border rounded"
+                            :value="item.purchased_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('purchased_at', e.target.value)"
+                        />
+                    </div>
+                    <div>
+                        📦 到貨日期：
+                        <input
+                            type="date"
+                            class="p-1 border rounded"
+                            :value="item.received_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('received_at', e.target.value)"
+                        />
+                    </div>
+                    <div>
+                        🚀 開始使用日期：
+                        <input
+                            type="date"
+                            class="p-1 border rounded"
+                            :value="item.used_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('used_at', e.target.value)"
+                        />
+                    </div>
+                    <div>
+                        🗑️ 報廢日期：
+                        <input
+                            type="date"
+                            class="p-1 border rounded"
+                            :value="item.discarded_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('discarded_at', e.target.value)"
+                        />
+                    </div>
+                </div>
+
             </div>
 
             <!-- 🧾 單位卡片們 -->
@@ -134,6 +175,20 @@ onMounted(fetchItem)
 const formatPrice = (val) => {
     if (val == null) return '—'
     return Number(val).toLocaleString()
+}
+
+const updateItemDate = async (field, value) => {
+    if (!['purchased_at', 'received_at', 'used_at', 'discarded_at'].includes(field)) return
+
+    try {
+        await axios.patch(`/api/items/${item.value.short_id}`, {
+            [field]: value
+        })
+        fetchItem() // 重新取得資料
+    } catch (err) {
+        alert('❌ 更新失敗')
+        console.error(err)
+    }
 }
 
 // 計算使用天數

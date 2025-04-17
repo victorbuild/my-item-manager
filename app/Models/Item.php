@@ -21,7 +21,6 @@ use Illuminate\Support\Str;
  * @property string|null $barcode 商品條碼
  * @property string|null $description 物品描述
  * @property string|null $location 存放位置
- * @property int $quantity 購買數量
  * @property string|null $price 總金額
  * @property string|null $purchased_at 購買日期
  * @property bool $is_discarded 是否報廢
@@ -54,6 +53,16 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Item whereUuid($value)
  * @property int|null $product_id 對應的產品
  * @method static Builder<static>|Item whereProductId($value)
+ * @property string|null $received_at
+ * @property string|null $used_at
+ * @property string|null $notes
+ * @property string|null $serial_number 實體序號
+ * @method static Builder<static>|Item whereNotes($value)
+ * @method static Builder<static>|Item whereReceivedAt($value)
+ * @method static Builder<static>|Item whereSerialNumber($value)
+ * @method static Builder<static>|Item whereUsedAt($value)
+ * @property int|null $user_id
+ * @method static Builder<static>|Item whereUserId($value)
  * @mixin Eloquent
  */
 class Item extends Model
@@ -65,13 +74,18 @@ class Item extends Model
         'name',
         'description',
         'location',
-        'quantity',
         'price',
         'purchased_at',
+        'received_at',
+        'used_at',
+        'discarded_at',
+        'notes',
+        'serial_number',
         'category_id',
         'barcode',
         'uuid',
         'short_id',
+        'product_id',
     ];
 
     protected static function booted(): void

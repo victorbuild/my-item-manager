@@ -35,10 +35,32 @@
                 :custom-label="opt => opt.name"
                 :track-by="'id'"
                 placeholder="選擇分類"
+                @search-change="onSearch"
+                @select="onSelect"
             />
             <input v-model="newProduct.model" type="text" class="w-full p-2 border rounded" placeholder="型號（可選）" />
             <input v-model="newProduct.spec" type="text" class="w-full p-2 border rounded" placeholder="規格（如顏色、容量等）" />
-            <input v-model="newProduct.barcode" type="text" class="w-full p-2 border rounded" placeholder="條碼（可掃描或輸入）" />
+
+            <!-- 條碼輸入與更新 -->
+            <div class="space-y-1">
+                <label class="block text-sm font-medium text-gray-700">🔢 條碼</label>
+                <div class="flex gap-2 items-center">
+                    <input
+                        v-model="newProduct.barcode"
+                        type="text"
+                        placeholder="輸入或掃描條碼"
+                        class="flex-1 p-2 border rounded"
+                    />
+                    <button
+                        type="button"
+                        @click="startBarcodeScan"
+                        class="text-blue-500 underline text-sm"
+                    >
+                        📷 掃描
+                    </button>
+                </div>
+            </div>
+
             <div class="flex gap-4">
                 <button @click="confirmCreateProduct" class="bg-blue-600 text-white px-4 py-1 rounded">✅ 建立</button>
                 <button @click="cancelCreateProduct" class="text-gray-500 underline">取消</button>
@@ -110,27 +132,11 @@
                 <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" required/>
             </div>
 
-            <div>
-                <label class="block font-medium">條碼</label>
-                <input v-model="form.barcode" type="text" class="w-full p-2 border rounded"/>
-                <button type="button" @click="startScanner" class="text-blue-500 underline mt-1">📷 掃描條碼</button>
-            </div>
-
             <!-- 掃描器區塊 -->
             <div v-if="showScanner" class="mt-2">
                 <div id="scanner" class="border rounded-md w-full h-64"></div>
                 <button type="button" @click="stopScanner" class="text-sm mt-2 text-red-500 underline">✖ 關閉掃描器
                 </button>
-            </div>
-
-            <!-- 單品名稱列表 -->
-            <div class="space-y-1">
-                <label class="block font-medium">🧩 單品名稱（可多筆）</label>
-                <div v-for="(unit, index) in units" :key="index" class="flex gap-2">
-                    <input v-model="units[index]" type="text" class="flex-1 p-2 border rounded" placeholder="單品名稱"/>
-                    <button @click="removeUnit(index)" type="button" class="text-red-500">✖</button>
-                </div>
-                <button type="button" @click="units.push('')" class="text-blue-500 mt-2">＋新增一個單品</button>
             </div>
 
             <!-- 操作按鈕 -->
@@ -174,7 +180,6 @@ const router = useRouter()
 const showScanner = ref(false)
 const isSubmitting = ref(false)
 const imageUrls = ref([])
-const units = ref([''])
 
 const selectedProduct = ref(null)
 const products = ref([])
@@ -318,10 +323,6 @@ const uploadImage = async (e) => {
     }
 }
 
-const removeUnit = (index) => {
-    units.value.splice(index, 1)
-}
-
 const submitForm = async (stay = false) => {
     if (isSubmitting.value) return
     isSubmitting.value = true
@@ -329,8 +330,9 @@ const submitForm = async (stay = false) => {
     const payload = {
         ...form.value,
         image_urls: imageUrls.value,
-        units: units.value.filter(u => u.trim() !== ''),
-        category_id: selectedCategory.value?.id ?? null
+        category_id: selectedCategory.value?.id ?? null,
+        product_id: selectedProduct.value?.id ?? null,
+        source_product_id: selectedProduct.value?.is_bundle ? selectedProduct.value.id : null,
     }
 
     try {
@@ -368,18 +370,19 @@ const resetForm = () => {
 
 let html5QrCode
 
-const startScanner = async () => {
+const startBarcodeScan = async () => {
     showScanner.value = true
     await nextTick()
     html5QrCode = new Html5Qrcode("scanner")
 
     try {
         await html5QrCode.start(
-            {facingMode: "environment"},
-            {fps: 10, qrbox: {width: 250, height: 250}},
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
             (decodedText) => {
-                form.value.barcode = decodedText
                 stopScanner()
+                newProduct.value.barcode = decodedText
+                alert('✅ 條碼已填入')
             }
         )
     } catch (err) {

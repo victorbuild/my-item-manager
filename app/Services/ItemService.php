@@ -10,7 +10,11 @@ class ItemService
 {
     public function create(array $data): Item
     {
-        return Item::create($data);
+        $item = Item::create($data);
+        $item->user_id = auth()->id();
+        $item->save();
+
+        return $item;
     }
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator

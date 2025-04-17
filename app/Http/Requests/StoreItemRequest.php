@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class StoreItemRequest extends FormRequest
 {
@@ -12,7 +13,7 @@ class StoreItemRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return Auth::check();
     }
 
     /**
@@ -29,12 +30,10 @@ class StoreItemRequest extends FormRequest
             'quantity' => 'nullable|integer|min:1',
             'price' => 'nullable|numeric',
             'purchased_at' => 'nullable|date',
-            'category_id' => 'nullable|exists:categories,id',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'url',
-            'units' => 'nullable|array',
-            'units.*' => 'nullable|string|max:255',
             'barcode' => 'nullable|string|max:255',
+            'product_id' => 'required|exists:products,id',
         ];
     }
 }

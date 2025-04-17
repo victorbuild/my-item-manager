@@ -12,9 +12,20 @@ class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $products = Product::with(['category', 'items'])
+        $query = Product::with(['category', 'items'])
             ->withCount('items')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $request->user()->id);
+
+        if ($search = $request->query('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'ILIKE', "%{$search}%")
+                    ->orWhere('brand', 'ILIKE', "%{$search}%")
+                    ->orWhere('model', 'ILIKE', "%{$search}%")
+                    ->orWhere('spec', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        $products = $query
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 

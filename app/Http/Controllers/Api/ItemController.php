@@ -54,65 +54,55 @@ class ItemController extends Controller
     public function store(StoreItemRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $quantity = max((int) ($validated['quantity'] ?? 1), 1);
 
-        $item = $this->itemService->create($validated);
+        $createdItems = [];
 
-        $disk = Storage::disk('public');
-        $manager = new ImageManager(
-            new Driver()
-        );
+        for ($i = 0; $i < $quantity; $i++) {
+            $item = $this->itemService->create($validated);
 
-        // 移動圖片到正式資料夾
-        if (!empty($request->image_urls)) {
-            foreach ($request->image_urls as $tempUrl) {
-                $tempPath = str_replace('/storage/', '', parse_url($tempUrl, PHP_URL_PATH)); // 轉相對路徑
+            $disk = Storage::disk('public');
+            $manager = new ImageManager(new Driver());
 
-                if (!$disk->exists($tempPath)) continue;
+            // 處理圖片（每個 item 都要有自己的圖片複製路徑）
+            if (!empty($request->image_urls)) {
+                foreach ($request->image_urls as $tempUrl) {
+                    $tempPath = str_replace('/storage/', '', parse_url($tempUrl, PHP_URL_PATH));
 
-                $imageData = $disk->get($tempPath);
-                $img = $manager->read($imageData);
+                    if (!$disk->exists($tempPath)) continue;
 
-                $extension = pathinfo($tempPath, PATHINFO_EXTENSION) ?: 'png';
-                $uuid = $item->uuid;
-                $basename = Str::random(40);
-                $originalName = "{$basename}.{$extension}";
-                $webpName = "{$basename}.webp";
+                    $imageData = $disk->get($tempPath);
+                    $img = $manager->read($imageData);
 
-                // 原圖：保留原格式
-                $disk->move($tempPath, "item-images/{$uuid}/original/{$originalName}");
+                    $extension = pathinfo($tempPath, PATHINFO_EXTENSION) ?: 'png';
+                    $uuid = $item->uuid;
+                    $basename = Str::random(40);
+                    $originalName = "{$basename}.{$extension}";
+                    $webpName = "{$basename}.webp";
 
-                // 預覽圖與縮圖（webp）
-                $preview = $img->scaleDown(width: 600, height: 800)->toWebp(85);
-                $thumb = $img->scaleDown(width: 300, height: 400)->toWebp(75);
+                    $disk->put("item-images/{$uuid}/original/{$originalName}", $imageData);
 
-                $disk->put("item-images/{$uuid}/preview/{$webpName}", $preview);
-                $disk->put("item-images/{$uuid}/thumb/{$webpName}", $thumb);
+                    $preview = $img->scaleDown(width: 600, height: 800)->toWebp(85);
+                    $thumb = $img->scaleDown(width: 300, height: 400)->toWebp(75);
 
-                $item->images()->create([
-                    'image_path' => $basename,
-                    'original_extension' => strtolower($extension),
-                ]);
+                    $disk->put("item-images/{$uuid}/preview/{$webpName}", $preview);
+                    $disk->put("item-images/{$uuid}/thumb/{$webpName}", $thumb);
+
+                    $item->images()->create([
+                        'image_path' => $basename,
+                        'original_extension' => strtolower($extension),
+                    ]);
+                }
             }
+
+            $createdItems[] = $item;
         }
 
-        // 單品處理
-        $units = $request->input('units');
-        if ($units && is_array($units) && count(array_filter($units))) {
-            foreach ($units as $index => $unitName) {
-                $item->units()->create([
-                    'unit_number' => $index + 1,
-                    'notes' => $unitName,
-                ]);
-            }
-        } else {
-            // 如果沒提供單品，自動新增一個
-            $item->units()->create([
-                'unit_number' => 1,
-                'notes' => null,
-            ]);
-        }
-
-        return response()->json($item, 201);
+        return response()->json([
+            'success' => true,
+            'message' => '成功建立 ' . count($createdItems) . ' 筆物品',
+            'items' => collect($createdItems)->map->only(['id', 'uuid', 'name']),
+        ], 201);
     }
 
     /**
@@ -143,16 +133,28 @@ class ItemController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
-            'quantity' => 'nullable|integer|min:1',
             'price' => 'nullable|numeric',
+            'barcode' => 'nullable|string|max:255',
+            'serial_number' => 'nullable|string|max:255',
+
+            // 時間欄位
             'purchased_at' => 'nullable|date',
-            'is_discarded' => 'boolean',
+            'received_at' => 'nullable|date',
+            'used_at' => 'nullable|date',
             'discarded_at' => 'nullable|date',
+
+            // 狀態與備註
+            'is_discarded' => 'boolean',
+            'notes' => 'nullable|string',
         ]);
 
         $item->update($validated);
 
-        return response()->json($item);
+        return response()->json([
+            'success' => true,
+            'message' => '更新成功',
+            'item' => $item,
+        ]);
     }
 
     /**
