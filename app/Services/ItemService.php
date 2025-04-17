@@ -19,9 +19,7 @@ class ItemService
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator
     {
-        $query = Item::with(['images', 'units']);
-
-        $query->where('user_id', auth()->id());
+        $query = Item::with(['images', 'units', 'product']);
 
         // 搜尋關鍵字
         if (!empty($filters['search'])) {
@@ -31,10 +29,16 @@ class ItemService
         // 分類篩選
         if (array_key_exists('category_id', $filters)) {
             $categoryId = $filters['category_id'];
+
             if ($categoryId === 'none') {
-                $query->whereNull('category_id');
-            } elseif ($categoryId !== null) {
-                $query->where('category_id', $categoryId);
+                $query->withWhereHas('product', function ($q) use ($categoryId) {
+                    $q->whereNull('category_id');
+                });
+            } elseif ($categoryId) {
+                $query->withWhereHas('product', function ($q) use ($categoryId) {
+                    $q->where('category_id', $categoryId);
+
+                });
             }
         }
 
