@@ -141,6 +141,10 @@ onMounted(() => {
             >
                 ❌ 清除
             </button>
+
+            <span v-if="pagination.total !== null" class="text-sm text-gray-600 ml-2">
+                （符合條件的 {{ pagination.total }} 筆結果）
+            </span>
         </form>
 
         <ul class="space-y-4">
