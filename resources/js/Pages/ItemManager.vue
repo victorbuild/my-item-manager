@@ -2,9 +2,16 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
+import Multiselect from '@vueform/multiselect'
+import '@vueform/multiselect/themes/default.css'
 
 const route = useRoute()
 const router = useRouter()
+
+// 預設的狀態（棄用以外）
+const DEFAULT_STATUSES = ['pending_delivery', 'pending_use', 'using']
+
+const statuses = ref([])
 
 const items = ref([])
 const pagination = ref({
@@ -29,6 +36,7 @@ const doSearch = () => {
         query: {
             ...(search.value ? { search: search.value } : {}),
             ...(category.value ? { category_id: category.value } : {}),
+            ...(statuses.value.length ? { statuses: statuses.value.join(',') } : {}),
         },
     })
 
@@ -46,6 +54,7 @@ const fetchItems = async (page = 1) => {
             page,
             search: search.value || undefined,
             category_id: category.value || undefined,
+            statuses: statuses.value.length ? statuses.value.join(',') : undefined,
         },
     })
     items.value = res.data.items
@@ -60,6 +69,14 @@ const confirmDelete = async (id) => {
 }
 
 onMounted(() => {
+
+    // 初始化篩選狀態
+    if (route.query.statuses) {
+        statuses.value = route.query.statuses.split(',')
+    } else {
+        statuses.value = [...DEFAULT_STATUSES]
+    }
+
     fetchCategories()
     fetchItems(Number(route.query.page) || 1)
 })
@@ -94,6 +111,21 @@ onMounted(() => {
                 </option>
             </select>
 
+            <Multiselect
+                v-model="statuses"
+                mode="tags"
+                :close-on-select="false"
+                :searchable="false"
+                :options="[
+    { value: 'pending_delivery', label: '📦 未到貨' },
+    { value: 'pending_use', label: '🚀 未使用' },
+    { value: 'using', label: '✅ 使用中' },
+    { value: 'discarded', label: '🗑️ 已棄用' }
+  ]"
+                placeholder="📊 選擇狀態（可多選）"
+                class="min-w-[200px]"
+            />
+
             <button
                 type="submit"
                 class="px-5 py-2 bg-blue-500 text-white font-medium rounded-xl shadow hover:bg-blue-600 transition"
@@ -102,9 +134,9 @@ onMounted(() => {
             </button>
 
             <button
-                v-if="search || category"
+                v-if="search || category || statuses.length !== DEFAULT_STATUSES.length"
                 type="button"
-                @click="search = ''; category = ''; fetchItems(1)"
+                @click="search = ''; category = ''; statuses = [...DEFAULT_STATUSES]; fetchItems(1)"
                 class="text-sm text-gray-500 underline ml-2"
             >
                 ❌ 清除
@@ -124,7 +156,10 @@ onMounted(() => {
                     </div>
                     <div class="text-sm text-gray-500 mt-1">
                         💰 金額：{{ formatPrice(item.price) }}<br />
-                        📅 購買日：{{ item.purchased_at }}
+                        📅 購買日期：{{ item.purchased_at }}<br />
+                        📦 到貨日期：{{ item.received_at }}<br />
+                        🚀 開始使用日期：{{ item.used_at || '（未填寫）' }}<br />
+                        🗑️ 棄用日：{{ item.discarded_at }}<br />
                     </div>
                 </div>
 

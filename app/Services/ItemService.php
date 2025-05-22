@@ -42,6 +42,25 @@ class ItemService
             }
         }
 
+        // 狀態多選篩選
+        if (!empty($filters['statuses']) && is_array($filters['statuses'])) {
+            $query->where(function ($q) use ($filters) {
+                foreach ($filters['statuses'] as $status) {
+                    $q->orWhere(function ($sub) use ($status) {
+                        if ($status === 'pending_delivery') {
+                            $sub->whereNull('received_at');
+                        } elseif ($status === 'pending_use') {
+                            $sub->whereNull('used_at')->whereNotNull('received_at');
+                        } elseif ($status === 'using') {
+                            $sub->whereNotNull('used_at')->whereNull('discarded_at');
+                        } elseif ($status === 'discarded') {
+                            $sub->whereNotNull('discarded_at');
+                        }
+                    });
+                }
+            });
+        }
+
         $paginated = $query->orderByDesc('id')->paginate($perPage);
 
         // 圖片網址加工

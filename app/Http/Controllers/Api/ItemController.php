@@ -30,6 +30,7 @@ class ItemController extends Controller
         $filters = [
             'search' => $request->input('search'),
             'category_id' => $request->input('category_id'),
+            'statuses' => $request->filled('statuses') ? explode(',', $request->input('statuses')) : [],
         ];
 
         $items = $this->itemService->paginateWithFilters($filters);

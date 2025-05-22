@@ -28,15 +28,6 @@
         </div>
 
         <ul class="space-y-4">
-            <li>
-                <router-link
-                    to="/products"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-indigo-50 transition"
-                >
-                    🏷️ 產品定義<br/>
-                    <span class="text-sm text-gray-500">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
-                </router-link>
-            </li>
 
             <li>
                 <router-link
@@ -50,11 +41,11 @@
 
             <li>
                 <router-link
-                    to="/item-units"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-green-50 transition"
+                    to="/products"
+                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-indigo-50 transition"
                 >
-                    📋 單品細節<br/>
-                    <span class="text-sm text-gray-500">進一步紀錄子項目，如書本的書衣、鞋盒等</span>
+                    🏷️ 產品定義<br/>
+                    <span class="text-sm text-gray-500">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
                 </router-link>
             </li>
 
