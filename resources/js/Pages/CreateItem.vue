@@ -128,8 +128,23 @@
             </div>
 
             <div>
-                <label class="block font-medium">購買日期 *</label>
+                <label class="block font-medium">💰 購買日期 *</label>
                 <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" required/>
+            </div>
+
+            <div>
+                <label class="block font-medium">📦 到貨日期</label>
+                <input v-model="form.received_at" type="date" class="w-full p-2 border rounded" />
+            </div>
+
+            <div>
+                <label class="block font-medium">🚀 開始使用日期</label>
+                <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" />
+            </div>
+
+            <div>
+                <label class="block font-medium">🗑️ 棄用日期</label>
+                <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" />
             </div>
 
             <!-- 掃描器區塊 -->
@@ -252,6 +267,9 @@ const form = ref({
     quantity: 1,
     price: '',
     purchased_at: '',
+    received_at: '',
+    used_at: '',
+    discarded_at: '',
     barcode: '',
 })
 const onSearch = async (query) => {
@@ -361,11 +379,13 @@ const resetForm = () => {
         quantity: 1,
         price: '',
         purchased_at: new Date().toISOString().split('T')[0],
+        received_at: '',
+        used_at: '',
+        discarded_at: '',
         barcode: '',
     }
     selectedCategory.value = null
     imageUrls.value = []
-    units.value = ['']
 }
 
 let html5QrCode
