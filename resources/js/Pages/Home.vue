@@ -64,7 +64,7 @@
                     to="/discarded"
                     class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-red-50 transition"
                 >
-                    🗑️ 已報廢物品<br/>
+                    🗑️ 已棄用物品<br/>
                     <span class="text-sm text-gray-500">不再使用的物品（含主品與單品）</span>
                 </router-link>
             </li>
