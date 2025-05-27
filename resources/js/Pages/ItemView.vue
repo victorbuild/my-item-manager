@@ -80,7 +80,14 @@
                         />
                     </div>
                 </div>
-
+                <div class="text-sm text-gray-700 space-y-1 border-t pt-4 mt-4">
+                    <div>📦 到貨時間：{{ getDeliveryDays() !== null ? `${getDeliveryDays()} 天` : '—' }}</div>
+                    <div>📦 購買到使用：{{ getDaysFromPurchaseToUse() !== null ? `${getDaysFromPurchaseToUse()} 天` : '—' }}</div>
+                    <div>📅 使用至今：{{ getDaysUsedUntilNow() !== null ? `${getDaysUsedUntilNow()} 天` : '尚未使用' }}</div>
+                    <div>🗑️ 使用到報廢：{{ getDaysUsedUntilDiscarded() !== null ? `${getDaysUsedUntilDiscarded()} 天` : '—' }}</div>
+                    <div>⏳ 狀態：{{ isNeverUsed() ? '從未開始使用' : '已使用' }}</div>
+                    <div>💰 平均每日成本：{{ getItemCostPerDay() !== null ? `${getItemCostPerDay()} 元` : '—' }}</div>
+                </div>
             </div>
 
             <!-- 🧾 單位卡片們 -->
@@ -231,6 +238,54 @@ const updateUsedDate = async (unitId, date) => {
     } catch (err) {
         alert('更新失敗')
         console.error(err)
+    }
+}
+
+// 計算到貨時間（從購買到到貨）
+const getDeliveryDays = () => {
+    if (!item.value?.purchased_at || !item.value?.received_at) return null
+    return dayjs(item.value.received_at).diff(dayjs(item.value.purchased_at), 'day')
+}
+
+// 開始使用到現在的天數
+const getDaysUsedUntilNow = () => {
+    if (!item.value?.used_at) return null
+    return today.diff(dayjs(item.value.used_at), 'day') + 1
+}
+
+// 開始使用到報廢的天數
+const getDaysUsedUntilDiscarded = () => {
+    if (!item.value?.used_at || !item.value?.discarded_at) return null
+    return dayjs(item.value.discarded_at).diff(dayjs(item.value.used_at), 'day') + 1
+}
+
+// 是否從未開始使用
+const isNeverUsed = () => {
+    return !item.value?.used_at
+}
+
+// 平均每日成本（以 item 為整體）
+const getItemCostPerDay = () => {
+    const days = item.value?.discarded_at
+        ? getDaysUsedUntilDiscarded()
+        : getDaysUsedUntilNow()
+
+    if (!days || !item.value?.price) return null
+    return (item.value.price / days).toFixed(2)
+}
+
+// 購買到開始使用的天數
+const getDaysFromPurchaseToUse = () => {
+    const purchased = item.value?.purchased_at
+    const used = item.value?.used_at
+
+    if (!purchased) return null
+
+    if (used) {
+        return dayjs(used).diff(dayjs(purchased), 'day') + ' 天'
+    } else {
+        const daysSincePurchase = today.diff(dayjs(purchased), 'day')
+        return `尚未使用（已過 ${daysSincePurchase} 天）`
     }
 }
 
