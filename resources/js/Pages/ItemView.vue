@@ -82,7 +82,7 @@
                 </div>
                 <div class="text-sm text-gray-700 space-y-1 border-t pt-4 mt-4">
                     <div>📦 到貨時間：{{ getDeliveryDays() !== null ? `${getDeliveryDays()} 天` : '—' }}</div>
-                    <div>📦 購買到使用：{{ getDaysFromPurchaseToUse() !== null ? `${getDaysFromPurchaseToUse()} 天` : '—' }}</div>
+                    <div>📦 購買到使用：{{ getDaysFromPurchaseToUse() !== null ? `${getDaysFromPurchaseToUse()}` : '—' }}</div>
                     <div>📅 使用至今：{{ getDaysUsedUntilNow() !== null ? `${getDaysUsedUntilNow()} 天` : '尚未使用' }}</div>
                     <div>🗑️ 使用到報廢：{{ getDaysUsedUntilDiscarded() !== null ? `${getDaysUsedUntilDiscarded()} 天` : '—' }}</div>
                     <div>⏳ 狀態：{{ isNeverUsed() ? '從未開始使用' : '已使用' }}</div>
