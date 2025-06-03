@@ -312,6 +312,17 @@ const onSelect = async (option) => {
 }
 
 onMounted(async () => {
+
+    try {
+        await axios.get('/api/user') // Laravel Sanctum 預設是這個
+        // 如果成功，就不做事
+    } catch (error) {
+        if (error.response?.status === 401) {
+            router.push('/login') // 或使用名稱：{ name: 'Login' }
+            return
+        }
+    }
+
     form.value.purchased_at = new Date().toISOString().split('T')[0]
 
     try {
