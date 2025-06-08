@@ -71,7 +71,7 @@
                         />
                     </div>
                     <div>
-                        🗑️ 報廢日期：
+                        🗑️ 棄用日期：
                         <input
                             type="date"
                             class="p-1 border rounded"
@@ -79,6 +79,23 @@
                             @change="(e) => updateItemDate('discarded_at', e.target.value)"
                         />
                     </div>
+                    <hr>
+                    <div class="mt-3">
+                        <label class="block text-sm font-medium text-gray-600">📝 棄用備註</label>
+                        <textarea
+                            v-model="discardNote"
+                            rows="3"
+                            class="w-full p-2 border rounded"
+                            placeholder="你想對這件物品說些什麼..."
+                        ></textarea>
+                        <button
+                            @click="saveDiscardNote"
+                            class="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow"
+                        >
+                            ✅ 儲存備註
+                        </button>
+                    </div>
+
                 </div>
                 <div class="text-sm text-gray-700 space-y-1 border-t pt-4 mt-4">
                     <div>📦 到貨時間：{{ getDeliveryDays() !== null ? `${getDeliveryDays()} 天` : '—' }}</div>
@@ -161,11 +178,26 @@ const router = useRouter()
 const item = ref(null)
 
 const today = dayjs()
+const discardNote = ref('')
+
+const saveDiscardNote = async () => {
+    try {
+        await axios.patch(`/api/items/${item.value.short_id}`, {
+            discard_note: discardNote.value,
+        })
+        alert('✅ 備註已儲存')
+        fetchItem()
+    } catch (err) {
+        alert('❌ 儲存失敗')
+        console.error(err)
+    }
+}
 
 const fetchItem = async () => {
     try {
         const res = await axios.get(`/api/items/${route.params.id}`)
         item.value = res.data.items[0]
+        discardNote.value = res.data.items[0]?.discard_note || ''
     } catch (error) {
         if (error.response && error.response.status === 404) {
             // ✅ 跳轉 Vue 的 404 NotFound 頁面

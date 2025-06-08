@@ -79,6 +79,7 @@ class Item extends Model
         'received_at',
         'used_at',
         'discarded_at',
+        'discard_note',
         'notes',
         'serial_number',
         'category_id',

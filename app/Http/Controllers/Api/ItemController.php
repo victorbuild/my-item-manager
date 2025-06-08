@@ -144,6 +144,8 @@ class ItemController extends Controller
             'used_at' => 'nullable|date',
             'discarded_at' => 'nullable|date',
 
+            'discard_note' => 'nullable',
+
             // 狀態與備註
             'is_discarded' => 'boolean',
             'notes' => 'nullable|string',

@@ -36,6 +36,8 @@ class ItemResource extends JsonResource
             'used_at' => $this->used_at,
             'discarded_at' => $this->discarded_at,
 
+            'discard_note' => $this->discard_note,
+
             // 狀態與關聯
             'is_discarded' => $this->is_discarded,
             'category' => $this->category,
