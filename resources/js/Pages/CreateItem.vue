@@ -86,20 +86,53 @@
 
         <form @submit.prevent="submitForm(false)" class="space-y-4">
             <!-- 圖片上傳 -->
-            <label class="block font-medium">📷 上傳圖片或拍照</label>
-            <input
-                type="file"
-                accept="image/*"
-                @change="uploadImage"
-                class="w-full"
-            />
-            <div class="flex flex-wrap gap-2">
-                <img v-for="(url, index) in imageUrls"
-                     :src="url"
-                     :key="url"
-                     class="w-20 h-20 object-cover rounded border"
-                     :alt="`${form.name} 第 ${index + 1} 張`"
-                />
+            <div>
+                <label class="block font-medium">📷 上傳圖片或拍照</label>
+                <div
+                    class="border-2 border-dashed border-gray-400 rounded p-4 text-center bg-white cursor-pointer"
+                    @dragover.prevent
+                    @drop.prevent="handleDrop"
+                >
+                    拖拉圖片到這裡上傳或點擊選擇
+                    <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        class="hidden"
+                        ref="fileInput"
+                        @change="handleFileSelect"
+                    />
+                    <button type="button" @click="fileInput.click()" class="ml-2 underline text-blue-500">選擇圖片</button>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <div
+                        v-for="(item, index) in uploadList"
+                        :key="item.id"
+                        class="relative w-20 h-20 border rounded overflow-hidden"
+                        :class="{ 'opacity-50': item.status !== 'done' }"
+                    >
+                        <img :src="item.preview" class="w-full h-full object-cover" />
+
+                        <div v-if="item.status === 'uploading'" class="absolute bottom-0 left-0 w-full h-2 bg-gray-200">
+                            <div class="bg-blue-500 h-full" :style="{ width: item.progress + '%' }"></div>
+                        </div>
+
+                        <div
+                            v-if="item.status === 'done'"
+                            class="absolute top-0 right-0 bg-green-500 text-white text-xs px-1"
+                        >✅</div>
+                        <div
+                            v-else-if="item.status === 'error'"
+                            class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1"
+                        >❌</div>
+
+                        <button
+                            @click="removeImage(index)"
+                            class="absolute -top-1 -left-1 bg-black text-white rounded-full w-5 h-5 text-xs"
+                        >×</button>
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -180,7 +213,7 @@
 <script setup>
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
-import {ref, onMounted, nextTick} from 'vue'
+import {ref, onMounted, nextTick, watchEffect} from 'vue'
 import {useRouter} from 'vue-router'
 import axios from 'axios'
 import {Html5Qrcode} from 'html5-qrcode'
@@ -194,7 +227,75 @@ const router = useRouter()
 
 const showScanner = ref(false)
 const isSubmitting = ref(false)
+
+const fileInput = ref(null)
+const uploadList = ref([])
+let uploadId = 0
+
+const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files)
+    prepareUpload(files)
+}
+
+const handleDrop = (e) => {
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))
+    prepareUpload(files)
+}
+
+const prepareUpload = (files) => {
+    files.forEach(file => {
+        const id = uploadId++
+        const preview = URL.createObjectURL(file)
+        const item = {
+            id,
+            file,
+            preview,
+            progress: 0,
+            status: 'waiting', // waiting, uploading, done, error
+            url: ''
+        }
+        uploadList.value.push(item)
+    })
+    startUploadQueue()
+}
+
+const startUploadQueue = async () => {
+    for (const item of uploadList.value) {
+        if (item.status !== 'waiting') continue
+        item.status = 'uploading'
+
+        const formData = new FormData()
+        formData.append('image', item.file)
+
+        try {
+            const res = await axios.post('/api/upload-temp-image', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (e) => {
+                    item.progress = Math.round((e.loaded * 100) / e.total)
+                }
+            })
+
+            item.status = 'done'
+            item.url = res.data.url
+        } catch (err) {
+            item.status = 'error'
+            console.error('❌ 上傳失敗', err)
+        }
+    }
+}
+
+const removeImage = (index) => {
+    const item = uploadList.value[index]
+    URL.revokeObjectURL(item.preview)
+    uploadList.value.splice(index, 1)
+}
+
 const imageUrls = ref([])
+watchEffect(() => {
+    imageUrls.value = uploadList.value
+        .filter(item => item.status === 'done')
+        .map(item => item.url)
+})
 
 const selectedProduct = ref(null)
 const products = ref([])
