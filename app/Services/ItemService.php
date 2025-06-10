@@ -23,7 +23,7 @@ class ItemService
 
         // 搜尋關鍵字
         if (!empty($filters['search'])) {
-            $query->where('name', 'like', '%' . $filters['search'] . '%');
+            $query->where('name', 'ILIKE', '%' . $filters['search'] . '%');
         }
 
         // 分類篩選
