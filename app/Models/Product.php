@@ -74,4 +74,16 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    public function latestItem()
+    {
+        return $this->hasOne(Item::class)->latest('purchased_at');
+    }
+
+    public function latestOwnedItem()
+    {
+        return $this->hasOne(Item::class)
+            ->whereNull('discarded_at')
+            ->latest('purchased_at');
+    }
 }

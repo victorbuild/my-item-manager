@@ -89,6 +89,11 @@ class Item extends Model
         'product_id',
     ];
 
+    protected $appends = [
+        'first_thumb_url',
+        'first_preview_url',
+    ];
+
     protected static function booted(): void
     {
         static::creating(function ($item) {
@@ -132,5 +137,41 @@ class Item extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * 取得第一張縮圖網址
+     *
+     * @return string|null
+     */
+    public function getFirstThumbUrlAttribute(): ?string
+    {
+        $image = $this->images->first();
+        if (!$image) {
+            return null;
+        }
+
+        $uuid = $this->uuid;
+        $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
+
+        return asset("storage/item-images/$uuid/thumb/$filename.webp");
+    }
+
+    /**
+     * 取得第一張縮圖網址
+     *
+     * @return string|null
+     */
+    public function getFirstPreviewUrlAttribute(): ?string
+    {
+        $image = $this->images->first();
+        if (!$image) {
+            return null;
+        }
+
+        $uuid = $this->uuid;
+        $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
+
+        return asset("storage/item-images/$uuid/preview/$filename.webp");
     }
 }

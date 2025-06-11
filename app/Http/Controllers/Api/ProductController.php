@@ -12,16 +12,31 @@ class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with(['category', 'items'])
-            ->withCount('items')
+        $query = Product::with(
+            [
+                'category',
+                'items',
+                'latestItem.images',
+                'latestOwnedItem.images'
+            ]
+        )
+        ->withCount([
+            'items',
+            'items as discarded_items_count' => function ($query) {
+                $query->whereNotNull('discarded_at');
+            },
+            'items as owned_items_count' => function ($query) {
+                $query->whereNull('discarded_at');
+            },
+        ])
             ->where('user_id', $request->user()->id);
 
         if ($search = $request->query('q')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'ILIKE', "%{$search}%")
-                    ->orWhere('brand', 'ILIKE', "%{$search}%")
-                    ->orWhere('model', 'ILIKE', "%{$search}%")
-                    ->orWhere('spec', 'ILIKE', "%{$search}%");
+                $q->where('name', 'ILIKE', "%$search%")
+                    ->orWhere('brand', 'ILIKE', "%$search%")
+                    ->orWhere('model', 'ILIKE', "%$search%")
+                    ->orWhere('spec', 'ILIKE', "%$search%");
             });
         }
 
