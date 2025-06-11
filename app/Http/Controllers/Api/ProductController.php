@@ -83,4 +83,67 @@ class ProductController extends Controller
             ],
         ]);
     }
+
+    public function update(Request $request, string $shortId): JsonResponse
+    {
+        $product = Product::where('short_id', $shortId)->firstOrFail();
+
+        // 確保使用者只能編輯自己的產品
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json(['message' => '無權限修改此產品'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'brand' => 'nullable|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'model' => 'nullable|string|max:255',
+            'spec' => 'nullable|string|max:255',
+            'barcode' => 'nullable|string|max:255',
+        ]);
+
+        $product->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => '更新成功',
+            'item' => $product,
+        ]);
+    }
+
+    public function show(Request $request, string $shortId): JsonResponse
+    {
+        $product = Product::where('short_id', $shortId)->firstOrFail();
+
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json(['message' => '無權限檢視此產品'], 403);
+        }
+
+        $product->load([
+            'category',
+            'items.images',
+        ]);
+
+        // 依照使用狀態排序 items
+        $sortedItems = $product->items->sortBy(function ($item) {
+            if ($item->started_at && !$item->discarded_at) {
+                return 0; // 使用中
+            } elseif (!$item->started_at && !$item->discarded_at && $item->purchased_at) {
+                return 1; // 擁有中
+            } elseif (!$item->started_at && !$item->purchased_at && !$item->discarded_at) {
+                return 2; // 未到貨
+            } elseif ($item->discarded_at) {
+                return 3; // 已棄用
+            }
+            return 4; // 其他情況（保底）
+        })->values(); // 重新 index
+
+        // 將排序後的 items 附加回產品資料
+        $product->setRelation('items', $sortedItems);
+
+        return response()->json([
+            'success' => true,
+            'item' => $product,
+        ]);
+    }
 }

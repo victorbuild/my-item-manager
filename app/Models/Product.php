@@ -86,4 +86,11 @@ class Product extends Model
             ->whereNull('discarded_at')
             ->latest('purchased_at');
     }
+
+    public function ownedItems(): HasMany
+    {
+        return $this->hasMany(Item::class)
+            ->whereNull('discarded_at')
+            ->orderByDesc('purchased_at');
+    }
 }

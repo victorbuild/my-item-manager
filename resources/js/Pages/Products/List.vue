@@ -1,8 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watchEffect } from 'vue'
 import axios from 'axios'
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
 
 const products = ref([])
+const search = ref('')
 const pagination = ref({
     current_page: 1,
     last_page: 1,
@@ -11,11 +16,30 @@ const pagination = ref({
 })
 const loading = ref(true)
 
+watchEffect(() => {
+    if (route.query.q && typeof route.query.q === 'string') {
+        search.value = route.query.q
+    }
+})
+
 const fetchProducts = async (page = 1) => {
     loading.value = true
+
+    // 更新網址
+    router.replace({
+        query: {
+            ...route.query,
+            q: search.value || undefined,
+            page: page !== 1 ? page : undefined
+        }
+    })
+
     try {
         const res = await axios.get('/api/products', {
-            params: { page }
+            params: {
+                page,
+                q: search.value
+            }
         })
         products.value = res.data.items
         pagination.value = res.data.meta
@@ -43,6 +67,28 @@ onMounted(() => {
             </router-link>
         </div>
 
+        <div class="mb-4 flex gap-2">
+            <input
+                v-model="search"
+                type="text"
+                placeholder="搜尋產品名稱"
+                class="flex-1 p-2 border border-gray-300 rounded"
+            />
+            <button
+                @click="fetchProducts(1)"
+                class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+                🔍 搜尋
+            </button>
+            <button
+                v-if="search"
+                @click="search = ''; fetchProducts(1)"
+                class="text-sm text-gray-500 underline ml-2"
+            >
+                ❌ 清除
+            </button>
+        </div>
+
         <div v-if="loading" class="text-center text-gray-500">載入中...</div>
 
         <ul v-else class="space-y-4">
@@ -56,6 +102,7 @@ onMounted(() => {
                     <!-- 背景：模糊處理的 cover -->
                     <img
                         :src="product.latest_item.first_preview_url"
+                        draggable="false"
                         class="absolute inset-0 w-full h-full object-cover blur-sm scale-110"
                         alt="模糊背景"
                     />
@@ -63,6 +110,7 @@ onMounted(() => {
                     <!-- 正中置中的圖片 -->
                     <img
                         :src="product.latest_item.first_preview_url"
+                        draggable="false"
                         class="relative z-10 h-full object-contain mx-auto"
                         alt="主圖片"
                     />

@@ -8,6 +8,8 @@ import NotFound from './Pages/NotFound.vue'
 import Login from './Pages/LoginView.vue'
 import Register from './Pages/RegisterView.vue'
 import ProductList from './Pages/Products/List.vue'
+import ProductForm from './Pages/Products/Form.vue'
+import ProductShow from './Pages/Products/Show.vue'
 
 const routes = [
     {
@@ -33,17 +35,17 @@ const routes = [
     {
         path: '/products/create',
         name: 'ProductCreate',
-        component: ProductList
+        component: ProductForm
     },
     {
         path: '/products/:id',
         name: 'ProductView',
-        component: ProductList
+        component: ProductShow
     },
     {
         path: '/products/:id/edit',
-        name: 'Productdit',
-        component: ProductList
+        name: 'ProductEdit',
+        component: ProductForm
     },
     {
         path: '/items',
