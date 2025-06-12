@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import axios from '../../axios'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -75,7 +75,10 @@ onMounted(async () => {
         const res = await axios.get(`/api/products/${route.params.id}`)
         product.value = res.data.item
     } catch (e) {
-        alert('❌ 載入產品失敗')
+        if (e.response?.status !== 401) {
+            alert('❌ 載入產品失敗')
+        }
+        // 可選：401 的處理，如跳轉登入頁等
     }
 })
 

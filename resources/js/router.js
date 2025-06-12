@@ -10,6 +10,7 @@ import Register from './Pages/RegisterView.vue'
 import ProductList from './Pages/Products/List.vue'
 import ProductForm from './Pages/Products/Form.vue'
 import ProductShow from './Pages/Products/Show.vue'
+import DiscardedItemList from './Pages/DiscardedItems/List.vue'
 
 const routes = [
     {
@@ -66,6 +67,11 @@ const routes = [
         path: '/items/:id/edit',
         name: 'ItemEdit',
         component: EditItem
+    },
+    {
+        path: '/discarded',
+        name: 'DiscardedItems',
+        component: DiscardedItemList
     },
     {
         path: '/:pathMatch(.*)*',
