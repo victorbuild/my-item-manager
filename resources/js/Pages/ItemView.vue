@@ -16,14 +16,15 @@
                 </div>
 
                 <div class="text-sm text-gray-700 space-y-1">
-                    <div>📄 描述：{{ item.description || '（無）' }}</div>
+                    <div>📄 描述：{{ item.description || '-' }}</div>
                     <div>📍 位置：{{ item.location || '（未指定）' }}</div>
                     <div>💰 金額：{{ formatPrice(item.price) }}</div>
                     <div>📅 購買日期：{{ item.purchased_at }}</div>
                     <div>📦 到貨日期：{{ item.received_at || '（未填寫）' }}</div>
                     <div>🚀 開始使用日期：{{ item.used_at || '（未填寫）' }}</div>
-                    <div>📦 條碼：{{ item.barcode || '（無）' }}</div>
-                    <div>📂 分類：{{ item.category?.name || '（未分類）' }}</div>
+                    <div>📦 條碼：{{ item.barcode || '-' }}</div>
+                    <div>🔢 序號：{{ item.serial_number || '-' }}</div>
+                    <div>🧊 有效期限：{{ item.expiration_date || '-' }}</div>
                     <div>
                         🗑️ 狀態：
                         <span v-if="item.is_discarded" class="text-green-600">✅ 已報廢</span>
@@ -105,6 +106,20 @@
                     <div>⏳ 狀態：{{ isNeverUsed() ? '從未開始使用' : '已使用' }}</div>
                     <div>💰 平均每日成本：{{ getItemCostPerDay() !== null ? `${getItemCostPerDay()} 元` : '—' }}</div>
                 </div>
+            </div>
+
+            <!-- 📦 所屬產品卡片 -->
+            <div v-if="item.product" class="bg-white p-6 rounded shadow space-y-2">
+                <h2 class="text-lg font-semibold text-gray-800">📦 所屬產品資訊</h2>
+                <div><strong>📛 名稱：</strong>
+                    <router-link
+                        :to="`/products/${item.product?.short_id}`"
+                        class="text-blue-600 hover:underline"
+                    >
+                        {{ item.product?.name || '（無）' }}
+                    </router-link>
+                </div>
+                <div><strong>📂 分類：</strong> {{ item.product?.category?.name || '未分類' }}</div>
             </div>
 
             <!-- 🧾 單位卡片們 -->

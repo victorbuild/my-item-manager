@@ -35,11 +35,23 @@ class ItemResource extends JsonResource
             'received_at' => $this->received_at,
             'used_at' => $this->used_at,
             'discarded_at' => $this->discarded_at,
+            'expiration_date' => optional($this->expiration_date)->toDateString(),
 
             'discard_note' => $this->discard_note,
 
             // 狀態與關聯
             'is_discarded' => $this->is_discarded,
+            'product' => $this->whenLoaded('product', function () {
+                return [
+                    'id' => $this->product->id,
+                    'short_id' => $this->product->short_id,
+                    'name' => $this->product->name,
+                    'category' => [
+                        'id' => $this->product->category?->id,
+                        'name' => $this->product->category?->name,
+                    ],
+                ];
+            }),
             'category' => $this->category,
             'units' => $this->units,
 

@@ -87,6 +87,11 @@ class Item extends Model
         'uuid',
         'short_id',
         'product_id',
+        'expiration_date',
+    ];
+
+    protected $casts = [
+        'expiration_date' => 'date',
     ];
 
     protected $appends = [

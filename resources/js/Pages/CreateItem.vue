@@ -112,7 +112,7 @@
                         class="relative w-20 h-20 border rounded overflow-hidden"
                         :class="{ 'opacity-50': item.status !== 'done' }"
                     >
-                        <img :src="item.preview" class="w-full h-full object-cover" />
+                        <img :src="item.preview" class="w-full h-full object-cover" :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
 
                         <div v-if="item.status === 'uploading'" class="absolute bottom-0 left-0 w-full h-2 bg-gray-200">
                             <div class="bg-blue-500 h-full" :style="{ width: item.progress + '%' }"></div>
@@ -178,6 +178,10 @@
             <div>
                 <label class="block font-medium">🗑️ 棄用日期</label>
                 <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" />
+            </div>
+            <div>
+                <label class="block font-medium">🧊 有效期限</label>
+                <input v-model="form.expiration_date" type="date" class="w-full p-2 border rounded" />
             </div>
 
             <!-- 掃描器區塊 -->
@@ -371,6 +375,7 @@ const form = ref({
     received_at: '',
     used_at: '',
     discarded_at: '',
+    expiration_date: '',
     barcode: '',
 })
 const onSearch = async (query) => {
@@ -494,6 +499,7 @@ const resetForm = () => {
         received_at: '',
         used_at: '',
         discarded_at: '',
+        expiration_date: '',
         barcode: '',
     }
     selectedCategory.value = null

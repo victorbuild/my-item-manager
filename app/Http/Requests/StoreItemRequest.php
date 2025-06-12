@@ -33,6 +33,7 @@ class StoreItemRequest extends FormRequest
             'received_at' => 'nullable|date',
             'used_at' => 'nullable|date',
             'discarded_at' => 'nullable|date',
+            'expiration_date' => 'nullable|date',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'url',
             'barcode' => 'nullable|string|max:255',

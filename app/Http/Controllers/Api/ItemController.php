@@ -118,7 +118,7 @@ class ItemController extends Controller
             'success' => true,
             'message' => '資料載入成功',
             'items' => [
-                new ItemResource($item->load(['images', 'units', 'category']))
+                new ItemResource($item->load(['images', 'units', 'category', 'product.category']))
             ],
         ]);
     }
