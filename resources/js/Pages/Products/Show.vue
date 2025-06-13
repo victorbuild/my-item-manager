@@ -2,8 +2,10 @@
     <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-3xl mx-auto space-y-6">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">📦 產品詳情</h1>
-            <router-link to="/products" class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded">⬅ 返回
-            </router-link>
+            <div class="space-x-2">
+                <router-link to="/products" class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded">⬅ 返回列表</router-link>
+                <router-link :to="`/products/${route.params.id}/edit`" class="text-sm bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded">✏️ 編輯</router-link>
+            </div>
         </div>
 
         <div v-if="product" class="bg-white p-6 rounded shadow space-y-4">
