@@ -25,11 +25,6 @@
                     <div>📦 條碼：{{ item.barcode || '-' }}</div>
                     <div>🔢 序號：{{ item.serial_number || '-' }}</div>
                     <div>🧊 有效期限：{{ item.expiration_date || '-' }}</div>
-                    <div>
-                        🗑️ 狀態：
-                        <span v-if="item.is_discarded" class="text-green-600">✅ 已報廢</span>
-                        <span v-else class="text-gray-500">尚未報廢</span>
-                    </div>
                     <div v-if="item.discarded_at">📅 報廢日期：{{ item.discarded_at }}</div>
                 </div>
 
@@ -103,7 +98,7 @@
                     <div>📦 購買到使用：{{ getDaysFromPurchaseToUse() !== null ? `${getDaysFromPurchaseToUse()}` : '—' }}</div>
                     <div>📅 使用至今：{{ getDaysUsedUntilNow() !== null ? `${getDaysUsedUntilNow()} 天` : '尚未使用' }}</div>
                     <div>🗑️ 使用到報廢：{{ getDaysUsedUntilDiscarded() !== null ? `${getDaysUsedUntilDiscarded()} 天` : '—' }}</div>
-                    <div>⏳ 狀態：{{ isNeverUsed() ? '從未開始使用' : '已使用' }}</div>
+                    <div>⏳ 狀態：{{ statusLabelMap[item.status] || '—' }}</div>
                     <div>💰 平均每日成本：{{ getItemCostPerDay() !== null ? `${getItemCostPerDay()} 元` : '—' }}</div>
                 </div>
             </div>
@@ -194,6 +189,8 @@ const item = ref(null)
 
 const today = dayjs()
 const discardNote = ref('')
+
+import { ITEM_STATUS_LABEL_MAP as statusLabelMap } from '@/constants/itemStatus'
 
 const saveDiscardNote = async () => {
     try {

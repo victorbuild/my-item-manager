@@ -41,6 +41,7 @@ class ItemResource extends JsonResource
 
             // 狀態與關聯
             'is_discarded' => $this->is_discarded,
+            'status' => $this->status,
             'product' => $this->whenLoaded('product', function () {
                 return [
                     'id' => $this->product->id,

@@ -116,26 +116,15 @@ onMounted(() => {
                     />
                 </div>
                 <div>
+                    <div class="text-sm text-yellow-700 font-semibold mb-1">
+                        📦 擁有 {{ product.owned_items_count }} 個
+                    </div>
                     <div class="font-semibold text-xl text-gray-800 break-words max-w-full">
                         {{ product.name }}
                     </div>
                     <div class="text-sm text-gray-500 mt-1">
                         🏷 品牌：{{ product.brand || '未填寫' }}<br />
                         📂 分類：{{ product.category?.name || '未分類' }}
-                    </div>
-                    <div class="grid grid-cols-3 gap-4 text-sm text-gray-700 mt-2 text-center">
-                        <div class="flex flex-col items-center text-yellow-700">
-                            <div>📦 擁有中</div>
-                            <div class="text-lg font-semibold">{{ product.owned_items_count }}</div>
-                        </div>
-                        <div class="flex flex-col items-center text-gray-500">
-                            <div>🗑️ 已棄用</div>
-                            <div class="text-lg font-semibold">{{ product.discarded_items_count }}</div>
-                        </div>
-                        <div class="flex flex-col items-center text-blue-700">
-                            <div>📊 總數</div>
-                            <div class="text-lg font-semibold">{{ product.items_count }}</div>
-                        </div>
                     </div>
                 </div>
 

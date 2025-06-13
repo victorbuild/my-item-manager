@@ -124,26 +124,32 @@ class ProductController extends Controller
             'items.images',
         ]);
 
-        // 依照使用狀態排序 items
-        $sortedItems = $product->items->sortBy(function ($item) {
-            if ($item->started_at && !$item->discarded_at) {
-                return 0; // 使用中
-            } elseif (!$item->started_at && !$item->discarded_at && $item->purchased_at) {
-                return 1; // 擁有中
-            } elseif (!$item->started_at && !$item->purchased_at && !$item->discarded_at) {
-                return 2; // 未到貨
-            } elseif ($item->discarded_at) {
-                return 3; // 已棄用
-            }
-            return 4; // 其他情況（保底）
-        })->values(); // 重新 index
+        // 依照 status 欄位排序 items
+        $statusOrder = [
+            'in_use' => 0,
+            'stored' => 1,
+            'pre_arrival' => 2,
+            'used_and_gone' => 3,
+            'unused_but_gone' => 3,
+        ];
+        $sortedItems = $product->items->sortBy(function ($item) use ($statusOrder) {
+            return $statusOrder[$item->status] ?? 4;
+        })->values();
 
         // 將排序後的 items 附加回產品資料
         $product->setRelation('items', $sortedItems);
 
+        // 狀態數量統計
+        $statuses = ['in_use', 'stored', 'pre_arrival', 'used_and_gone', 'unused_but_gone'];
+        $statusCounts = collect($statuses)->mapWithKeys(function ($status) use ($product) {
+            return [$status => $product->items->where('status', $status)->count()];
+        });
+
         return response()->json([
             'success' => true,
-            'item' => $product,
+            'item' => $product->toArray() + [
+                'status_counts' => $statusCounts,
+            ],
         ]);
     }
 }

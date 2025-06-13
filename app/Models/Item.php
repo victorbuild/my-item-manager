@@ -97,6 +97,7 @@ class Item extends Model
     protected $appends = [
         'first_thumb_url',
         'first_preview_url',
+        'status',
     ];
 
     protected static function booted(): void
@@ -178,5 +179,23 @@ class Item extends Model
         $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
 
         return asset("storage/item-images/$uuid/preview/$filename.webp");
+    }
+
+    /**
+     * 動態屬性：取得物品狀態
+     *
+     * @return string
+     */
+    public function getStatusAttribute(): string
+    {
+        if ($this->discarded_at) {
+            return $this->used_at ? 'used_and_gone' : 'unused_but_gone';
+        } elseif ($this->used_at) {
+            return 'in_use';
+        } elseif ($this->received_at) {
+            return 'stored';
+        } else {
+            return 'pre_arrival';
+        }
     }
 }
