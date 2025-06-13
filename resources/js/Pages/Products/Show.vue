@@ -69,11 +69,28 @@
                     <div v-if="groupedItems[key]?.length" :key="key" class="bg-white p-6 rounded shadow space-y-4">
                         <h2 class="text-lg font-semibold">{{ group }}</h2>
                         <div v-for="item in groupedItems[key]" :key="item.id" class="border-b pb-2 mb-2">
-                            <div><strong>#{{ item.unit_number }}</strong></div>
+                            <div>
+                                <strong>
+                                    <router-link
+                                        class="text-blue-600 hover:underline"
+                                        :to="`/items/${item.short_id}`"
+                                    >
+                                        #{{ item.unit_number }}
+                                    </router-link>
+                                </strong>
+                            </div>
+                            <div>💰 價格：{{ item.price ? `$${item.price}` : '—' }}</div>
+                            <div>
+                              ⏳ 有效期限：
+                              {{ item.expiration_date || '—' }}
+                              <span v-if="item.expiration_date">（剩餘 {{ daysLeft(item.expiration_date) }} 天）</span>
+                            </div>
+                            <div>📝 備註：{{ item.notes || '—' }}</div>
+                            <br>
+                            <div>🚚 到貨日期：{{ item.received_at || '—' }}</div>
                             <div>📅 購買日期：{{ item.purchased_at || '—' }}</div>
                             <div>🚀 使用時間：{{ item.used_at || '—' }}</div>
                             <div>🗑️ 棄用時間：{{ item.discarded_at || '—' }}</div>
-                            <div>📝 備註：{{ item.notes || '—' }}</div>
                             <div v-if="item.first_thumb_url">
                                 <img :src="item.first_thumb_url" :alt="item.name || '物品圖片'" class="h-24 rounded border"/>
                             </div>
@@ -89,6 +106,7 @@
 import {ref, onMounted, computed} from 'vue'
 import axios from '../../axios'
 import {useRoute} from 'vue-router'
+import dayjs from 'dayjs'
 
 const route = useRoute()
 const product = ref(null)
@@ -102,6 +120,12 @@ const statusTips = {
     stored: '貨已到但尚未開始使用',
     in_use: '目前正在使用中',
     discarded: '已使用後報廢的項目，括號內為未使用直接報廢的數量'
+}
+
+const daysLeft = (dateStr) => {
+  const now = dayjs().startOf('day')
+  const target = dayjs(dateStr).startOf('day')
+  return target.diff(now, 'day')
 }
 
 onMounted(async () => {
