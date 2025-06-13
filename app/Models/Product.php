@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -75,22 +76,21 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function latestItem()
-    {
-        return $this->hasOne(Item::class)->latest('purchased_at');
-    }
-
-    public function latestOwnedItem()
+    public function latestOwnedItem(): HasOne
     {
         return $this->hasOne(Item::class)
             ->whereNull('discarded_at')
-            ->latest('purchased_at');
-    }
-
-    public function ownedItems(): HasMany
-    {
-        return $this->hasMany(Item::class)
-            ->whereNull('discarded_at')
-            ->orderByDesc('purchased_at');
+            ->orderByRaw("
+                CASE
+                    WHEN used_at IS NOT NULL THEN 0
+                    ELSE 1
+                END,
+                CASE
+                    WHEN expiration_date IS NOT NULL THEN 0
+                    ELSE 1
+                END,
+                expiration_date ASC,
+                created_at ASC
+            ");
     }
 }

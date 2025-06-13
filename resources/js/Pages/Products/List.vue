@@ -98,10 +98,10 @@ onMounted(() => {
                 class="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-2 transition hover:shadow-lg"
             >
 
-                <div v-if="product.latest_item?.images?.length" class="relative w-full h-40 rounded-lg overflow-hidden">
+                <div v-if="product.latest_owned_item?.images?.length" class="relative w-full h-40 rounded-lg overflow-hidden">
                     <!-- 背景：模糊處理的 cover -->
                     <img
-                        :src="product.latest_item.first_preview_url"
+                        :src="product.latest_owned_item.first_preview_url"
                         draggable="false"
                         class="absolute inset-0 w-full h-full object-cover blur-sm scale-110"
                         alt="模糊背景"
@@ -109,7 +109,7 @@ onMounted(() => {
 
                     <!-- 正中置中的圖片 -->
                     <img
-                        :src="product.latest_item.first_preview_url"
+                        :src="product.latest_owned_item.first_preview_url"
                         draggable="false"
                         class="relative z-10 h-full object-contain mx-auto"
                         alt="主圖片"
@@ -133,7 +133,7 @@ onMounted(() => {
                         :to="`/items/${product.latest_owned_item.short_id}`"
                         class="inline-block text-sm text-green-700 hover:text-green-900 underline"
                     >
-                        🔗 前往最新物品
+                        🔗 前往最新物品（序號：{{ product.latest_owned_item.serial_number || '-' }}）
                     </router-link>
                 </div>
 

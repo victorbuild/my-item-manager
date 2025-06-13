@@ -15,8 +15,6 @@ class ProductController extends Controller
         $query = Product::with(
             [
                 'category',
-                'items',
-                'latestItem.images',
                 'latestOwnedItem.images'
             ]
         )
