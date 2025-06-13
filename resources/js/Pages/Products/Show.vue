@@ -75,7 +75,7 @@
                                         class="text-blue-600 hover:underline"
                                         :to="`/items/${item.short_id}`"
                                     >
-                                        #{{ item.unit_number }}
+                                        #{{ item.serial_number }}
                                     </router-link>
                                 </strong>
                             </div>
@@ -87,8 +87,8 @@
                             </div>
                             <div>📝 備註：{{ item.notes || '—' }}</div>
                             <br>
-                            <div>🚚 到貨日期：{{ item.received_at || '—' }}</div>
                             <div>📅 購買日期：{{ item.purchased_at || '—' }}</div>
+                            <div>🚚 到貨日期：{{ item.received_at || '—' }}</div>
                             <div>🚀 使用時間：{{ item.used_at || '—' }}</div>
                             <div>🗑️ 棄用時間：{{ item.discarded_at || '—' }}</div>
                             <div v-if="item.first_thumb_url">
