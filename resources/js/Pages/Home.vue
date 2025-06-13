@@ -49,6 +49,7 @@
                 </router-link>
             </li>
 
+            <!--
             <li>
                 <router-link
                     to="/usage-records"
@@ -58,6 +59,7 @@
                     <span class="text-sm text-gray-500">每次使用的時間與情境</span>
                 </router-link>
             </li>
+            -->
 
             <li>
                 <router-link
