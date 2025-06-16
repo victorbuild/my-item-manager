@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from '../axios'
+import axios from '../../axios'
 import Multiselect from '@vueform/multiselect'
 import '@vueform/multiselect/themes/default.css'
 

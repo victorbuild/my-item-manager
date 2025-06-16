@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from './Pages/Home.vue'
-import ItemManager from './Pages/ItemManager.vue'
-import CreateItem from './Pages/CreateItem.vue'
-import ItemView from './Pages/ItemView.vue'
-import EditItem from './Pages/EditItem.vue'
+import ItemList from './Pages/Items/List.vue'
+import ItemCreate from './Pages/Items/Create.vue'
+import ItemShow from './Pages/Items/Show.vue'
+import ItemEdit from './Pages/Items/Edit.vue'
 import NotFound from './Pages/NotFound.vue'
 import Login from './Pages/LoginView.vue'
 import Register from './Pages/RegisterView.vue'
@@ -51,22 +51,22 @@ const routes = [
     {
         path: '/items',
         name: 'ItemList',
-        component: ItemManager
+        component: ItemList
     },
     {
         path: '/items/create',
         name: 'ItemCreate',
-        component: CreateItem
+        component: ItemCreate
     },
     {
         path: '/items/:id',
         name: 'ItemView',
-        component: ItemView
+        component: ItemShow
     },
     {
         path: '/items/:id/edit',
         name: 'ItemEdit',
-        component: EditItem
+        component: ItemEdit
     },
     {
         path: '/discarded',

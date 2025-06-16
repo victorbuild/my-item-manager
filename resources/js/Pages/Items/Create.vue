@@ -291,7 +291,7 @@ import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
 import {ref, onMounted, nextTick, watchEffect, computed} from 'vue'
 import {useRouter} from 'vue-router'
-import axios from 'axios'
+import axios from '../../axios'
 import {Html5Qrcode} from 'html5-qrcode'
 
 const categories = ref([])
