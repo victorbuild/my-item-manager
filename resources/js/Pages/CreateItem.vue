@@ -180,8 +180,80 @@
                 <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" />
             </div>
             <div>
-                <label class="block font-medium">🧊 有效期限</label>
+                <label class="block font-medium">
+                    🧊 有效期限
+                    <button 
+                        @click="showManufactureDateModal = true"
+                        type="button"
+                        class="text-sm text-blue-500 hover:underline ml-2"
+                    >
+                        （使用製造日期換算）
+                    </button>
+                </label>
                 <input v-model="form.expiration_date" type="date" class="w-full p-2 border rounded" />
+            </div>
+
+            <!-- 製造日期換算模態框 -->
+            <div v-if="showManufactureDateModal" class="fixed top-0 left-0 w-screen h-screen bg-gray-900/90 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg w-96 shadow-xl">
+                    <h3 class="text-lg font-semibold mb-4">製造日期換算有效期限</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">製造日期</label>
+                            <input 
+                                v-model="manufactureDate" 
+                                type="date" 
+                                class="w-full p-2 border rounded"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1">有效期限長度</label>
+                            <div class="flex gap-2">
+                                <div class="flex-1">
+                                    <input 
+                                        v-model.number="expirationValue" 
+                                        type="number" 
+                                        min="0" 
+                                        class="w-full p-2 border rounded" 
+                                        placeholder="請輸入數字"
+                                    />
+                                </div>
+                                <div class="w-24">
+                                    <select 
+                                        v-model="expirationUnit" 
+                                        class="w-full p-2 border rounded"
+                                    >
+                                        <option value="years">年</option>
+                                        <option value="months">月</option>
+                                        <option value="days">日</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-sm text-gray-600">
+                            計算結果：{{ calculatedExpirationDate || '請輸入製造日期' }}
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-2">
+                        <button 
+                            @click="showManufactureDateModal = false"
+                            class="px-4 py-2 border rounded hover:bg-gray-100"
+                        >
+                            取消
+                        </button>
+                        <button 
+                            @click="applyCalculatedDate"
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            :disabled="!calculatedExpirationDate"
+                        >
+                            套用
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- 掃描器區塊 -->
@@ -217,7 +289,7 @@
 <script setup>
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
-import {ref, onMounted, nextTick, watchEffect} from 'vue'
+import {ref, onMounted, nextTick, watchEffect, computed} from 'vue'
 import {useRouter} from 'vue-router'
 import axios from 'axios'
 import {Html5Qrcode} from 'html5-qrcode'
@@ -537,5 +609,41 @@ const stopScanner = async () => {
         html5QrCode = null
     }
     showScanner.value = false
+}
+
+const showManufactureDateModal = ref(false)
+const manufactureDate = ref('')
+const expirationValue = ref(0)
+const expirationUnit = ref('years')
+
+const calculatedExpirationDate = computed(() => {
+    if (!manufactureDate.value || !expirationValue.value) return ''
+    
+    const date = new Date(manufactureDate.value)
+    
+    switch (expirationUnit.value) {
+        case 'years':
+            date.setFullYear(date.getFullYear() + expirationValue.value)
+            break
+        case 'months':
+            date.setMonth(date.getMonth() + expirationValue.value)
+            break
+        case 'days':
+            date.setDate(date.getDate() + expirationValue.value)
+            break
+    }
+    
+    return date.toISOString().split('T')[0]
+})
+
+const applyCalculatedDate = () => {
+    if (calculatedExpirationDate.value) {
+        form.value.expiration_date = calculatedExpirationDate.value
+        showManufactureDateModal.value = false
+        // 重置輸入值
+        manufactureDate.value = ''
+        expirationValue.value = 0
+        expirationUnit.value = 'years'
+    }
 }
 </script>
