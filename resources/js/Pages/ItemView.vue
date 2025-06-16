@@ -17,14 +17,15 @@
 
                 <div class="text-sm text-gray-700 space-y-1">
                     <div>📄 描述：{{ item.description || '-' }}</div>
-                    <div>📍 位置：{{ item.location || '（未指定）' }}</div>
                     <div>💰 金額：{{ formatPrice(item.price) }}</div>
+                    <div>🧊 有效期限：{{ item.expiration_date || '-' }}</div>
+                    <div>📍 位置：{{ item.location || '（未指定）' }}</div>
+                    <br>
+                    <div>🔢 序號：{{ item.serial_number || '-' }}</div>
                     <div>📅 購買日期：{{ item.purchased_at }}</div>
                     <div>📦 到貨日期：{{ item.received_at || '（未填寫）' }}</div>
                     <div>🚀 開始使用日期：{{ item.used_at || '（未填寫）' }}</div>
-                    <div>📦 條碼：{{ item.barcode || '-' }}</div>
-                    <div>🔢 序號：{{ item.serial_number || '-' }}</div>
-                    <div>🧊 有效期限：{{ item.expiration_date || '-' }}</div>
+                    <div>🗑️ 棄用日期：{{ item.discarded_at || '-' }}</div>
                     <div v-if="item.discarded_at">📅 報廢日期：{{ item.discarded_at }}</div>
                 </div>
 
@@ -115,6 +116,7 @@
                     </router-link>
                 </div>
                 <div><strong>📂 分類：</strong> {{ item.product?.category?.name || '未分類' }}</div>
+                <div>📦 條碼：{{ item.product?.barcode || '-' }}</div>
             </div>
 
             <!-- 🧾 單位卡片們 -->
