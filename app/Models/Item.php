@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 /**
  *
@@ -160,11 +161,14 @@ class Item extends Model
         $uuid = $this->uuid;
         $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
 
-        return asset("storage/item-images/$uuid/thumb/$filename.webp");
+        return Storage::disk('gcs')->temporaryUrl(
+            "item-images/$uuid/thumb/$filename.webp",
+            now()->addMinutes(5)
+        );
     }
 
     /**
-     * 取得第一張縮圖網址
+     * 取得第一張預覽圖網址
      *
      * @return string|null
      */
@@ -178,7 +182,10 @@ class Item extends Model
         $uuid = $this->uuid;
         $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
 
-        return asset("storage/item-images/$uuid/preview/$filename.webp");
+        return Storage::disk('gcs')->temporaryUrl(
+            "item-images/$uuid/preview/$filename.webp",
+            now()->addMinutes(5)
+        );
     }
 
     /**

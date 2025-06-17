@@ -51,7 +51,7 @@ class ImageUploadController extends Controller
 
             // 將圖片內容上傳到 GCS 的 'gcs' 磁碟
             $uploadResult = Storage::disk('gcs')->put($filePath, $fileContent);
-            
+
             Log::info('Upload result', ['result' => $uploadResult]);
 
             if (!$uploadResult) {
@@ -81,7 +81,6 @@ class ImageUploadController extends Controller
                 'upload_result' => $uploadResult,
                 'file_exists' => $exists,
             ], 200);
-
         } catch (\Exception $e) {
             // 記錄詳細錯誤
             Log::error('Image upload failed', [
