@@ -62,37 +62,40 @@ class ItemController extends Controller
         for ($i = 0; $i < $quantity; $i++) {
             $item = $this->itemService->create($validated);
 
-            $disk = Storage::disk('public');
+            $gcsDisk = Storage::disk('gcs');
             $manager = new ImageManager(new Driver());
 
             // 處理圖片（每個 item 都要有自己的圖片複製路徑）
             if (!empty($request->image_urls)) {
-                foreach ($request->image_urls as $tempUrl) {
-                    $tempPath = str_replace('/storage/', '', parse_url($tempUrl, PHP_URL_PATH));
+                foreach ($request->image_urls as $gcsPath) {
+                    if (!$gcsDisk->exists($gcsPath)) {
+                        \Log::warning("Temporary image not found on GCS: {$gcsPath}");
+                        continue;
+                    }
 
-                    if (!$disk->exists($tempPath)) continue;
-
-                    $imageData = $disk->get($tempPath);
+                    $imageData = $gcsDisk->get($gcsPath);
                     $img = $manager->read($imageData);
 
-                    $extension = pathinfo($tempPath, PATHINFO_EXTENSION) ?: 'png';
+                    $extension = pathinfo($gcsPath, PATHINFO_EXTENSION) ?: 'png';
                     $uuid = $item->uuid;
                     $basename = Str::random(40);
                     $originalName = "{$basename}.{$extension}";
                     $webpName = "{$basename}.webp";
 
-                    $disk->put("item-images/{$uuid}/original/{$originalName}", $imageData);
+                    $gcsDisk->put("item-images/{$uuid}/original/{$originalName}", $imageData);
 
                     $preview = $img->scaleDown(width: 600, height: 800)->toWebp(85);
                     $thumb = $img->scaleDown(width: 300, height: 400)->toWebp(75);
 
-                    $disk->put("item-images/{$uuid}/preview/{$webpName}", $preview);
-                    $disk->put("item-images/{$uuid}/thumb/{$webpName}", $thumb);
+                    $gcsDisk->put("item-images/{$uuid}/preview/{$webpName}", $preview);
+                    $gcsDisk->put("item-images/{$uuid}/thumb/{$webpName}", $thumb);
 
                     $item->images()->create([
                         'image_path' => $basename,
                         'original_extension' => strtolower($extension),
                     ]);
+
+                    $gcsDisk->delete($gcsPath);
                 }
             }
 

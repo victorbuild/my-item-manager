@@ -47,6 +47,18 @@ class ItemImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return url(Storage::url($this->image_path));
+        return Storage::disk('gcs')->url($this->image_path);
+    }
+
+    public function getThumbUrlAttribute(): string
+    {
+        $thumbPath = "item-images/{$this->item->uuid}/thumb/{$this->image_path}.webp";
+        return Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60));
+    }
+
+    public function getPreviewUrlAttribute(): string
+    {
+        $previewPath = "item-images/{$this->item->uuid}/preview/{$this->image_path}.webp";
+        return Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60));
     }
 }

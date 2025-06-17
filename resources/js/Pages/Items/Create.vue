@@ -352,7 +352,7 @@ const startUploadQueue = async () => {
             })
 
             item.status = 'done'
-            item.url = res.data.url
+            item.url = res.data.file_path
         } catch (err) {
             item.status = 'error'
             console.error('❌ 上傳失敗', err)

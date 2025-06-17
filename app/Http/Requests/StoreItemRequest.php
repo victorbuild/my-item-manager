@@ -35,7 +35,7 @@ class StoreItemRequest extends FormRequest
             'discarded_at' => 'nullable|date',
             'expiration_date' => 'nullable|date',
             'image_urls' => 'nullable|array',
-            'image_urls.*' => 'url',
+            'image_urls.*' => 'string',
             'barcode' => 'nullable|string|max:255',
             'product_id' => 'required|exists:products,id',
         ];

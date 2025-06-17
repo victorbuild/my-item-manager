@@ -1,5 +1,7 @@
 <?php
 
+use League\Flysystem\GoogleCloudStorage\PortableVisibilityHandler;
+
 return [
 
     /*
@@ -13,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DISK', 'local'),
+    'default' => env('FILESYSTEM_DISK', 'gcs'),
 
     /*
     |--------------------------------------------------------------------------
@@ -45,6 +47,15 @@ return [
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
+        ],
+
+        'gcs' => [
+            'driver' => 'gcs',
+            'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
+            'keyFilePath' => base_path(env('GOOGLE_CLOUD_STORAGE_KEY_FILE')),
+            'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
+            'url' => env('GOOGLE_CLOUD_STORAGE_URL'),
+            'visibility' => PortableVisibilityHandler::NO_PREDEFINED_VISIBILITY,
         ],
 
         's3' => [
