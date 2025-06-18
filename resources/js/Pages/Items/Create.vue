@@ -11,17 +11,21 @@
         </div>
 
         <!-- 產品選擇 Multiselect -->
-        <Multiselect
-            v-model="selectedProduct"
-            :options="products"
-            :searchable="true"
-            :custom-label="option => option.name"
-            :track-by="'id'"
-            placeholder="請輸入或選擇產品"
-            :internal-search="false"
-            @search-change="searchProduct"
-            @select="onProductSelect"
-        />
+        <div class="space-y-2">
+            <label class="block font-medium text-gray-700">📦 產品關聯（可選）</label>
+            <Multiselect
+                v-model="selectedProduct"
+                :options="products"
+                :searchable="true"
+                :custom-label="option => option.name"
+                :track-by="'id'"
+                placeholder="請輸入或選擇產品（可選）"
+                :internal-search="false"
+                @search-change="searchProduct"
+                @select="onProductSelect"
+            />
+            <p class="text-sm text-gray-500">選擇產品可以幫助您更好地管理物品，但這不是必填的</p>
+        </div>
 
         <!-- 如果選到 isNew，顯示建立表單 -->
         <div v-if="creatingProduct" class="mt-3 space-y-2 bg-white p-4 rounded shadow border">
@@ -82,34 +86,15 @@
             <div>📦 目前已有物品數量：{{ selectedProduct.items_count ?? 0 }}</div>
         </div>
 
-        <hr>
-
         <form @submit.prevent="submitForm(false)" class="space-y-4">
             <!-- 圖片上傳 -->
             <div>
-                <label class="block font-medium">📷 上傳圖片或拍照</label>
-                <div
-                    class="border-2 border-dashed border-gray-400 rounded p-4 text-center bg-white cursor-pointer"
-                    @dragover.prevent
-                    @drop.prevent="handleDrop"
-                >
-                    拖拉圖片到這裡上傳或點擊選擇
-                    <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        class="hidden"
-                        ref="fileInput"
-                        @change="handleFileSelect"
-                    />
-                    <button type="button" @click="fileInput.click()" class="ml-2 underline text-blue-500">選擇圖片</button>
-                </div>
-
-                <div class="flex flex-wrap gap-2 mt-2">
+                <label class="block font-medium">📷 上傳圖片</label>
+                <div class="grid grid-cols-4 gap-2 mt-2">
                     <div
                         v-for="(item, index) in uploadList"
                         :key="item.id"
-                        class="relative w-20 h-20 border rounded overflow-hidden"
+                        class="relative aspect-square border rounded overflow-hidden"
                         :class="{ 'opacity-50': item.status !== 'done' }"
                     >
                         <img :src="item.preview" class="w-full h-full object-cover" :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
@@ -132,11 +117,29 @@
                             class="absolute -top-1 -left-1 bg-black text-white rounded-full w-5 h-5 text-xs"
                         >×</button>
                     </div>
+                    <!-- +加入照片按鈕（灰色系，與 input 風格一致） -->
+                    <div
+                        v-if="uploadList.length < 9"
+                        class="relative aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer bg-white"
+                        @click="fileInput.click()"
+                        @dragover.prevent
+                        @drop.prevent="handleDrop"
+                    >
+                        <span class="text-gray-400 text-sm">+ 加入照片</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            class="hidden"
+                            ref="fileInput"
+                            @change="handleFileSelect"
+                        />
+                    </div>
                 </div>
             </div>
 
             <div>
-                <label class="block font-medium">名稱 *</label>
+                <label class="block font-medium">名稱 <span class="text-red-500">*</span></label>
                 <input v-model="form.name" type="text" class="w-full p-2 border rounded" required/>
             </div>
 
@@ -153,15 +156,18 @@
             <div>
                 <label class="block font-medium">數量</label>
                 <input v-model.number="form.quantity" type="number" min="1" class="w-full p-2 border rounded"/>
+                <p class="text-sm text-gray-500 mt-1">
+                    輸入的數量會建立相對應數量的物品（例如填 3 會建立 3 筆物品）
+                </p>
             </div>
 
             <div>
-                <label class="block font-medium">金額</label>
+                <label class="block font-medium">單價</label>
                 <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded"/>
             </div>
 
             <div>
-                <label class="block font-medium">💰 購買日期 *</label>
+                <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
                 <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" required/>
             </div>
 
@@ -310,11 +316,25 @@ let uploadId = 0
 
 const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)
+    const maxImages = 9
+    
+    if (uploadList.value.length + files.length > maxImages) {
+        alert(`最多只能上傳 ${maxImages} 張圖片，目前已上傳 ${uploadList.value.length} 張`)
+        return
+    }
+    
     prepareUpload(files)
 }
 
 const handleDrop = (e) => {
     const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))
+    const maxImages = 9
+    
+    if (uploadList.value.length + files.length > maxImages) {
+        alert(`最多只能上傳 ${maxImages} 張圖片，目前已上傳 ${uploadList.value.length} 張`)
+        return
+    }
+    
     prepareUpload(files)
 }
 
@@ -575,7 +595,10 @@ const resetForm = () => {
         barcode: '',
     }
     selectedCategory.value = null
+    selectedProduct.value = null
+    creatingProduct.value = false
     imageUrls.value = []
+    uploadList.value = []
 }
 
 let html5QrCode
