@@ -89,7 +89,10 @@
         <form @submit.prevent="submitForm(false)" class="space-y-4">
             <!-- 圖片上傳 -->
             <div>
-                <label class="block font-medium">📷 上傳圖片</label>
+                <label class="block font-medium">
+                    圖片
+                    <span class="ml-1 text-sm text-gray-500 align-middle">（{{ uploadList.length }}/9）</span>
+                </label>
                 <div class="grid grid-cols-4 gap-2 mt-2">
                     <div
                         v-for="(item, index) in uploadList"
