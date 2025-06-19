@@ -59,15 +59,13 @@ class ItemResource extends JsonResource
 
             // 圖片
             'images' => $this->images->map(function ($img) {
-                // 圖片路徑格式範例: item-images/{uuid}/preview/{basename}.webp
                 $previewPath = "item-images/{$this->uuid}/preview/{$img->image_path}.webp";
                 $thumbPath = "item-images/{$this->uuid}/thumb/{$img->image_path}.webp";
 
                 return [
                     'id' => $img->id,
-                    // 生成 GCS 預覽圖的簽署網址
+                    'path' => $previewPath,
                     'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
-                    // 生成 GCS 縮圖的簽署網址
                     'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
                 ];
             }),

@@ -97,28 +97,21 @@
                     <div
                         v-for="(item, index) in uploadList"
                         :key="item.id"
-                        class="relative aspect-square border rounded overflow-hidden"
+                        class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
                         :class="{ 'opacity-50': item.status !== 'done' }"
                     >
-                        <img :src="item.preview" class="w-full h-full object-cover" :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
-
+                        <img :src="item.preview" class="w-full h-full object-contain" :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
+                        <button
+                            @click="removeImage(index)"
+                            class="absolute top-0 right-0 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center shadow"
+                            style="transform: translate(50%,-50%); z-index:10"
+                        >
+                            <span class="text-xs font-bold text-white leading-none">×</span>
+                        </button>
                         <div v-if="item.status === 'uploading'" class="absolute bottom-0 left-0 w-full h-2 bg-gray-200">
                             <div class="bg-blue-500 h-full" :style="{ width: item.progress + '%' }"></div>
                         </div>
-
-                        <div
-                            v-if="item.status === 'done'"
-                            class="absolute top-0 right-0 bg-green-500 text-white text-xs px-1"
-                        >✅</div>
-                        <div
-                            v-else-if="item.status === 'error'"
-                            class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1"
-                        >❌</div>
-
-                        <button
-                            @click="removeImage(index)"
-                            class="absolute -top-1 -left-1 bg-black text-white rounded-full w-5 h-5 text-xs"
-                        >×</button>
+                        <div v-else-if="item.status === 'error'" class="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded">❌</div>
                     </div>
                     <!-- +加入照片按鈕（灰色系，與 input 風格一致） -->
                     <div
@@ -345,15 +338,16 @@ const prepareUpload = (files) => {
     files.forEach(file => {
         const id = uploadId++
         const preview = URL.createObjectURL(file)
-        const item = {
+        uploadList.value.push({
             id,
             file,
             preview,
             progress: 0,
-            status: 'waiting', // waiting, uploading, done, error
-            url: ''
-        }
-        uploadList.value.push(item)
+            status: 'waiting',
+            url: '',
+            thumb_url: '',
+            preview_url: ''
+        })
     })
     startUploadQueue()
 }
@@ -362,10 +356,8 @@ const startUploadQueue = async () => {
     for (const item of uploadList.value) {
         if (item.status !== 'waiting') continue
         item.status = 'uploading'
-
         const formData = new FormData()
         formData.append('image', item.file)
-
         try {
             const res = await axios.post('/api/upload-temp-image', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -373,9 +365,12 @@ const startUploadQueue = async () => {
                     item.progress = Math.round((e.loaded * 100) / e.total)
                 }
             })
-
             item.status = 'done'
             item.url = res.data.file_path
+            item.thumb_url = res.data.url
+            item.preview_url = res.data.url
+            item.preview = res.data.url
+            item.file = null
         } catch (err) {
             item.status = 'error'
             console.error('❌ 上傳失敗', err)
@@ -389,12 +384,15 @@ const removeImage = (index) => {
     uploadList.value.splice(index, 1)
 }
 
-const imageUrls = ref([])
-watchEffect(() => {
-    imageUrls.value = uploadList.value
+const getImagesForApi = () => {
+    return uploadList.value
         .filter(item => item.status === 'done')
-        .map(item => item.url)
-})
+        .map(item => ({
+            path: item.url,
+            status: 'new',
+            id: null
+        }))
+}
 
 const selectedProduct = ref(null)
 const products = ref([])
@@ -546,7 +544,14 @@ const uploadImage = async (e) => {
             headers: {'Content-Type': 'multipart/form-data'},
         })
 
-        imageUrls.value.push(res.data.url)
+        uploadList.value.push({
+            id: null,
+            file,
+            preview: URL.createObjectURL(file),
+            progress: 0,
+            status: 'done',
+            url: res.data.url
+        })
     } catch (error) {
         console.error('❌ 上傳失敗', error.response?.data ?? error)
         alert('上傳失敗，請檢查檔案格式或大小')
@@ -557,9 +562,11 @@ const submitForm = async (stay = false) => {
     if (isSubmitting.value) return
     isSubmitting.value = true
 
+    const images = getImagesForApi()
+
     const payload = {
         ...form.value,
-        image_urls: imageUrls.value,
+        images,
         category_id: selectedCategory.value?.id ?? null,
         product_id: selectedProduct.value?.id ?? null,
         source_product_id: selectedProduct.value?.is_bundle ? selectedProduct.value.id : null,
@@ -600,7 +607,6 @@ const resetForm = () => {
     selectedCategory.value = null
     selectedProduct.value = null
     creatingProduct.value = false
-    imageUrls.value = []
     uploadList.value = []
 }
 

@@ -65,9 +65,13 @@ class ItemController extends Controller
             $gcsDisk = Storage::disk('gcs');
             $manager = new ImageManager(new Driver());
 
-            // 處理圖片（每個 item 都要有自己的圖片複製路徑）
-            if (!empty($request->image_urls)) {
-                foreach ($request->image_urls as $gcsPath) {
+            // 處理圖片（只處理 status=new 的圖片）
+            if (!empty($validated['images'])) {
+                foreach ($validated['images'] as $imgObj) {
+                    if (($imgObj['status'] ?? null) !== 'new') {
+                        continue;
+                    }
+                    $gcsPath = $imgObj['path'];
                     if (!$gcsDisk->exists($gcsPath)) {
                         \Log::warning("Temporary image not found on GCS: {$gcsPath}");
                         continue;

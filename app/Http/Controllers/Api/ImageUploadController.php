@@ -77,7 +77,7 @@ class ImageUploadController extends Controller
             return response()->json([
                 'message' => '圖片上傳成功！',
                 'file_path' => $filePath, // GCS 上的實際路徑
-                'url' => $signedUrl,      // 簽署的暫時網址，用於前端顯示
+                'url' => $signedUrl,
                 'upload_result' => $uploadResult,
                 'file_exists' => $exists,
             ], 200);
