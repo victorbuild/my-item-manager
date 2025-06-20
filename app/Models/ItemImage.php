@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  *
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property string|null $original_extension
+ * @property string $uuid UUID
  * @property-read mixed $url
  * @property-read Item $item
  * @method static Builder<static>|ItemImage newModelQuery()
@@ -33,12 +35,27 @@ use Illuminate\Support\Facades\Storage;
  */
 class ItemImage extends Model
 {
+    protected $primaryKey = 'uuid';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'image_path',
-        'original_extension'
+        'original_extension',
+        'uuid',
     ];
 
     protected $appends = ['url'];
+
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     public function item(): BelongsTo
     {
