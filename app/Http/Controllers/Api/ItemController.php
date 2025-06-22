@@ -9,17 +9,11 @@ use App\Models\Item;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\ImageManager;
 use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
 {
-    public function __construct(private readonly ItemService $itemService)
-    {
-    }
+    public function __construct(private readonly ItemService $itemService) {}
 
     /**
      * @param Request $request
@@ -62,44 +56,29 @@ class ItemController extends Controller
         for ($i = 0; $i < $quantity; $i++) {
             $item = $this->itemService->create($validated);
 
-            $gcsDisk = Storage::disk('gcs');
-            $manager = new ImageManager(new Driver());
-
-            // 處理圖片（只處理 status=new 的圖片）
             if (!empty($validated['images'])) {
+                $loopIndex = 0;
                 foreach ($validated['images'] as $imgObj) {
-                    if (($imgObj['status'] ?? null) !== 'new') {
-                        continue;
-                    }
-                    $gcsPath = $imgObj['path'];
-                    if (!$gcsDisk->exists($gcsPath)) {
-                        \Log::warning("Temporary image not found on GCS: {$gcsPath}");
+                    if (($imgObj['status'] ?? null) !== 'new' || empty($imgObj['uuid'])) {
                         continue;
                     }
 
-                    $imageData = $gcsDisk->get($gcsPath);
-                    $img = $manager->read($imageData);
-
-                    $extension = pathinfo($gcsPath, PATHINFO_EXTENSION) ?: 'png';
-                    $uuid = $item->uuid;
-                    $basename = Str::random(40);
-                    $originalName = "{$basename}.{$extension}";
-                    $webpName = "{$basename}.webp";
-
-                    $gcsDisk->put("item-images/{$uuid}/original/{$originalName}", $imageData);
-
-                    $preview = $img->scaleDown(width: 600, height: 800)->toWebp(85);
-                    $thumb = $img->scaleDown(width: 300, height: 400)->toWebp(75);
-
-                    $gcsDisk->put("item-images/{$uuid}/preview/{$webpName}", $preview);
-                    $gcsDisk->put("item-images/{$uuid}/thumb/{$webpName}", $thumb);
-
-                    $item->images()->create([
-                        'image_path' => $basename,
-                        'original_extension' => strtolower($extension),
+                    // 使用已存在的圖片 UUID 建立多對多關聯
+                    $item->images()->attach($imgObj['uuid'], [
+                        'sort_order' => $loopIndex = ($loopIndex ?? 0) + 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
 
-                    $gcsDisk->delete($gcsPath);
+                    // 更新圖片使用次數
+                    $image = \App\Models\ItemImage::where('uuid', $imgObj['uuid'])->first();
+                    if ($image) {
+                        $image->increment('usage_count');
+                        if ($image->status === 'draft') {
+                            $image->status = 'used';
+                            $image->save();
+                        }
+                    }
                 }
             }
 

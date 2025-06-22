@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\ImageUploadController;
+use App\Http\Controllers\Api\ItemImageController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemUnitController;
 use App\Http\Controllers\Api\ProductController;
@@ -12,19 +12,15 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 
-Route::prefix('api')->group(function () {
-    Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'me']);
+Route::prefix('api')->middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [AuthController::class, 'me']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
 
-    Route::middleware('auth:sanctum')->group(function () {
-        Route::apiResource('/products', ProductController::class);
-
-        Route::apiResource('items', ItemController::class);
-    });
-
+    Route::apiResource('/products', ProductController::class);
+    Route::apiResource('items', ItemController::class);
+    Route::post('/item-images', [ItemImageController::class, 'store']);
     Route::apiResource('item-units', ItemUnitController::class);
-    Route::post('/upload-temp-image', [ImageUploadController::class, 'uploadTemp']);
 });
 
 Route::get('/{any}', function () {

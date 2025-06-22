@@ -35,9 +35,8 @@ class StoreItemRequest extends FormRequest
             'discarded_at' => 'nullable|date',
             'expiration_date' => 'nullable|date',
             'images' => 'nullable|array|max:9',
-            'images.*.path' => 'required|string',
-            'images.*.status' => 'required|in:new,original,deleted',
-            'images.*.id' => 'nullable|integer',
+            'images.*.uuid' => 'required|uuid',
+            'images.*.status' => 'required|in:new',
             'barcode' => 'nullable|string|max:255',
             'product_id' => 'nullable|exists:products,id',
         ];

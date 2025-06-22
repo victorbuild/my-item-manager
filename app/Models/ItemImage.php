@@ -40,9 +40,11 @@ class ItemImage extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'uuid',
         'image_path',
         'original_extension',
-        'uuid',
+        'status',
+        'usage_count'
     ];
 
     protected $appends = ['url'];
@@ -57,9 +59,16 @@ class ItemImage extends Model
         });
     }
 
-    public function item(): BelongsTo
+    public function items()
     {
-        return $this->belongsTo(Item::class);
+        return $this->belongsToMany(
+            Item::class,
+            'item_image_item', // pivot table
+            'item_image_uuid', // pivot 關聯到本 model 的欄位
+            'item_id',         // pivot 關聯到對方 model 的欄位
+            'uuid',            // 本 model 主鍵
+            'id'               // 對方 model 主鍵
+        );
     }
 
     public function getUrlAttribute(): string
@@ -67,15 +76,15 @@ class ItemImage extends Model
         return Storage::disk('gcs')->url($this->image_path);
     }
 
-    public function getThumbUrlAttribute(): string
+    public function getThumbUrlAttribute(): ?string
     {
-        $thumbPath = "item-images/{$this->item->uuid}/thumb/{$this->image_path}.webp";
+        $thumbPath = "item-images/{$this->uuid}/thumb_{$this->image_path}.webp";
         return Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60));
     }
 
-    public function getPreviewUrlAttribute(): string
+    public function getPreviewUrlAttribute(): ?string
     {
-        $previewPath = "item-images/{$this->item->uuid}/preview/{$this->image_path}.webp";
+        $previewPath = "item-images/{$this->uuid}/preview_{$this->image_path}.webp";
         return Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60));
     }
 }

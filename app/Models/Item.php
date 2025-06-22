@@ -121,9 +121,16 @@ class Item extends Model
         });
     }
 
-    public function images(): HasMany
+    public function images()
     {
-        return $this->hasMany(ItemImage::class);
+        return $this->belongsToMany(
+            ItemImage::class,
+            'item_image_item', // pivot table
+            'item_id',         // 本 model 關聯欄位
+            'item_image_uuid', // 關聯 model 關聯欄位
+            'id',              // 本 model 主鍵
+            'uuid'             // 關聯 model 主鍵
+        )->withPivot(['sort_order'])->withTimestamps()->orderBy('sort_order');
     }
 
     public function units(): HasMany
@@ -158,11 +165,8 @@ class Item extends Model
             return null;
         }
 
-        $uuid = $this->uuid;
-        $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
-
         return Storage::disk('gcs')->temporaryUrl(
-            "item-images/$uuid/thumb/$filename.webp",
+            "item-images/{$image->uuid}/thumb_{$image->image_path}.webp",
             now()->addMinutes(5)
         );
     }
@@ -179,11 +183,8 @@ class Item extends Model
             return null;
         }
 
-        $uuid = $this->uuid;
-        $filename = pathinfo($image->image_path, PATHINFO_FILENAME);
-
         return Storage::disk('gcs')->temporaryUrl(
-            "item-images/$uuid/preview/$filename.webp",
+            "item-images/{$image->uuid}/preview_{$image->image_path}.webp",
             now()->addMinutes(5)
         );
     }

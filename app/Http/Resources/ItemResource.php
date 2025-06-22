@@ -59,8 +59,8 @@ class ItemResource extends JsonResource
 
             // 圖片
             'images' => $this->images->map(function ($img) {
-                $previewPath = "item-images/{$this->uuid}/preview/{$img->image_path}.webp";
-                $thumbPath = "item-images/{$this->uuid}/thumb/{$img->image_path}.webp";
+                $previewPath = "item-images/{$img->uuid}/preview_{$img->image_path}.webp";
+                $thumbPath = "item-images/{$img->uuid}/thumb_{$img->image_path}.webp";
 
                 return [
                     'id' => $img->id,

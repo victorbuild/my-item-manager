@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Item;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ItemService
 {
@@ -37,7 +38,6 @@ class ItemService
             } elseif ($categoryId) {
                 $query->withWhereHas('product', function ($q) use ($categoryId) {
                     $q->where('category_id', $categoryId);
-
                 });
             }
         }
@@ -65,10 +65,9 @@ class ItemService
 
         // 圖片網址加工
         $paginated->getCollection()->transform(function ($item) {
-            $item->images->transform(function ($image) use ($item) {
-                $uuid = $item->uuid;
+            $item->images->transform(function ($image) {
                 $filename = $image->image_path;
-                $image->thumb_url = Storage::disk('local')->url("item-images/$uuid/thumb/$filename.webp");
+                $image->thumb_url = Storage::disk('local')->url("item-images/{$image->uuid}/thumb_{$filename}.webp");
                 return $image;
             });
             return $item;
@@ -86,6 +85,18 @@ class ItemService
 
     public function delete(Item $item): void
     {
-        $item->delete();
+        DB::transaction(function () use ($item) {
+            foreach ($item->images as $image) {
+                $item->images()->detach($image->uuid);
+                $image->decrement('usage_count');
+
+                if ($image->usage_count <= 0) {
+                    $image->status = 'draft';
+                    $image->save();
+                }
+            }
+
+            $item->delete();
+        });
     }
 }

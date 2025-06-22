@@ -366,10 +366,9 @@ const startUploadQueue = async () => {
                 }
             })
             item.status = 'done'
-            item.url = res.data.file_path
-            item.thumb_url = res.data.url
-            item.preview_url = res.data.url
-            item.preview = res.data.url
+            // 根據 API 回傳只含 uuid, status (status 固定為 'new')
+            item.uuid = res.data.uuid
+            item.statusFromApi = 'new'
             item.file = null
         } catch (err) {
             item.status = 'error'
@@ -385,12 +384,12 @@ const removeImage = (index) => {
 }
 
 const getImagesForApi = () => {
+    // 回傳簡化後的 uuid, status
     return uploadList.value
         .filter(item => item.status === 'done')
         .map(item => ({
-            path: item.url,
-            status: 'new',
-            id: null
+            uuid: item.uuid,
+            status: item.statusFromApi,
         }))
 }
 
