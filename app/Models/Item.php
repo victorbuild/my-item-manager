@@ -69,7 +69,7 @@ use Illuminate\Support\Facades\Storage;
 class Item extends Model
 {
     /**
-     * @var string[]
+     * @var list<string>
      */
     protected $fillable = [
         'name',

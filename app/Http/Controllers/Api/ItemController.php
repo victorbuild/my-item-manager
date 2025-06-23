@@ -119,28 +119,78 @@ class ItemController extends Controller
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
             'price' => 'nullable|numeric',
-            'barcode' => 'nullable|string|max:255',
             'serial_number' => 'nullable|string|max:255',
-
-            // 時間欄位
             'purchased_at' => 'nullable|date',
             'received_at' => 'nullable|date',
             'used_at' => 'nullable|date',
             'discarded_at' => 'nullable|date',
-
+            'expiration_date' => 'nullable|date',
             'discard_note' => 'nullable',
-
-            // 狀態與備註
             'is_discarded' => 'boolean',
             'notes' => 'nullable|string',
+            'images' => 'nullable|array',
+            'images.*.uuid' => 'required|uuid',
+            'images.*.status' => 'required|in:new,original,removed',
         ]);
 
+        // 1. 驗證圖片數量（僅計算 new + original）
+        $images = $request->input('images', []);
+        $activeImages = collect($images)->whereIn('status', ['new', 'original']);
+        if ($activeImages->count() > 9) {
+            return response()->json([
+                'message' => '最多只能有 9 張圖片',
+                'errors' => ['images' => ['最多只能有 9 張圖片']],
+            ], 422);
+        }
+
+        // 2. 先處理 removed 的圖片
+        $removedImages = collect($images)->where('status', 'removed');
+        foreach ($removedImages as $imgObj) {
+            $uuid = $imgObj['uuid'] ?? null;
+            if (!$uuid) continue;
+            $item->images()->detach($uuid);
+            $image = \App\Models\ItemImage::where('uuid', $uuid)->first();
+            if ($image) {
+                $image->decrement('usage_count');
+                if ($image->usage_count <= 0) {
+                    $image->status = 'draft';
+                }
+                $image->save();
+            }
+        }
+
+        // 3. 新增 new 的圖片
+        $newImages = collect($images)->where('status', 'new');
+        $loopIndex = 0;
+        foreach ($newImages as $imgObj) {
+            $uuid = $imgObj['uuid'] ?? null;
+            if (!$uuid) continue;
+            // 避免重複 attach
+            if (!$item->images->contains('uuid', $uuid)) {
+                $item->images()->attach($uuid, [
+                    'sort_order' => ++$loopIndex,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            $image = \App\Models\ItemImage::where('uuid', $uuid)->first();
+            if ($image) {
+                $image->increment('usage_count');
+                if ($image->usage_count === 1) {
+                    $image->status = 'used';
+                }
+                $image->save();
+            }
+        }
+
+        // 4. 原始圖片不異動
+        // 5. 更新 item 其他欄位
         $item->update($validated);
 
         return response()->json([
             'success' => true,
             'message' => '更新成功',
-            'item' => $item,
+            'item' => $item->fresh(['images', 'units', 'category', 'product.category']),
         ]);
     }
 

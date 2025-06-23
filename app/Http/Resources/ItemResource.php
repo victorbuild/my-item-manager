@@ -63,7 +63,7 @@ class ItemResource extends JsonResource
                 $thumbPath = "item-images/{$img->uuid}/thumb_{$img->image_path}.webp";
 
                 return [
-                    'id' => $img->id,
+                    'uuid' => $img->uuid,
                     'path' => $previewPath,
                     'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
                     'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
