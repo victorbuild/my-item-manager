@@ -7,10 +7,7 @@
             <div class="bg-white p-6 rounded shadow space-y-4">
                 <div class="flex justify-between items-center">
                     <h2 class="text-xl font-semibold text-gray-800">{{ item.name }}</h2>
-                    <router-link
-                        :to="`/items/${item.short_id}/edit`"
-                        class="text-sm text-blue-600 hover:underline"
-                    >
+                    <router-link :to="`/items/${item.short_id}/edit`" class="text-sm text-blue-600 hover:underline">
                         ✏️ 編輯
                     </router-link>
                 </div>
@@ -25,70 +22,42 @@
                     <div>📅 購買日期：{{ item.purchased_at }}</div>
                     <div>📦 到貨日期：{{ item.received_at || '（未填寫）' }}</div>
                     <div>🚀 開始使用日期：{{ item.used_at || '（未填寫）' }}</div>
-                    <div>🗑️ 棄用日期：{{ item.discarded_at || '-' }}</div>
-                    <div v-if="item.discarded_at">📅 報廢日期：{{ item.discarded_at }}</div>
+                    <div>🗑️ 報廢日期：{{ item.discarded_at || '-' }}</div>
                 </div>
 
                 <div v-if="item.images?.length" class="grid grid-cols-2 gap-2">
-                    <img
-                        v-for="(img, idx) in item.images"
-                        :key="img.id || idx"
-                        :src="img.preview_url"
-                        class="w-full h-32 object-cover rounded border"
-                        :alt="item.name"
-                    />
+                    <img v-for="(img, idx) in item.images" :key="img.id || idx" :src="img.preview_url"
+                        class="w-full h-32 object-cover rounded border" :alt="item.name" />
                 </div>
 
                 <div class="space-y-2">
                     <div>
                         📅 購買日期：
-                        <input
-                            type="date"
-                            class="p-1 border rounded"
-                            :value="item.purchased_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('purchased_at', e.target.value)"
-                        />
+                        <input type="date" class="p-1 border rounded" :value="item.purchased_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('purchased_at', e.target.value)" />
                     </div>
                     <div>
                         📦 到貨日期：
-                        <input
-                            type="date"
-                            class="p-1 border rounded"
-                            :value="item.received_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('received_at', e.target.value)"
-                        />
+                        <input type="date" class="p-1 border rounded" :value="item.received_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('received_at', e.target.value)" />
                     </div>
                     <div>
                         🚀 開始使用日期：
-                        <input
-                            type="date"
-                            class="p-1 border rounded"
-                            :value="item.used_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('used_at', e.target.value)"
-                        />
+                        <input type="date" class="p-1 border rounded" :value="item.used_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('used_at', e.target.value)" />
                     </div>
                     <div>
-                        🗑️ 棄用日期：
-                        <input
-                            type="date"
-                            class="p-1 border rounded"
-                            :value="item.discarded_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('discarded_at', e.target.value)"
-                        />
+                        🗑️ 報廢日期：
+                        <input type="date" class="p-1 border rounded" :value="item.discarded_at?.slice(0, 10)"
+                            @change="(e) => updateItemDate('discarded_at', e.target.value)" />
                     </div>
                     <hr>
                     <div class="mt-3">
                         <label class="block text-sm font-medium text-gray-600">📝 棄用備註</label>
-                        <textarea
-                            v-model="discardNote"
-                            rows="3"
-                            class="w-full p-2 border rounded"
-                            placeholder="你想對這件物品說些什麼..."
-                        ></textarea>
-                        <button
-                            @click="saveDiscardNote"
-                            class="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow"
-                        >
+                        <textarea v-model="discardNote" rows="3" class="w-full p-2 border rounded"
+                            placeholder="你想對這件物品說些什麼..."></textarea>
+                        <button @click="saveDiscardNote"
+                            class="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow">
                             ✅ 儲存備註
                         </button>
                     </div>
@@ -96,9 +65,11 @@
                 </div>
                 <div class="text-sm text-gray-700 space-y-1 border-t pt-4 mt-4">
                     <div>📦 到貨時間：{{ getDeliveryDays() !== null ? `${getDeliveryDays()} 天` : '—' }}</div>
-                    <div>📦 購買到使用：{{ getDaysFromPurchaseToUse() !== null ? `${getDaysFromPurchaseToUse()}` : '—' }}</div>
+                    <div>📦 購買到使用：{{ getDaysFromPurchaseToUse() !== null ? `${getDaysFromPurchaseToUse()}` : '—' }}
+                    </div>
                     <div>📅 使用至今：{{ getDaysUsedUntilNow() !== null ? `${getDaysUsedUntilNow()} 天` : '尚未使用' }}</div>
-                    <div>🗑️ 使用到報廢：{{ getDaysUsedUntilDiscarded() !== null ? `${getDaysUsedUntilDiscarded()} 天` : '—' }}</div>
+                    <div>🗑️ 使用到報廢：{{ getDaysUsedUntilDiscarded() !== null ? `${getDaysUsedUntilDiscarded()} 天` : '—' }}
+                    </div>
                     <div>⏳ 狀態：{{ statusLabelMap[item.status] || '—' }}</div>
                     <div>💰 平均每日成本：{{ getItemCostPerDay() !== null ? `${getItemCostPerDay()} 元` : '—' }}</div>
                 </div>
@@ -108,10 +79,7 @@
             <div v-if="item.product" class="bg-white p-6 rounded shadow space-y-2">
                 <h2 class="text-lg font-semibold text-gray-800">📦 所屬產品資訊</h2>
                 <div><strong>📛 名稱：</strong>
-                    <router-link
-                        :to="`/products/${item.product?.short_id}`"
-                        class="text-blue-600 hover:underline"
-                    >
+                    <router-link :to="`/products/${item.product?.short_id}`" class="text-blue-600 hover:underline">
                         {{ item.product?.name || '（無）' }}
                     </router-link>
                 </div>
@@ -122,11 +90,7 @@
             <!-- 🧾 單位卡片們 -->
             <div v-if="item?.units?.length" class="space-y-3">
                 <h3 class="text-lg font-semibold text-gray-700">單品記錄：</h3>
-                <div
-                    v-for="unit in item.units"
-                    :key="unit.id"
-                    class="bg-white rounded-lg p-4 shadow space-y-2"
-                >
+                <div v-for="unit in item.units" :key="unit.id" class="bg-white rounded-lg p-4 shadow space-y-2">
                     <div class="flex justify-between items-center">
                         <div class="font-medium">單品 #{{ unit.unit_number }}</div>
                         <div>
@@ -139,21 +103,15 @@
 
                     <div class="space-y-2">
                         <label class="block text-sm text-gray-600">開始使用時間：</label>
-                        <input
-                            type="date"
-                            class="p-1 border rounded w-full max-w-xs"
+                        <input type="date" class="p-1 border rounded w-full max-w-xs"
                             :value="unit.used_at?.slice(0, 10)"
-                            @change="(e) => updateUsedDate(unit.id, e.target.value)"
-                        />
+                            @change="(e) => updateUsedDate(unit.id, e.target.value)" />
 
                         <div v-if="unit.used_at">
                             <label class="block text-sm text-gray-600">丟棄時間：</label>
-                            <input
-                                type="date"
-                                class="p-1 border rounded w-full max-w-xs"
+                            <input type="date" class="p-1 border rounded w-full max-w-xs"
                                 :value="unit.discarded_at?.slice(0, 10)"
-                                @change="(e) => updateDiscardDate(unit.id, e.target.value)"
-                            />
+                                @change="(e) => updateDiscardDate(unit.id, e.target.value)" />
                         </div>
 
                         <div class="text-sm text-gray-600">
@@ -180,8 +138,8 @@
 </template>
 
 <script setup>
-import {ref, onMounted} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
 import dayjs from 'dayjs'
 

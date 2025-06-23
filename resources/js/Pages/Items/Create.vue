@@ -2,10 +2,7 @@
     <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto space-y-6">
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">📥 新增物品</h1>
-            <router-link
-                to="/items"
-                class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded"
-            >
+            <router-link to="/items" class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded">
                 ⬅ 返回列表
             </router-link>
         </div>
@@ -13,17 +10,9 @@
         <!-- 產品選擇 Multiselect -->
         <div class="space-y-2">
             <label class="block font-medium text-gray-700">📦 產品關聯（可選）</label>
-            <Multiselect
-                v-model="selectedProduct"
-                :options="products"
-                :searchable="true"
-                :custom-label="option => option.name"
-                :track-by="'id'"
-                placeholder="請輸入或選擇產品（可選）"
-                :internal-search="false"
-                @search-change="searchProduct"
-                @select="onProductSelect"
-            />
+            <Multiselect v-model="selectedProduct" :options="products" :searchable="true"
+                :custom-label="option => option.name" :track-by="'id'" placeholder="請輸入或選擇產品（可選）"
+                :internal-search="false" @search-change="searchProduct" @select="onProductSelect" />
             <p class="text-sm text-gray-500">選擇產品可以幫助您更好地管理物品，但這不是必填的</p>
         </div>
 
@@ -32,16 +21,9 @@
             <label class="block font-medium">🆕 建立新產品</label>
             <input v-model="newProduct.name" type="text" class="w-full p-2 border rounded" placeholder="產品名稱（必填）" />
             <input v-model="newProduct.brand" type="text" class="w-full p-2 border rounded" placeholder="品牌（可選）" />
-            <Multiselect
-                v-model="newProduct.category"
-                :options="categories"
-                :searchable="true"
-                :custom-label="opt => opt.name"
-                :track-by="'id'"
-                placeholder="選擇分類"
-                @search-change="onSearch"
-                @select="onSelect"
-            />
+            <Multiselect v-model="newProduct.category" :options="categories" :searchable="true"
+                :custom-label="opt => opt.name" :track-by="'id'" placeholder="選擇分類" @search-change="onSearch"
+                @select="onSelect" />
             <input v-model="newProduct.model" type="text" class="w-full p-2 border rounded" placeholder="型號（可選）" />
             <input v-model="newProduct.spec" type="text" class="w-full p-2 border rounded" placeholder="規格（如顏色、容量等）" />
 
@@ -49,17 +31,9 @@
             <div class="space-y-1">
                 <label class="block text-sm font-medium text-gray-700">🔢 條碼</label>
                 <div class="flex gap-2 items-center">
-                    <input
-                        v-model="newProduct.barcode"
-                        type="text"
-                        placeholder="輸入或掃描條碼"
-                        class="flex-1 p-2 border rounded"
-                    />
-                    <button
-                        type="button"
-                        @click="startBarcodeScan"
-                        class="text-blue-500 underline text-sm"
-                    >
+                    <input v-model="newProduct.barcode" type="text" placeholder="輸入或掃描條碼"
+                        class="flex-1 p-2 border rounded" />
+                    <button type="button" @click="startBarcodeScan" class="text-blue-500 underline text-sm">
                         📷 掃描
                     </button>
                 </div>
@@ -72,10 +46,8 @@
         </div>
 
         <!-- 成功選到產品後顯示卡片 -->
-        <div
-            v-if="selectedProduct && !creatingProduct"
-            class="bg-white border rounded p-4 mt-4 shadow space-y-1 text-sm text-gray-700"
-        >
+        <div v-if="selectedProduct && !creatingProduct"
+            class="bg-white border rounded p-4 mt-4 shadow space-y-1 text-sm text-gray-700">
             <div class="text-lg font-bold">{{ selectedProduct.name }}</div>
 
             <div v-if="selectedProduct.brand">🏷️ 品牌：{{ selectedProduct.brand }}</div>
@@ -94,50 +66,36 @@
                     <span class="ml-1 text-sm text-gray-500 align-middle">（{{ uploadList.length }}/9）</span>
                 </label>
                 <div class="grid grid-cols-4 gap-2 mt-2">
-                    <div
-                        v-for="(item, index) in uploadList"
-                        :key="item.id"
+                    <div v-for="(item, index) in uploadList" :key="item.id"
                         class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
-                        :class="{ 'opacity-50': item.status !== 'done' }"
-                    >
-                        <img :src="item.preview" class="w-full h-full object-contain" :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
-                        <button
-                            type="button"
-                            @click="removeImage(index)"
+                        :class="{ 'opacity-50': item.status !== 'done' }">
+                        <img :src="item.preview" class="w-full h-full object-contain"
+                            :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
+                        <button type="button" @click="removeImage(index)"
                             class="absolute top-0 right-0 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center shadow"
-                            style="transform: translate(50%,-50%); z-index:10"
-                        >
+                            style="transform: translate(50%,-50%); z-index:10">
                             <span class="text-xs font-bold text-white leading-none">×</span>
                         </button>
                         <div v-if="item.status === 'uploading'" class="absolute bottom-0 left-0 w-full h-2 bg-gray-200">
                             <div class="bg-blue-500 h-full" :style="{ width: item.progress + '%' }"></div>
                         </div>
-                        <div v-else-if="item.status === 'error'" class="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded">❌</div>
+                        <div v-else-if="item.status === 'error'"
+                            class="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded">❌</div>
                     </div>
                     <!-- +加入照片按鈕（灰色系，與 input 風格一致） -->
-                    <div
-                        v-if="uploadList.length < 9"
+                    <div v-if="uploadList.length < 9"
                         class="relative aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer bg-white"
-                        @click="fileInput.click()"
-                        @dragover.prevent
-                        @drop.prevent="handleDrop"
-                    >
+                        @click="fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
                         <span class="text-gray-400 text-sm">+ 加入照片</span>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            class="hidden"
-                            ref="fileInput"
-                            @change="handleFileSelect"
-                        />
+                        <input type="file" accept="image/*" multiple class="hidden" ref="fileInput"
+                            @change="handleFileSelect" />
                     </div>
                 </div>
             </div>
 
             <div>
                 <label class="block font-medium">名稱 <span class="text-red-500">*</span></label>
-                <input v-model="form.name" type="text" class="w-full p-2 border rounded" required/>
+                <input v-model="form.name" type="text" class="w-full p-2 border rounded" required />
             </div>
 
             <div>
@@ -147,12 +105,12 @@
 
             <div>
                 <label class="block font-medium">位置</label>
-                <input v-model="form.location" type="text" class="w-full p-2 border rounded"/>
+                <input v-model="form.location" type="text" class="w-full p-2 border rounded" />
             </div>
 
             <div>
                 <label class="block font-medium">數量</label>
-                <input v-model.number="form.quantity" type="number" min="1" class="w-full p-2 border rounded"/>
+                <input v-model.number="form.quantity" type="number" min="1" class="w-full p-2 border rounded" />
                 <p class="text-sm text-gray-500 mt-1">
                     輸入的數量會建立相對應數量的物品（例如填 3 會建立 3 筆物品）
                 </p>
@@ -160,12 +118,12 @@
 
             <div>
                 <label class="block font-medium">單價</label>
-                <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded"/>
+                <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded" />
             </div>
 
             <div>
                 <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
-                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" required/>
+                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" required />
             </div>
 
             <div>
@@ -179,17 +137,14 @@
             </div>
 
             <div>
-                <label class="block font-medium">🗑️ 棄用日期</label>
+                <label class="block font-medium">🗑️ 報廢日期</label>
                 <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" />
             </div>
             <div>
                 <label class="block font-medium">
                     🧊 有效期限
-                    <button 
-                        @click="showManufactureDateModal = true"
-                        type="button"
-                        class="text-sm text-blue-500 hover:underline ml-2"
-                    >
+                    <button @click="showManufactureDateModal = true" type="button"
+                        class="text-sm text-blue-500 hover:underline ml-2">
                         （使用製造日期換算）
                     </button>
                 </label>
@@ -197,37 +152,26 @@
             </div>
 
             <!-- 製造日期換算模態框 -->
-            <div v-if="showManufactureDateModal" class="fixed top-0 left-0 w-screen h-screen bg-gray-900/90 flex items-center justify-center z-50">
+            <div v-if="showManufactureDateModal"
+                class="fixed top-0 left-0 w-screen h-screen bg-gray-900/90 flex items-center justify-center z-50">
                 <div class="bg-white p-6 rounded-lg w-96 shadow-xl">
                     <h3 class="text-lg font-semibold mb-4">製造日期換算有效期限</h3>
-                    
+
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium mb-1">製造日期</label>
-                            <input 
-                                v-model="manufactureDate" 
-                                type="date" 
-                                class="w-full p-2 border rounded"
-                            />
+                            <input v-model="manufactureDate" type="date" class="w-full p-2 border rounded" />
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium mb-1">有效期限長度</label>
                             <div class="flex gap-2">
                                 <div class="flex-1">
-                                    <input 
-                                        v-model.number="expirationValue" 
-                                        type="number" 
-                                        min="0" 
-                                        class="w-full p-2 border rounded" 
-                                        placeholder="請輸入數字"
-                                    />
+                                    <input v-model.number="expirationValue" type="number" min="0"
+                                        class="w-full p-2 border rounded" placeholder="請輸入數字" />
                                 </div>
                                 <div class="w-24">
-                                    <select 
-                                        v-model="expirationUnit" 
-                                        class="w-full p-2 border rounded"
-                                    >
+                                    <select v-model="expirationUnit" class="w-full p-2 border rounded">
                                         <option value="years">年</option>
                                         <option value="months">月</option>
                                         <option value="days">日</option>
@@ -242,17 +186,13 @@
                     </div>
 
                     <div class="mt-6 flex justify-end gap-2">
-                        <button 
-                            @click="showManufactureDateModal = false"
-                            class="px-4 py-2 border rounded hover:bg-gray-100"
-                        >
+                        <button @click="showManufactureDateModal = false"
+                            class="px-4 py-2 border rounded hover:bg-gray-100">
                             取消
                         </button>
-                        <button 
-                            @click="applyCalculatedDate"
+                        <button @click="applyCalculatedDate"
                             class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                            :disabled="!calculatedExpirationDate"
-                        >
+                            :disabled="!calculatedExpirationDate">
                             套用
                         </button>
                     </div>
@@ -268,20 +208,14 @@
 
             <!-- 操作按鈕 -->
             <div class="flex gap-4">
-                <button
-                    type="submit"
-                    class="bg-blue-600 text-white px-4 py-2 rounded shadow disabled:opacity-50"
-                    :disabled="isSubmitting"
-                >
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded shadow disabled:opacity-50"
+                    :disabled="isSubmitting">
                     {{ isSubmitting ? '儲存中...' : '儲存' }}
                 </button>
 
-                <button
-                    type="button"
-                    @click="submitForm(true)"
+                <button type="button" @click="submitForm(true)"
                     class="bg-green-600 text-white px-4 py-2 rounded shadow disabled:opacity-50"
-                    :disabled="isSubmitting"
-                >
+                    :disabled="isSubmitting">
                     {{ isSubmitting ? '儲存中...' : '儲存並繼續新增' }}
                 </button>
             </div>
@@ -292,10 +226,10 @@
 <script setup>
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
-import {ref, onMounted, nextTick, watchEffect, computed} from 'vue'
-import {useRouter} from 'vue-router'
+import { ref, onMounted, nextTick, watchEffect, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from '../../axios'
-import {Html5Qrcode} from 'html5-qrcode'
+import { Html5Qrcode } from 'html5-qrcode'
 
 const categories = ref([])
 const selectedCategory = ref(null)
@@ -314,24 +248,24 @@ let uploadId = 0
 const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)
     const maxImages = 9
-    
+
     if (uploadList.value.length + files.length > maxImages) {
         alert(`最多只能上傳 ${maxImages} 張圖片，目前已上傳 ${uploadList.value.length} 張`)
         return
     }
-    
+
     prepareUpload(files)
 }
 
 const handleDrop = (e) => {
     const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))
     const maxImages = 9
-    
+
     if (uploadList.value.length + files.length > maxImages) {
         alert(`最多只能上傳 ${maxImages} 張圖片，目前已上傳 ${uploadList.value.length} 張`)
         return
     }
-    
+
     prepareUpload(files)
 }
 
@@ -475,7 +409,7 @@ const onSearch = async (query) => {
     searchQuery.value = query
     // 這邊呼叫 GET API 搜尋
     try {
-        const res = await axios.get('/api/categories', {params: {q: query}})
+        const res = await axios.get('/api/categories', { params: { q: query } })
         categories.value = res.data
 
         // 如果沒有完全相符的分類，加入「虛擬新增」選項
@@ -497,7 +431,7 @@ const onSelect = async (option) => {
         // 建立新分類
         try {
             creating.value = true
-            const res = await axios.post('/api/categories', {name: option._rawName})
+            const res = await axios.post('/api/categories', { name: option._rawName })
             selectedCategory.value = res.data
             await onSearch('') // 重新拉取分類清單
         } catch (e) {
@@ -541,7 +475,7 @@ const uploadImage = async (e) => {
 
     try {
         const res = await axios.post('/api/item-images', formData, {
-            headers: {'Content-Type': 'multipart/form-data'},
+            headers: { 'Content-Type': 'multipart/form-data' },
         })
 
         uploadList.value.push({
@@ -650,9 +584,9 @@ const expirationUnit = ref('years')
 
 const calculatedExpirationDate = computed(() => {
     if (!manufactureDate.value || !expirationValue.value) return ''
-    
+
     const date = new Date(manufactureDate.value)
-    
+
     switch (expirationUnit.value) {
         case 'years':
             date.setFullYear(date.getFullYear() + expirationValue.value)
@@ -664,7 +598,7 @@ const calculatedExpirationDate = computed(() => {
             date.setDate(date.getDate() + expirationValue.value)
             break
     }
-    
+
     return date.toISOString().split('T')[0]
 })
 

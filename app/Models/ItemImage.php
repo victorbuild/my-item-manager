@@ -36,7 +36,9 @@ use Illuminate\Support\Str;
 class ItemImage extends Model
 {
     protected $primaryKey = 'uuid';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -46,8 +48,6 @@ class ItemImage extends Model
         'status',
         'usage_count'
     ];
-
-    protected $appends = ['url'];
 
     protected static function boot()
     {
@@ -69,11 +69,6 @@ class ItemImage extends Model
             'uuid',            // 本 model 主鍵
             'id'               // 對方 model 主鍵
         );
-    }
-
-    public function getUrlAttribute(): string
-    {
-        return Storage::disk('gcs')->url($this->image_path);
     }
 
     public function getThumbUrlAttribute(): ?string

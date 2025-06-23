@@ -458,7 +458,7 @@ const stopScanner = async () => {
                 <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" />
             </div>
             <div>
-                <label class="block font-medium">🗑️ 棄用日期</label>
+                <label class="block font-medium">🗑️ 報廢日期</label>
                 <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" />
             </div>
             <div>
