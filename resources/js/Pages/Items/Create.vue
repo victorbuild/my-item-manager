@@ -86,7 +86,7 @@
             <div>📦 目前已有物品數量：{{ selectedProduct.items_count ?? 0 }}</div>
         </div>
 
-        <form @submit.prevent="submitForm(false)" class="space-y-4">
+        <form @submit.prevent="submitForm(false)" @keydown.enter.prevent class="space-y-4">
             <!-- 圖片上傳 -->
             <div>
                 <label class="block font-medium">
@@ -102,6 +102,7 @@
                     >
                         <img :src="item.preview" class="w-full h-full object-contain" :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
                         <button
+                            type="button"
                             @click="removeImage(index)"
                             class="absolute top-0 right-0 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center shadow"
                             style="transform: translate(50%,-50%); z-index:10"
@@ -359,7 +360,7 @@ const startUploadQueue = async () => {
         const formData = new FormData()
         formData.append('image', item.file)
         try {
-            const res = await axios.post('/api/upload-temp-image', formData, {
+            const res = await axios.post('/api/item-images', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 onUploadProgress: (e) => {
                     item.progress = Math.round((e.loaded * 100) / e.total)
@@ -539,7 +540,7 @@ const uploadImage = async (e) => {
     formData.append('image', file)
 
     try {
-        const res = await axios.post('/api/upload-temp-image', formData, {
+        const res = await axios.post('/api/item-images', formData, {
             headers: {'Content-Type': 'multipart/form-data'},
         })
 
