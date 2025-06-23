@@ -134,9 +134,6 @@ class ProductController extends Controller
             return $statusOrder[$item->status] ?? 4;
         })->values();
 
-        // 將排序後的 items 附加回產品資料
-        $product->setRelation('items', $sortedItems);
-
         // 格式化 items 的日期欄位為 Y-m-d（產生 array，不用 Model 實體）
         $dateFields = ['purchased_at', 'received_at', 'used_at', 'discarded_at', 'expiration_date'];
         $formattedItems = $product->items->map(function ($item) use ($dateFields) {
@@ -147,20 +144,23 @@ class ProductController extends Controller
                 }
             }
             return $arr;
-        });
-        $product->setRelation('items', collect($formattedItems));
+        })->values()->all();
 
         // 狀態數量統計
         $statuses = ['in_use', 'stored', 'pre_arrival', 'used_and_gone', 'unused_but_gone'];
-        $statusCounts = collect($statuses)->mapWithKeys(function ($status) use ($product) {
-            return [$status => $product->items->where('status', $status)->count()];
+        $statusCounts = collect($statuses)->mapWithKeys(function ($status) use ($formattedItems) {
+            return [$status => collect($formattedItems)->where('status', $status)->count()];
         });
+
+        // 回傳時直接覆蓋 items 並加上 items_count
+        $productArr = $product->toArray();
+        $productArr['items'] = $formattedItems;
+        $productArr['items_count'] = count($formattedItems);
+        $productArr['status_counts'] = $statusCounts;
 
         return response()->json([
             'success' => true,
-            'item' => $product->toArray() + [
-                'status_counts' => $statusCounts,
-            ],
+            'item' => $productArr,
         ]);
     }
 }

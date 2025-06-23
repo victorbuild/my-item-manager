@@ -259,6 +259,17 @@ const loadItem = async () => {
             idFromApi: img.id,
             statusForApi: 'original' // 統一用 statusForApi
         }))
+        // 若有 product 且有 short_id，額外請求一次產品 API 取得正確 items_count
+        if (selectedProduct.value && selectedProduct.value.short_id) {
+            try {
+                const prodRes = await axios.get(`/api/products/${selectedProduct.value.short_id}`)
+                if (prodRes.data && prodRes.data.item) {
+                    selectedProduct.value = prodRes.data.item
+                }
+            } catch (e) {
+                // 忽略錯誤，維持原本 product
+            }
+        }
         console.log('[載入] uploadList:', JSON.parse(JSON.stringify(uploadList.value)))
     } catch (e) {
         uploadList.value = []
