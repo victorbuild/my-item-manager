@@ -18,15 +18,15 @@ class ProductController extends Controller
                 'latestOwnedItem.images'
             ]
         )
-        ->withCount([
-            'items',
-            'items as discarded_items_count' => function ($query) {
-                $query->whereNotNull('discarded_at');
-            },
-            'items as owned_items_count' => function ($query) {
-                $query->whereNull('discarded_at');
-            },
-        ])
+            ->withCount([
+                'items',
+                'items as discarded_items_count' => function ($query) {
+                    $query->whereNotNull('discarded_at');
+                },
+                'items as owned_items_count' => function ($query) {
+                    $query->whereNull('discarded_at');
+                },
+            ])
             ->where('user_id', $request->user()->id);
 
         if ($search = $request->query('q')) {
@@ -136,6 +136,19 @@ class ProductController extends Controller
 
         // 將排序後的 items 附加回產品資料
         $product->setRelation('items', $sortedItems);
+
+        // 格式化 items 的日期欄位為 Y-m-d（產生 array，不用 Model 實體）
+        $dateFields = ['purchased_at', 'received_at', 'used_at', 'discarded_at', 'expiration_date'];
+        $formattedItems = $product->items->map(function ($item) use ($dateFields) {
+            $arr = $item->toArray();
+            foreach ($dateFields as $field) {
+                if (!empty($arr[$field])) {
+                    $arr[$field] = \Carbon\Carbon::parse($arr[$field])->format('Y-m-d');
+                }
+            }
+            return $arr;
+        });
+        $product->setRelation('items', collect($formattedItems));
 
         // 狀態數量統計
         $statuses = ['in_use', 'stored', 'pre_arrival', 'used_and_gone', 'unused_but_gone'];
