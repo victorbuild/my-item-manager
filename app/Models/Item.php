@@ -92,6 +92,10 @@ class Item extends Model
     ];
 
     protected $casts = [
+        'purchased_at'    => 'date',
+        'received_at'     => 'date',
+        'used_at'         => 'date',
+        'discarded_at'    => 'date',
         'expiration_date' => 'date',
     ];
 

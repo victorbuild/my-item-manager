@@ -31,11 +31,11 @@ class ItemResource extends JsonResource
             'notes' => $this->notes,
 
             // 時間欄位
-            'purchased_at' => $this->purchased_at,
-            'received_at' => $this->received_at,
-            'used_at' => $this->used_at,
-            'discarded_at' => $this->discarded_at,
-            'expiration_date' => optional($this->expiration_date)->toDateString(),
+            'purchased_at' => optional($this->purchased_at)->format('Y-m-d'),
+            'received_at' => optional($this->received_at)->format('Y-m-d'),
+            'used_at' => optional($this->used_at)->format('Y-m-d'),
+            'discarded_at' => optional($this->discarded_at)->format('Y-m-d'),
+            'expiration_date' => optional($this->expiration_date)->format('Y-m-d'),
 
             'discard_note' => $this->discard_note,
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreItemRequest;
+use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
 use App\Services\ItemService;
@@ -28,17 +29,14 @@ class ItemController extends Controller
         ];
 
         $items = $this->itemService->paginateWithFilters($filters);
+        $collection = new ItemCollection($items);
+        $data = $collection->toArray($request);
 
         return response()->json([
             'success' => true,
             'message' => '取得成功',
-            'meta' => [
-                'current_page' => $items->currentPage(),
-                'last_page' => $items->lastPage(),
-                'per_page' => $items->perPage(),
-                'total' => $items->total(),
-            ],
-            'items' => $items->items(),
+            'meta' => $data['meta'],
+            'items' => $data['items'],
         ]);
     }
 
