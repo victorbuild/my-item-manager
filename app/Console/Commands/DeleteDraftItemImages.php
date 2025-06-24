@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\ItemImage;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 class DeleteDraftItemImages extends Command

@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\ItemImageController;
 use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\ItemImageController;
 use App\Http\Controllers\Api\ItemUnitController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\AuthController;

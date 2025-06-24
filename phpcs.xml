@@ -7,7 +7,7 @@
     <rule ref="SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation" />
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator" />
     <rule ref="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses" />
-    <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes" />
+    <!-- <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes" /> 已移除，避免 declare(strict_types=1) 強制檢查 -->
 
     <!-- 指定要檢查的目錄 -->
     <file>app</file>

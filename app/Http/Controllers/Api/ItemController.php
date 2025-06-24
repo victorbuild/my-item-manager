@@ -14,7 +14,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
 {
-    public function __construct(private readonly ItemService $itemService) {}
+    public function __construct(private readonly ItemService $itemService)
+    {
+    }
 
     /**
      * @param Request $request
@@ -147,7 +149,9 @@ class ItemController extends Controller
         $removedImages = collect($images)->where('status', 'removed');
         foreach ($removedImages as $imgObj) {
             $uuid = $imgObj['uuid'] ?? null;
-            if (!$uuid) continue;
+            if (!$uuid) {
+                continue;
+            }
             $item->images()->detach($uuid);
             $image = \App\Models\ItemImage::where('uuid', $uuid)->first();
             if ($image) {
@@ -164,7 +168,9 @@ class ItemController extends Controller
         $loopIndex = 0;
         foreach ($newImages as $imgObj) {
             $uuid = $imgObj['uuid'] ?? null;
-            if (!$uuid) continue;
+            if (!$uuid) {
+                continue;
+            }
             // 避免重複 attach
             if (!$item->images->contains('uuid', $uuid)) {
                 $item->images()->attach($uuid, [

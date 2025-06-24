@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Item;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ItemService
 {
