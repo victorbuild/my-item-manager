@@ -32,6 +32,12 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-suggest
 
+      - name: PHP Lint
+        run: find . -type f -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
+
+      - name: PHP CodeSniffer
+        run: vendor/bin/phpcs --standard=PSR12 --ignore=vendor .
+
       - name: Audit Composer dependencies
         run: composer audit --no-interaction --no-dev
 
