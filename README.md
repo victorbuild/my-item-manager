@@ -17,3 +17,17 @@
 ```
 
 baseline 檔案用來記錄初始錯誤狀態，導入初期避免一次修正大量 legacy 問題，建議在整理或修復一批錯誤後更新 baseline。
+
+## 將 GCS 憑證內容寫入 .env
+
+若需將 Google Cloud Storage（GCS）服務帳戶憑證（JSON 檔案）寫入 `.env` 檔案，可使用以下指令將憑證內容轉為單行並複製到剪貼簿：
+
+```sh
+openssl base64 -in <gcs-service-account.json> | tr -d '\n' | pbcopy
+```
+
+然後在 `.env` 中設定，例如：
+
+```
+GOOGLE_CLOUD_KEY_FILE=複製後的內容
+```
