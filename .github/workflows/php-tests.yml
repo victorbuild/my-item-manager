@@ -36,7 +36,7 @@ jobs:
         run: find . -type f -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
 
       - name: PHP CodeSniffer
-        run: vendor/bin/phpcs --standard=PSR12 --ignore=vendor .
+        run: vendor/bin/phpcs
 
       - name: Audit Composer dependencies
         run: composer audit --no-interaction --no-dev
