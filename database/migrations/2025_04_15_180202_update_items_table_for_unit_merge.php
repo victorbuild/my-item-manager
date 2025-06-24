@@ -19,7 +19,6 @@ return new class extends Migration
 
             $table->string('serial_number')->nullable()->after('barcode')->comment('實體序號');
         });
-
     }
 
     /**
