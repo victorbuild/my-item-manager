@@ -165,4 +165,29 @@ class ProductController extends Controller
             'item' => $productArr,
         ]);
     }
+
+    public function destroy(Request $request, string $shortId): JsonResponse
+    {
+        $product = Product::where('short_id', $shortId)->firstOrFail();
+
+        // 確保使用者只能刪除自己的產品
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json(['message' => '無權限刪除此產品'], 403);
+        }
+
+        // 檢查是否有 items 關聯
+        if ($product->items()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => '此產品仍有關聯物品，無法刪除'
+            ], 400);
+        }
+
+        $product->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => '產品已刪除'
+        ]);
+    }
 }
