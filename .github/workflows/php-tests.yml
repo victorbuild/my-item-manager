@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-suggest
 
+      - name: Audit Composer dependencies
+        run: composer audit --no-interaction --no-dev
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
