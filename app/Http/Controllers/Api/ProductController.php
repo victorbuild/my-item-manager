@@ -140,7 +140,9 @@ class ProductController extends Controller
             $arr = $item->toArray();
             foreach ($dateFields as $field) {
                 if (!empty($arr[$field])) {
-                    $arr[$field] = \Carbon\Carbon::parse($arr[$field])->format('Y-m-d');
+                    $arr[$field] = \Carbon\Carbon::parse($arr[$field])
+                        ->setTimezone(config('app.timezone'))
+                        ->format('Y-m-d');
                 }
             }
             return $arr;
