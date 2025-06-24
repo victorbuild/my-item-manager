@@ -1,0 +1,16 @@
+node_modules
+vendor
+storage/app/public
+storage/framework/cache
+debugbar
+.env
+.git
+.gitignore
+.idea
+.vscode
+npm-debug.log
+yarn-error.log
+.DS_Store
+*.log
+/public/storage
+/public/build
