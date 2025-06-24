@@ -43,7 +43,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('APP_URL') . '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -52,9 +52,10 @@ return [
         'gcs' => [
             'driver' => 'gcs',
             'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
-            'keyFilePath' => base_path(env('GOOGLE_CLOUD_STORAGE_KEY_FILE')),
+            'key_file' => env('GOOGLE_CLOUD_KEY_FILE')
+                ? json_decode(base64_decode(env('GOOGLE_CLOUD_KEY_FILE')), true)
+                : null,
             'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
-            'url' => env('GOOGLE_CLOUD_STORAGE_URL'),
             'visibility' => PortableVisibilityHandler::NO_PREDEFINED_VISIBILITY,
         ],
 

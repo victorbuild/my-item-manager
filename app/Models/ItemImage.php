@@ -5,7 +5,6 @@ namespace App\Models;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -20,7 +19,6 @@ use Illuminate\Support\Str;
  * @property Carbon|null $updated_at
  * @property string|null $original_extension
  * @property string $uuid UUID
- * @property-read mixed $url
  * @property-read Item $item
  * @method static Builder<static>|ItemImage newModelQuery()
  * @method static Builder<static>|ItemImage newQuery()
@@ -35,6 +33,16 @@ use Illuminate\Support\Str;
  */
 class ItemImage extends Model
 {
+    /**
+     * @var string 草稿狀態
+     */
+    public const STATUS_DRAFT = 'draft';
+
+    /**
+     * @var string 已使用狀態
+     */
+    public const STATUS_USED = 'used';
+
     protected $primaryKey = 'uuid';
 
     public $incrementing = false;
