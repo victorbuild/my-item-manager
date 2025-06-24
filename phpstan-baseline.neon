@@ -1,0 +1,139 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:first\(\) is forbidden, ❌ 禁止在 Controller 內直接使用 first\(\)。\.$#'
+			identifier: disallowed.method
+			count: 3
+			path: app/Http/Controllers/Api/ItemController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:save\(\) \(as App\\Models\\ItemImage\:\:save\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 save\(\)。\.$#'
+			identifier: disallowed.method
+			count: 3
+			path: app/Http/Controllers/Api/ItemController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:update\(\) \(as App\\Models\\Item\:\:update\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 update\(\)。\.$#'
+			identifier: disallowed.method
+			count: 1
+			path: app/Http/Controllers/Api/ItemController.php
+
+		-
+			message: '#^Variable \$loopIndex on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.variable
+			count: 1
+			path: app/Http/Controllers/Api/ItemController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:create\(\) \(as App\\Models\\ItemImage\:\:create\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 create\(\)。\.$#'
+			identifier: disallowed.method
+			count: 1
+			path: app/Http/Controllers/Api/ItemImageController.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: app/Http/Controllers/Api/ItemImageController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:save\(\) \(as App\\Models\\Item\:\:save\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 save\(\)。\.$#'
+			identifier: disallowed.method
+			count: 2
+			path: app/Http/Controllers/Api/ItemUnitController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:save\(\) \(as App\\Models\\ItemUnit\:\:save\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 save\(\)。\.$#'
+			identifier: disallowed.method
+			count: 1
+			path: app/Http/Controllers/Api/ItemUnitController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:create\(\) \(as App\\Models\\Product\:\:create\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 create\(\)。\.$#'
+			identifier: disallowed.method
+			count: 1
+			path: app/Http/Controllers/Api/ProductController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:where\(\) is forbidden, ❌ 禁止在 Controller 內直接使用 where\(\)。\.$#'
+			identifier: disallowed.method
+			count: 3
+			path: app/Http/Controllers/Api/ProductController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:update\(\) \(as App\\Models\\Product\:\:update\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 update\(\)。\.$#'
+			identifier: disallowed.method
+			count: 1
+			path: app/Http/Controllers/Api/ProductController.php
+
+		-
+			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:create\(\) \(as App\\Models\\User\:\:create\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 create\(\)。\.$#'
+			identifier: disallowed.method
+			count: 1
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:currentPage\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/ItemCollection.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:lastPage\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/ItemCollection.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:perPage\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/ItemCollection.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:total\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Resources/ItemCollection.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$barcode\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ItemResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$category\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/ItemResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ItemResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ItemResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$short_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/ItemResource.php
+
+		-
+			message: '#^Anonymous function has an unused use \$categoryId\.$#'
+			identifier: closure.unusedUse
+			count: 1
+			path: app/Services/ItemService.php
+
+		-
+			message: '#^Relation ''images'' is not found in App\\Models\\Item model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Services/ItemService.php
