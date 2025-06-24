@@ -31,3 +31,13 @@ openssl base64 -in <gcs-service-account.json> | tr -d '\n' | pbcopy
 ```
 GOOGLE_CLOUD_KEY_FILE=複製後的內容
 ```
+
+## 在本地執行 PHP CodeSniffer
+
+專案已設定 `phpcs.xml`，可直接在專案根目錄執行：
+
+```sh
+vendor/bin/phpcs
+```
+
+這會自動依照 `phpcs.xml` 設定檢查指定目錄與規則。
