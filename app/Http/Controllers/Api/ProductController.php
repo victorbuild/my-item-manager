@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    public function __construct(private readonly ProductService $productService)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Product::with(
@@ -175,15 +180,12 @@ class ProductController extends Controller
             return response()->json(['message' => '無權限刪除此產品'], 403);
         }
 
-        // 檢查是否有 items 關聯
-        if ($product->items()->exists()) {
+        if (!$this->productService->deleteIfNoItems($product)) {
             return response()->json([
                 'success' => false,
                 'message' => '此產品仍有關聯物品，無法刪除'
             ], 400);
         }
-
-        $product->delete();
 
         return response()->json([
             'success' => true,
