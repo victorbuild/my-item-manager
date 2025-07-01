@@ -12,4 +12,15 @@ export default defineConfig({
         vue(),
         tailwindcss(),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor': [
+                        'vue', 'vue-router', 'axios', 'dayjs', 'panzoom'
+                    ]
+                }
+            }
+        }
+    }
 });
