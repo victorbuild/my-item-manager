@@ -36,6 +36,8 @@
                         :src="img.preview_url"
                         class="masonry-img"
                         :alt="item.name"
+                        @click="openLightbox(idx)"
+                        style="cursor:pointer"
                     />
                 </div>
 
@@ -143,11 +145,30 @@
         <template v-else>
             <div class="text-center text-gray-600">載入中...</div>
         </template>
+
+        <!-- Lightbox 預覽 -->
+        <div v-if="lightbox.open" class="lightbox-backdrop" @click.self="closeLightbox">
+            <div class="lightbox-content">
+                <img
+                    :src="item.images[lightbox.index].preview_url"
+                    :alt="item.name"
+                    class="lightbox-img"
+                    :class="{ 'lightbox-img-animate': lightbox.animate }"
+                    @animationend="lightbox.animate = false"
+                />
+                <div class="lightbox-counter-below">
+                    {{ lightbox.index + 1 }} / {{ item.images.length }}
+                </div>
+                <button class="lightbox-close" @click="closeLightbox" aria-label="關閉">×</button>
+                <button v-if="lightbox.index > 0" class="lightbox-nav left" @click.stop="prevImage" aria-label="上一張">‹</button>
+                <button v-if="lightbox.index < item.images.length - 1" class="lightbox-nav right" @click.stop="nextImage" aria-label="下一張">›</button>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
 import dayjs from 'dayjs'
@@ -302,6 +323,50 @@ const getDaysFromPurchaseToUse = () => {
     }
 }
 
+const lightbox = ref({
+    open: false,
+    index: 0,
+    animate: false,
+})
+
+const openLightbox = (idx) => {
+    lightbox.value.open = true
+    lightbox.value.index = idx
+    lightbox.value.animate = true
+    document.body.style.overflow = 'hidden'
+}
+
+const closeLightbox = () => {
+    lightbox.value.open = false
+    document.body.style.overflow = ''
+}
+
+const prevImage = () => {
+    if (lightbox.value.index > 0) {
+        lightbox.value.index--
+        lightbox.value.animate = true
+    }
+}
+
+const nextImage = () => {
+    if (item.value?.images && lightbox.value.index < item.value.images.length - 1) {
+        lightbox.value.index++
+        lightbox.value.animate = true
+    }
+}
+
+// 防止滾輪捲動
+const preventScroll = (e) => {
+    if (lightbox.value.open) {
+        e.preventDefault()
+    }
+}
+onMounted(() => {
+    window.addEventListener('wheel', preventScroll, { passive: false })
+})
+onUnmounted(() => {
+    window.removeEventListener('wheel', preventScroll)
+})
 </script>
 
 <style scoped>
@@ -312,19 +377,118 @@ body {
 /* Masonry 瀑布流圖片牆 */
 .masonry-gallery {
     column-count: 2;
-    column-gap: 4px;
+    column-gap: 8px;
     width: 100%;
+    padding: 0 4px;
 }
 
 .masonry-img {
     width: 100%;
     display: block;
-    margin-bottom: 4px;
-    border-radius: 4px;
-    border: 1px solid #e5e7eb;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    /* 移除 border */
     box-sizing: border-box;
     object-fit: cover;
     break-inside: avoid;
     background: #fafafa;
+    transition: box-shadow 0.15s;
+}
+
+.masonry-img:hover {
+    box-shadow: 0 2px 8px #0002;
+}
+
+/* Lightbox 樣式 */
+.lightbox-backdrop {
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 96vw;
+    max-height: 96vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.lightbox-img {
+    max-width: 88vw;
+    max-height: 80vh;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 24px #0005;
+    /* 移除 border */
+    transition: opacity 0.25s, transform 0.25s;
+    opacity: 1;
+}
+.lightbox-img-animate {
+    animation: lightbox-fadein 0.25s;
+}
+@keyframes lightbox-fadein {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* lightbox 頁數指示（下方且小一點） */
+.lightbox-counter-below {
+    color: #fff;
+    background: rgba(0,0,0,0.35);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    margin-top: 12px;
+    z-index: 3;
+    pointer-events: none;
+    user-select: none;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 2;
+    line-height: 1;
+}
+
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 2.5rem;
+    cursor: pointer;
+    z-index: 2;
+    padding: 0 10px;
+    user-select: none;
+}
+
+.lightbox-nav.left {
+    left: 0;
+}
+
+.lightbox-nav.right {
+    right: 0;
 }
 </style>
