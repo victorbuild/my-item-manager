@@ -17,7 +17,7 @@ export default defineConfig({
             output: {
                 manualChunks: {
                     'vendor': [
-                        'vue', 'vue-router', 'axios', 'dayjs', 'panzoom'
+                        'vue', 'vue-router', 'axios', 'dayjs'
                     ]
                 }
             }
