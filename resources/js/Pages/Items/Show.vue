@@ -25,9 +25,18 @@
                     <div>🗑️ 報廢日期：{{ item.discarded_at || '-' }}</div>
                 </div>
 
-                <div v-if="item.images?.length" class="grid grid-cols-2 gap-2">
-                    <img v-for="(img, idx) in item.images" :key="img.id || idx" :src="img.preview_url"
-                        class="w-full h-32 object-cover rounded border" :alt="item.name" />
+                <!-- 瀑布流圖片牆 -->
+                <div
+                    v-if="item.images?.length"
+                    class="masonry-gallery"
+                >
+                    <img
+                        v-for="(img, idx) in item.images"
+                        :key="img.id || idx"
+                        :src="img.preview_url"
+                        class="masonry-img"
+                        :alt="item.name"
+                    />
                 </div>
 
                 <div class="space-y-2">
@@ -298,5 +307,24 @@ const getDaysFromPurchaseToUse = () => {
 <style scoped>
 body {
     background-color: #f5f5f5;
+}
+
+/* Masonry 瀑布流圖片牆 */
+.masonry-gallery {
+    column-count: 2;
+    column-gap: 4px;
+    width: 100%;
+}
+
+.masonry-img {
+    width: 100%;
+    display: block;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+    box-sizing: border-box;
+    object-fit: cover;
+    break-inside: avoid;
+    background: #fafafa;
 }
 </style>
