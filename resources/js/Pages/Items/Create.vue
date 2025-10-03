@@ -58,7 +58,7 @@
             <div>📦 目前已有物品數量：{{ selectedProduct.items_count ?? 0 }}</div>
         </div>
 
-        <form @submit.prevent="submitForm(false)" @keydown.enter.prevent class="space-y-4">
+        <form @submit.prevent="submitForm(false)" class="space-y-4">
             <!-- 圖片上傳 -->
             <div>
                 <label class="block font-medium">
@@ -95,17 +95,17 @@
 
             <div>
                 <label class="block font-medium">名稱 <span class="text-red-500">*</span></label>
-                <input v-model="form.name" type="text" class="w-full p-2 border rounded" required />
+                <input v-model="form.name" type="text" class="w-full p-2 border rounded" required @keydown.enter.prevent />
             </div>
 
             <div>
                 <label class="block font-medium">描述</label>
-                <textarea v-model="form.description" class="w-full p-2 border rounded"></textarea>
+                <textarea v-model="form.description" class="w-full p-2 border rounded" placeholder="可輸入多行描述" rows="4"></textarea>
             </div>
 
             <div>
                 <label class="block font-medium">位置</label>
-                <input v-model="form.location" type="text" class="w-full p-2 border rounded" />
+                <input v-model="form.location" type="text" class="w-full p-2 border rounded" @keydown.enter.prevent />
             </div>
 
             <div>
@@ -118,7 +118,7 @@
 
             <div>
                 <label class="block font-medium">單價</label>
-                <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded" />
+                <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded" @keydown.enter.prevent />
             </div>
 
             <div>

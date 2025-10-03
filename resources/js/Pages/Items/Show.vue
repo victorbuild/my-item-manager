@@ -13,7 +13,10 @@
                 </div>
 
                 <div class="text-sm text-gray-700 space-y-1">
-                    <div>📄 描述：{{ item.description || '-' }}</div>
+                    <div v-if="item.description" class="font-medium">📄 描述</div>
+                    <hr v-if="item.description">
+                    <div v-if="item.description" style="white-space: pre-line;" class="mb-2 ml-2">{{ item.description }}</div>
+                    <hr v-if="item.description">
                     <div>💰 金額：{{ formatPrice(item.price) }}</div>
                     <div>🧊 有效期限：{{ item.expiration_date || '-' }}</div>
                     <div>📍 位置：{{ item.location || '（未指定）' }}</div>
