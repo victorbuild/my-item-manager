@@ -47,21 +47,39 @@ class ItemService
             $query->where(function ($q) use ($filters) {
                 foreach ($filters['statuses'] as $status) {
                     $q->orWhere(function ($sub) use ($status) {
-                        if ($status === 'pending_delivery') {
-                            $sub->whereNull('received_at');
-                        } elseif ($status === 'pending_use') {
-                            $sub->whereNull('used_at')->whereNotNull('received_at');
-                        } elseif ($status === 'using') {
+                        if ($status === 'pre_arrival') {
+                            // 未到貨：discarded_at 為空 且 used_at 為空 且 received_at 為空
+                            $sub->whereNull('discarded_at')->whereNull('used_at')->whereNull('received_at');
+                        } elseif ($status === 'unused') {
+                            // 未使用：received_at 有值 且 used_at 為空 且 discarded_at 為空
+                            $sub->whereNotNull('received_at')->whereNull('used_at')->whereNull('discarded_at');
+                        } elseif ($status === 'in_use') {
+                            // 使用中：used_at 有值 且 discarded_at 為空
                             $sub->whereNotNull('used_at')->whereNull('discarded_at');
-                        } elseif ($status === 'discarded') {
-                            $sub->whereNotNull('discarded_at');
+                        } elseif ($status === 'unused_discarded') {
+                            // 未使用就棄用：discarded_at 有值 且 used_at 為空
+                            $sub->whereNotNull('discarded_at')->whereNull('used_at');
+                        } elseif ($status === 'used_discarded') {
+                            // 使用後棄用：discarded_at 有值 且 used_at 有值
+                            $sub->whereNotNull('discarded_at')->whereNotNull('used_at');
                         }
                     });
                 }
             });
         }
 
-        $paginated = $query->orderByDesc('id')->paginate($perPage);
+        // 根據排序模式決定排序方式
+        $sortMode = $filters['sort'] ?? 'default';
+
+        if ($sortMode === 'discarded') {
+            // 棄用排序：按棄用時間降序
+            $query->orderByDesc('discarded_at');
+        } else {
+            // 預設排序：按 ID 降序
+            $query->orderByDesc('id');
+        }
+
+        $paginated = $query->paginate($perPage);
 
         // 圖片網址加工
         $paginated->getCollection()->transform(function ($item) {

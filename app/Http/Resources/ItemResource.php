@@ -57,7 +57,21 @@ class ItemResource extends JsonResource
             'category' => $this->category,
             'units' => $this->units,
 
-            // 圖片
+            // 主圖（第一張圖片）
+            'main_image' => $this->when($this->images->isNotEmpty(), function () {
+                $img = $this->images->first();
+                $previewPath = "item-images/{$img->uuid}/preview_{$img->image_path}.webp";
+                $thumbPath = "item-images/{$img->uuid}/thumb_{$img->image_path}.webp";
+
+                return [
+                    'uuid' => $img->uuid,
+                    'path' => $previewPath,
+                    'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
+                    'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
+                ];
+            }),
+
+            // 所有圖片（保留原有功能）
             'images' => $this->images->map(function ($img) {
                 $previewPath = "item-images/{$img->uuid}/preview_{$img->image_path}.webp";
                 $thumbPath = "item-images/{$img->uuid}/thumb_{$img->image_path}.webp";

@@ -28,9 +28,12 @@ class ItemController extends Controller
             'search' => $request->input('search'),
             'category_id' => $request->input('category_id'),
             'statuses' => $request->filled('statuses') ? explode(',', $request->input('statuses')) : [],
+            'sort' => $request->input('sort', 'default'),
         ];
 
-        $items = $this->itemService->paginateWithFilters($filters);
+        $perPage = $request->input('per_page', 20);
+        $perPage = min(max($perPage, 1), 100); // 限制在 1-100 之間
+        $items = $this->itemService->paginateWithFilters($filters, $perPage);
         $collection = new ItemCollection($items);
         $data = $collection->toArray($request);
 
