@@ -195,19 +195,28 @@ class Item extends Model
 
     /**
      * 動態屬性：取得物品狀態
+     * 基於文件定義的5個主要狀態
      *
      * @return string
      */
     public function getStatusAttribute(): string
     {
+        // 第一優先：檢查是否已棄用
         if ($this->discarded_at) {
-            return $this->used_at ? 'used_and_gone' : 'unused_but_gone';
-        } elseif ($this->used_at) {
-            return 'in_use';
-        } elseif ($this->received_at) {
-            return 'stored';
-        } else {
-            return 'pre_arrival';
+            return $this->used_at ? 'used_discarded' : 'unused_discarded';
         }
+
+        // 第二優先：檢查是否正在使用
+        if ($this->used_at) {
+            return 'in_use';
+        }
+
+        // 第三優先：檢查是否已到貨
+        if ($this->received_at) {
+            return 'unused';
+        }
+
+        // 第四優先：其他情況（有購買時間但未到貨）
+        return 'pre_arrival';
     }
 }

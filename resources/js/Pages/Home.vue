@@ -67,7 +67,7 @@
                     class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-red-50 transition"
                 >
                     🗑️ 已棄用物品<br/>
-                    <span class="text-sm text-gray-500">不再使用的物品（含主品與單品）</span>
+                    <span class="text-sm text-gray-500">已經棄用的物品清單</span>
                 </router-link>
             </li>
         </ul>

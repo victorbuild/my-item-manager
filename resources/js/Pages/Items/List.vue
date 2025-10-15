@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
 import Multiselect from '@vueform/multiselect'
@@ -9,7 +9,7 @@ const route = useRoute()
 const router = useRouter()
 
 // 預設的狀態（棄用以外）
-const DEFAULT_STATUSES = ['pending_delivery', 'pending_use', 'using']
+const DEFAULT_STATUSES = ['pre_arrival', 'unused', 'in_use']
 
 const statuses = ref([])
 
@@ -24,6 +24,13 @@ const search = ref(route.query.search || '')
 const category = ref(route.query.category_id || '')
 const categories = ref([])
 
+const perPage = ref('20')
+
+// Tooltip 相關
+const showTooltip = ref(false)
+const tooltipItem = ref(null)
+const tooltipPosition = ref({ x: 0, y: 0 })
+
 
 const fetchCategories = async () => {
     const res = await axios.get('/api/categories')
@@ -31,15 +38,13 @@ const fetchCategories = async () => {
 }
 
 const doSearch = () => {
-    router.push({
-        path: '/items',
-        query: {
-            ...(search.value ? { search: search.value } : {}),
-            ...(category.value ? { category_id: category.value } : {}),
-            ...(statuses.value.length ? { statuses: statuses.value.join(',') } : {}),
-        },
-    })
+    fetchItems(1)
+}
 
+const clearFilters = () => {
+    search.value = ''
+    category.value = ''
+    statuses.value = [...DEFAULT_STATUSES]
     fetchItems(1)
 }
 
@@ -48,13 +53,40 @@ const formatPrice = (val) => {
     return Number(val).toLocaleString('zh-TW')
 }
 
+// 狀態翻譯和顏色
+const getStatusInfo = (status) => {
+    const statusMap = {
+        'pre_arrival': { label: '📦 未到貨', color: 'bg-orange-100 text-orange-800' },
+        'unused': { label: '📚 未使用', color: 'bg-blue-100 text-blue-800' },
+        'in_use': { label: '✅ 使用中', color: 'bg-green-100 text-green-800' },
+        'unused_discarded': { label: '⚠️ 未使用就棄用', color: 'bg-red-100 text-red-800' },
+        'used_discarded': { label: '🗑️ 使用後棄用', color: 'bg-gray-100 text-gray-800' }
+    }
+    return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' }
+}
+
 const fetchItems = async (page = 1) => {
+    // 更新 URL 參數
+    const query = {
+        ...(search.value ? { search: search.value } : {}),
+        ...(category.value ? { category_id: category.value } : {}),
+        ...(statuses.value.length ? { statuses: statuses.value.join(',') } : {}),
+        ...(page > 1 ? { page } : {}),
+    }
+    
+    // 更新瀏覽器 URL
+    router.push({
+        path: '/items',
+        query: query
+    })
+    
     const res = await axios.get('/api/items', {
         params: {
             page,
             search: search.value || undefined,
             category_id: category.value || undefined,
             statuses: statuses.value.length ? statuses.value.join(',') : undefined,
+            per_page: perPage.value,
         },
     })
     items.value = res.data.items
@@ -68,6 +100,25 @@ const confirmDelete = async (id) => {
     }
 }
 
+// 顯示 Tooltip
+const showItemTooltip = (item, event) => {
+    tooltipItem.value = item
+    showTooltip.value = true
+    
+    // 計算位置
+    const rect = event.target.getBoundingClientRect()
+    tooltipPosition.value = {
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+    }
+}
+
+// 隱藏 Tooltip
+const hideTooltip = () => {
+    showTooltip.value = false
+    tooltipItem.value = null
+}
+
 onMounted(() => {
 
     // 初始化篩選狀態
@@ -79,6 +130,16 @@ onMounted(() => {
 
     fetchCategories()
     fetchItems(Number(route.query.page) || 1)
+    
+    // 監聽滾動事件，滾動時隱藏 Tooltip
+    window.addEventListener('scroll', hideTooltip)
+    window.addEventListener('resize', hideTooltip)
+})
+
+onUnmounted(() => {
+    // 清理事件監聽器
+    window.removeEventListener('scroll', hideTooltip)
+    window.removeEventListener('resize', hideTooltip)
 })
 </script>
 
@@ -117,14 +178,16 @@ onMounted(() => {
                 :close-on-select="false"
                 :searchable="false"
                 :options="[
-    { value: 'pending_delivery', label: '📦 未到貨' },
-    { value: 'pending_use', label: '🚀 未使用' },
-    { value: 'using', label: '✅ 使用中' },
-    { value: 'discarded', label: '🗑️ 已棄用' }
+    { value: 'pre_arrival', label: '📦 未到貨' },
+    { value: 'unused', label: '📚 未使用' },
+    { value: 'in_use', label: '✅ 使用中' },
+    { value: 'unused_discarded', label: '⚠️ 未使用就棄用' },
+    { value: 'used_discarded', label: '🗑️ 使用後棄用' }
   ]"
                 placeholder="📊 選擇狀態（可多選）"
                 class="min-w-[200px]"
             />
+
 
             <button
                 type="submit"
@@ -136,7 +199,7 @@ onMounted(() => {
             <button
                 v-if="search || category || statuses.length !== DEFAULT_STATUSES.length"
                 type="button"
-                @click="search = ''; category = ''; statuses = [...DEFAULT_STATUSES]; fetchItems(1)"
+                @click="clearFilters"
                 class="text-sm text-gray-500 underline ml-2"
             >
                 ❌ 清除
@@ -151,41 +214,71 @@ onMounted(() => {
             <li
                 v-for="item in items"
                 :key="item.id"
-                class="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-2 transition hover:shadow-lg"
+                class="bg-white rounded-2xl shadow-md p-4 flex flex-col gap-1 transition hover:shadow-lg"
             >
                 <!-- 名稱和資訊 -->
-                <div>
-                    <div class="font-semibold text-xl text-gray-800 break-words max-w-full">
-                        {{ item.name }}
+                <div class="flex items-start gap-3">
+                    <!-- 主圖 -->
+                    <div v-if="item.main_image" class="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img 
+                            :src="item.main_image.thumb_url" 
+                            :alt="item.name"
+                            class="w-full h-full object-cover"
+                            @error="$event.target.style.display='none'"
+                        />
                     </div>
-                    <div class="text-sm text-gray-500 mt-1">
-                        💰 金額：{{ formatPrice(item.price) }}<br />
-                        📅 購買日期：{{ item.purchased_at }}<br />
-                        📦 到貨日期：{{ item.received_at }}<br />
-                        🚀 開始使用日期：{{ item.used_at || '（未填寫）' }}<br />
-                        🗑️ 棄用日：{{ item.discarded_at }}<br />
+                    <div v-else class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                        <span class="text-gray-400 text-xl">📦</span>
                     </div>
-                </div>
-
-                <!-- 圖片 -->
-                <div
-                    v-if="item.images?.length"
-                    class="flex gap-2 overflow-x-auto mt-2 pb-1"
-                >
-                    <img
-                        v-for="(img, idx) in item.images.slice(0, 4)"
-                        :key="img.id || idx"
-                        :src="img.thumb_url"
-                        class="w-20 h-20 object-cover rounded border shrink-0"
-                        :alt="item.name + '-' + (idx+1)"
-                    />
-                </div>
-
-                <!-- 操作按鈕區域（放到底部右邊） -->
-                <div class="flex justify-end gap-4 text-sm mt-4">
-                    <router-link :to="`/items/${item.short_id}`" class="text-gray-600 hover:text-gray-800">🔍 查看</router-link>
-                    <router-link :to="`/items/${item.short_id}/edit`" class="text-blue-600 hover:text-blue-800">✏️ 編輯</router-link>
-                    <button @click="confirmDelete(item.short_id)" class="text-red-500 hover:text-red-700">🗑️ 刪除</button>
+                    
+                    <!-- 物品資訊 -->
+                    <div class="flex-1 min-w-0">
+                        <router-link 
+                            :to="`/items/${item.short_id}`" 
+                            class="font-semibold text-base text-gray-800 hover:text-gray-600 active:text-gray-600 break-words leading-tight cursor-pointer transition-colors"
+                            title="點擊查看詳情"
+                        >
+                            {{ item.name }}
+                        </router-link>
+                        <div class="text-sm text-gray-500 mt-1">
+                            <!-- 狀態標籤和操作按鈕 -->
+                            <div class="flex items-center justify-between mt-1">
+                                <div class="flex items-center gap-2">
+                                    <span 
+                                        v-if="item.status" 
+                                        :class="['px-2 py-1 rounded-full text-xs font-medium', getStatusInfo(item.status).color]"
+                                    >
+                                        {{ getStatusInfo(item.status).label }}
+                                    </span>
+                                    <button 
+                                        @mouseenter="showItemTooltip(item, $event)"
+                                        @mouseleave="hideTooltip"
+                                        class="w-4 h-4 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-colors"
+                                        title="查看詳細資訊"
+                                    >
+                                        <span class="text-xs font-bold">i</span>
+                                    </button>
+                                </div>
+                                <!-- 操作按鈕 -->
+                                <div class="flex gap-2">
+                                    <router-link 
+                                        :to="`/items/${item.short_id}/edit`" 
+                                        class="w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"
+                                        title="編輯"
+                                    >
+                                        <span class="text-sm">✏️</span>
+                                    </router-link>
+                                    <button 
+                                        @click="confirmDelete(item.short_id)" 
+                                        class="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center text-red-500 hover:text-red-700 transition-colors"
+                                        title="刪除"
+                                    >
+                                        <span class="text-sm">🗑️</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </li>
         </ul>
@@ -211,4 +304,28 @@ onMounted(() => {
             </button>
         </div>
     </div>
+
+    <!-- Tooltip -->
+    <div 
+        v-if="showTooltip && tooltipItem" 
+        class="fixed z-50 pointer-events-none"
+        :style="{ 
+            left: tooltipPosition.x + 'px', 
+            top: tooltipPosition.y + 'px',
+            transform: 'translateX(-50%) translateY(-100%)'
+        }"
+    >
+        <div class="bg-gray-800 text-white text-xs rounded-lg p-3 shadow-lg max-w-xs">
+            <div class="whitespace-nowrap">
+                💰 金額：{{ formatPrice(tooltipItem.price) }}<br />
+                📅 購買日期：{{ tooltipItem.purchased_at || '（未填寫）' }}<br />
+                📦 到貨日期：{{ tooltipItem.received_at || '（未填寫）' }}<br />
+                🚀 開始使用日期：{{ tooltipItem.used_at || '（未填寫）' }}<br />
+                🗑️ 棄用日：{{ tooltipItem.discarded_at || '（未填寫）' }}
+            </div>
+            <!-- 箭頭 -->
+            <div class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+        </div>
+    </div>
 </template>
+

@@ -30,12 +30,11 @@ class ItemCollection extends ResourceCollection
                     'uuid' => $item->uuid,
                     'short_id' => $item->short_id,
                     'expiration_date' => $formatDate($item->expiration_date),
-                    'images' => $item->images->take(4)->map(function ($img) {
-                        return [
-                            'uuid' => $img->uuid,
-                            'thumb_url' => $img->thumb_url,
-                        ];
-                    }),
+                    'status' => $item->status,
+                    // 主圖（第一張圖片）
+                    'main_image' => $item->images->isNotEmpty() ? [
+                        'thumb_url' => $item->images->first()->thumb_url,
+                    ] : null,
                 ];
             }),
         ];
