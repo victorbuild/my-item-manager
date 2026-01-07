@@ -18,6 +18,7 @@ Route::prefix('api')->middleware('auth:sanctum')->group(function () {
     Route::post('/categories', [CategoryController::class, 'store']);
 
     Route::apiResource('/products', ProductController::class);
+    Route::get('/items/expiring-soon', [ItemController::class, 'expiringSoon']);
     Route::apiResource('items', ItemController::class);
     Route::post('/item-images', [ItemImageController::class, 'store']);
     Route::apiResource('item-units', ItemUnitController::class);
