@@ -16,7 +16,6 @@ class ItemController extends Controller
 {
     public function __construct(private readonly ItemService $itemService)
     {
-
     }
 
     /**

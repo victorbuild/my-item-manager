@@ -23,7 +23,11 @@ return new class extends Migration
 
             if (!Schema::hasIndex('items', 'idx_items_expiration_date')) {
                 if ($driver === 'pgsql') {
-                    DB::statement('CREATE INDEX idx_items_expiration_date ON items (expiration_date) WHERE expiration_date IS NOT NULL');
+                    // PostgreSQL: 使用部分索引（partial index），排除 NULL 值
+                    DB::statement(
+                        'CREATE INDEX idx_items_expiration_date ON items (expiration_date) '
+                        . 'WHERE expiration_date IS NOT NULL'
+                    );
                 } else {
                     $table->index('expiration_date', 'idx_items_expiration_date');
                 }
