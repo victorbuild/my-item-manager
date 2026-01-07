@@ -16,6 +16,7 @@ class ItemController extends Controller
 {
     public function __construct(private readonly ItemService $itemService)
     {
+
     }
 
     /**
@@ -212,5 +213,51 @@ class ItemController extends Controller
         $this->itemService->delete($item);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * 取得近期過期的商品列表
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function expiringSoon(Request $request): JsonResponse
+    {
+        $days = (int) $request->input('days', 30);
+
+        // 限制最多只能查詢 3 年（1095 天）
+        if ($days < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => '查詢天數必須大於 0',
+            ], 400);
+        }
+
+        if ($days > 1095) {
+            return response()->json([
+                'success' => false,
+                'message' => '查詢天數最多為 1095 天（3 年）',
+            ], 400);
+        }
+
+        $perPage = $request->input('per_page', 20);
+        $perPage = min(max($perPage, 1), 100); // 限制在 1-100 之間
+
+        $items = $this->itemService->getExpiringSoonItems($days, $perPage);
+        $collection = new ItemCollection($items);
+        $data = $collection->toArray($request);
+
+        // 計算所有範圍的統計（一次查詢，高效能）
+        $rangeStats = $this->itemService->getRangeStatistics([7, 30, 90, 180, 365, 1095]);
+        $totalAll = $this->itemService->countItemsWithExpirationDate();
+
+        return response()->json([
+            'success' => true,
+            'message' => '取得成功',
+            'meta' => $data['meta'],
+            'items' => $data['items'],
+            'range_statistics' => $rangeStats,
+            'total_all_with_expiration_date' => $totalAll,
+        ]);
     }
 }
