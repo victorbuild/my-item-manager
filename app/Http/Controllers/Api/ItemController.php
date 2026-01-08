@@ -259,4 +259,74 @@ class ItemController extends Controller
             'total_all_with_expiration_date' => $totalAll,
         ]);
     }
+
+    /**
+     * 取得物品統計資料
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function statistics(Request $request): JsonResponse
+    {
+        $period = $request->input('period', 'all');
+        $year = $request->input('year') ? (int) $request->input('year') : null;
+
+        // 驗證時間範圍參數（all 已經包含在內）
+        if (!in_array($period, ['all', 'year', 'month', 'week', 'three_months'])) {
+            return response()->json([
+                'success' => false,
+                'message' => '無效的時間範圍參數',
+            ], 400);
+        }
+
+        $statistics = $this->itemService->getStatistics($period, $year);
+
+        // 將最貴前五名轉換為 Resource
+        $statistics['top_expensive'] = ItemResource::collection($statistics['top_expensive']);
+
+        // 將尚未使用的物品前五名轉換為 Resource
+        if (isset($statistics['unused_items']['top_five'])) {
+            $statistics['unused_items']['top_five'] = collect($statistics['unused_items']['top_five'])
+                ->map(function ($data) {
+                    return [
+                        'item' => new ItemResource($data['item']),
+                        'days_unused' => $data['days_unused'],
+                    ];
+                })->values()->all();
+        }
+
+        // 將已結案成本前五名轉換為 Resource
+        if (isset($statistics['discarded_cost_stats']['top_five'])) {
+            $statistics['discarded_cost_stats']['top_five'] = collect($statistics['discarded_cost_stats']['top_five'])
+                ->map(function ($data) {
+                    return [
+                        'item' => new ItemResource($data['item']->load(['images', 'product'])),
+                        'cost_per_day' => $data['cost_per_day'],
+                        'usage_days' => $data['usage_days'],
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        // 將使用中成本前五名轉換為 Resource
+        if (isset($statistics['in_use_cost_stats']['top_five'])) {
+            $statistics['in_use_cost_stats']['top_five'] = collect($statistics['in_use_cost_stats']['top_five'])
+                ->map(function ($data) {
+                    return [
+                        'item' => new ItemResource($data['item']->load(['images', 'product'])),
+                        'cost_per_day' => $data['cost_per_day'],
+                        'usage_days' => $data['usage_days'],
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => '取得成功',
+            'data' => $statistics,
+        ]);
+    }
 }
