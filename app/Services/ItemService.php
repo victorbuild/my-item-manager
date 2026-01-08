@@ -301,8 +301,11 @@ class ItemService
      * @param \Carbon\Carbon|null $endDate
      * @return \Closure
      */
-    private function buildCreatedDateFilter(string $period, ?\Carbon\Carbon $startDate, ?\Carbon\Carbon $endDate): \Closure
-    {
+    private function buildCreatedDateFilter(
+        string $period,
+        ?\Carbon\Carbon $startDate,
+        ?\Carbon\Carbon $endDate
+    ): \Closure {
         return function ($query) use ($period, $startDate, $endDate) {
             if ($period === 'all') {
                 return $query;
@@ -345,8 +348,12 @@ class ItemService
      * @param \Carbon\Carbon|null $endDate
      * @return array
      */
-    private function calculateTotalsStatistics($baseQuery, \Closure $applyCreatedDateFilter, ?\Carbon\Carbon $startDate, ?\Carbon\Carbon $endDate): array
-    {
+    private function calculateTotalsStatistics(
+        $baseQuery,
+        \Closure $applyCreatedDateFilter,
+        ?\Carbon\Carbon $startDate,
+        ?\Carbon\Carbon $endDate
+    ): array {
         $totalCreated = $applyCreatedDateFilter((clone $baseQuery))->count();
 
         $discardedQuery = (clone $baseQuery)->whereNotNull('discarded_at');
@@ -557,8 +564,11 @@ class ItemService
      * @param \Carbon\Carbon|null $endDate
      * @return array
      */
-    private function calculateDiscardedCostStatistics($baseQuery, ?\Carbon\Carbon $startDate, ?\Carbon\Carbon $endDate): array
-    {
+    private function calculateDiscardedCostStatistics(
+        $baseQuery,
+        ?\Carbon\Carbon $startDate,
+        ?\Carbon\Carbon $endDate
+    ): array {
         $discardedItemsForCost = (clone $baseQuery)
             ->whereNotNull('discarded_at')
             ->whereNotNull('price')

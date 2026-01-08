@@ -286,12 +286,13 @@ class ItemController extends Controller
 
         // 將尚未使用的物品前五名轉換為 Resource
         if (isset($statistics['unused_items']['top_five'])) {
-            $statistics['unused_items']['top_five'] = collect($statistics['unused_items']['top_five'])->map(function ($data) {
-                return [
-                    'item' => new ItemResource($data['item']),
-                    'days_unused' => $data['days_unused'],
-                ];
-            })->values()->all();
+            $statistics['unused_items']['top_five'] = collect($statistics['unused_items']['top_five'])
+                ->map(function ($data) {
+                    return [
+                        'item' => new ItemResource($data['item']),
+                        'days_unused' => $data['days_unused'],
+                    ];
+                })->values()->all();
         }
 
         // 將已結案成本前五名轉換為 Resource
