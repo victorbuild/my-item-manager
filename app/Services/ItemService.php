@@ -374,7 +374,7 @@ class ItemService
         if ($endDate) {
             $discardedValueQuery->where('discarded_at', '<=', $endDate);
         }
-        $discardedValue = $discardedValueQuery->sum('price') ?? 0;
+        $discardedValue = $discardedValueQuery->sum('price') ?: 0;
 
         return [
             'created' => $totalCreated,
@@ -581,6 +581,7 @@ class ItemService
             $discardedItemsForCost->where('discarded_at', '<=', $endDate);
         }
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $discardedItemsList */
         $discardedItemsList = $discardedItemsForCost->get();
         return $this->calculateItemCosts($discardedItemsList, true);
     }
@@ -601,6 +602,7 @@ class ItemService
             ->where('price', '>', 0);
 
         $inUseItemsForCost = $applyCreatedDateFilter($inUseItemsForCost);
+        /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $inUseItemsList */
         $inUseItemsList = $inUseItemsForCost->get();
         return $this->calculateItemCosts($inUseItemsList, false);
     }
@@ -608,7 +610,7 @@ class ItemService
     /**
      * 計算物品的每日成本
      *
-     * @param \Illuminate\Database\Eloquent\Collection $items
+     * @param \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $items
      * @param bool $isDiscarded 是否為已棄用物品
      * @return array
      */
@@ -618,7 +620,7 @@ class ItemService
         $totalDays = 0;
         $itemsWithCost = [];
 
-        // @var $item App\Models\Item
+        /** @var \App\Models\Item $item */
         foreach ($items as $item) {
             $usageDays = 0;
             $costPerDay = 0;
@@ -646,9 +648,10 @@ class ItemService
                 }
             }
 
-            if ($usageDays > 0 && $item->price > 0) {
-                $costPerDay = round($item->price / $usageDays, 1);
-                $totalCost += $item->price;
+            $itemPrice = (float) $item->price;
+            if ($usageDays > 0 && $itemPrice > 0) {
+                $costPerDay = round($itemPrice / $usageDays, 1);
+                $totalCost += $itemPrice;
                 $totalDays += $usageDays;
 
                 $itemsWithCost[] = [
@@ -694,7 +697,7 @@ class ItemService
     private function calculateDateRange(string $period, ?int $year, ?\Carbon\Carbon $startDate): array
     {
         $today = now();
-        $start = null;
+        $start = $today->copy()->startOfDay(); // 預設值
         $end = $today;
 
         if ($period === 'year') {
@@ -732,9 +735,9 @@ class ItemService
         }
 
         return [
-            'start' => $start ? $start->format('Y-m-d') : null,
+            'start' => $start->format('Y-m-d'),
             'end' => $end->format('Y-m-d'),
-            'start_formatted' => $start ? $start->format('Y年m月d日') : null,
+            'start_formatted' => $start->format('Y年m月d日'),
             'end_formatted' => $end->format('Y年m月d日'),
         ];
     }
