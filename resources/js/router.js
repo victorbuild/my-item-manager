@@ -13,6 +13,9 @@ import ProductShow from './Pages/Products/Show.vue'
 import DiscardedItemList from './Pages/DiscardedItems/List.vue'
 import ExpiringItemList from './Pages/ExpiringItems/List.vue'
 import Statistics from './Pages/Statistics.vue'
+import CategoryList from './Pages/Categories/List.vue'
+import CategoryForm from './Pages/Categories/Form.vue'
+import CategoryShow from './Pages/Categories/Show.vue'
 
 const routes = [
     {
@@ -84,6 +87,26 @@ const routes = [
         path: '/statistics',
         name: 'Statistics',
         component: Statistics
+    },
+    {
+        path: '/categories',
+        name: 'CategoryList',
+        component: CategoryList
+    },
+    {
+        path: '/categories/create',
+        name: 'CategoryCreate',
+        component: CategoryForm
+    },
+    {
+        path: '/categories/:id',
+        name: 'CategoryView',
+        component: CategoryShow
+    },
+    {
+        path: '/categories/:id/edit',
+        name: 'CategoryEdit',
+        component: CategoryForm
     },
     {
         path: '/:pathMatch(.*)*',

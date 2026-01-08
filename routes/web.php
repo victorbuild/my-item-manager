@@ -16,6 +16,9 @@ Route::prefix('api')->middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
+    Route::get('/categories/{category}', [CategoryController::class, 'show']);
+    Route::put('/categories/{category}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
     Route::apiResource('/products', ProductController::class);
     Route::get('/items/expiring-soon', [ItemController::class, 'expiringSoon']);

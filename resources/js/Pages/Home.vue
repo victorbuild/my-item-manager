@@ -1,7 +1,7 @@
 <template>
     <div class="min-h-screen p-4">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">物品管理首頁</h1>
+            <h1 class="text-2xl font-bold">首頁</h1>
             <div>
                 <template v-if="isLoggedIn">
                     <div class="flex items-center space-x-2">
@@ -95,71 +95,80 @@
             </div>
         </div>
 
-        <ul class="space-y-4">
+        <!-- 物品管理區塊 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">物品管理</h2>
+            <ul class="space-y-3">
+                <li>
+                    <router-link
+                        to="/items"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-blue-50 transition"
+                    >
+                        📦 我的物品<br/>
+                        <span class="text-sm text-gray-500">我實際擁有的東西，例如這本書或這雙鞋</span>
+                    </router-link>
+                </li>
+                <li>
+                    <router-link
+                        to="/expiring-items"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-orange-50 transition"
+                    >
+                        ⏰ 近期過期商品<br/>
+                        <span class="text-sm text-gray-500">查看即將過期的使用中商品</span>
+                    </router-link>
+                </li>
+                <li>
+                    <router-link
+                        to="/discarded"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-red-50 transition"
+                    >
+                        🗑️ 已棄用物品<br/>
+                        <span class="text-sm text-gray-500">已經棄用的物品清單</span>
+                    </router-link>
+                </li>
+            </ul>
+        </div>
 
-            <li>
-                <router-link
-                    to="/items"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-blue-50 transition"
-                >
-                    📦 我的物品<br/>
-                    <span class="text-sm text-gray-500">我實際擁有的東西，例如這本書或這雙鞋</span>
-                </router-link>
-            </li>
+        <!-- 產品管理區塊 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">產品管理</h2>
+            <ul class="space-y-3">
+                <li>
+                    <router-link
+                        to="/products"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-indigo-50 transition"
+                    >
+                        🏷️ 產品定義<br/>
+                        <span class="text-sm text-gray-500">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
+                    </router-link>
+                </li>
+                <li>
+                    <router-link
+                        to="/categories"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-green-50 transition"
+                    >
+                        🏷️ 分類管理<br/>
+                        <span class="text-sm text-gray-500">新增、編輯、刪除您的分類</span>
+                    </router-link>
+                </li>
+            </ul>
+        </div>
 
-            <li>
-                <router-link
-                    to="/products"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-indigo-50 transition"
-                >
-                    🏷️ 產品定義<br/>
-                    <span class="text-sm text-gray-500">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
-                </router-link>
-            </li>
-
-            <!--
-            <li>
-                <router-link
-                    to="/usage-records"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-yellow-50 transition"
-                >
-                    🕓 使用紀錄<br/>
-                    <span class="text-sm text-gray-500">每次使用的時間與情境</span>
-                </router-link>
-            </li>
-            -->
-
-            <li>
-                <router-link
-                    to="/expiring-items"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-orange-50 transition"
-                >
-                    ⏰ 近期過期商品<br/>
-                    <span class="text-sm text-gray-500">查看即將過期的使用中商品</span>
-                </router-link>
-            </li>
-
-            <li>
-                <router-link
-                    to="/discarded"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-red-50 transition"
-                >
-                    🗑️ 已棄用物品<br/>
-                    <span class="text-sm text-gray-500">已經棄用的物品清單</span>
-                </router-link>
-            </li>
-
-            <li>
-                <router-link
-                    to="/statistics"
-                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-purple-50 transition"
-                >
-                    📊 統計分析<br/>
-                    <span class="text-sm text-gray-500">查看物品管理統計資料與分析</span>
-                </router-link>
-            </li>
-
-        </ul>
+        <!-- 統計分析區塊 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">統計分析</h2>
+            <ul class="space-y-3">
+                <li>
+                    <router-link
+                        to="/statistics"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-purple-50 transition"
+                    >
+                        📊 統計分析<br/>
+                        <span class="text-sm text-gray-500">查看物品管理統計資料與分析</span>
+                    </router-link>
+                </li>
+            </ul>
+        </div>
     </div>
 </template>
 

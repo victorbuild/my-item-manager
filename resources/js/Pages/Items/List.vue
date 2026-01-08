@@ -34,7 +34,8 @@ const tooltipPosition = ref({ x: 0, y: 0 })
 
 const fetchCategories = async () => {
     const res = await axios.get('/api/categories')
-    categories.value = res.data
+    // 處理分頁返回的數據結構
+    categories.value = res.data.items || res.data || []
 }
 
 const doSearch = () => {

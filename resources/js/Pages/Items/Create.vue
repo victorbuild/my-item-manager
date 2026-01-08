@@ -21,9 +21,12 @@
             <label class="block font-medium">🆕 建立新產品</label>
             <input v-model="newProduct.name" type="text" class="w-full p-2 border rounded" placeholder="產品名稱（必填）" />
             <input v-model="newProduct.brand" type="text" class="w-full p-2 border rounded" placeholder="品牌（可選）" />
-            <Multiselect v-model="newProduct.category" :options="categories" :searchable="true"
-                :custom-label="opt => opt.name" :track-by="'id'" placeholder="選擇分類" @search-change="onSearch"
-                @select="onSelect" />
+            <div class="space-y-2">
+                <Multiselect v-model="newProduct.category" :options="categories" :searchable="true"
+                    :custom-label="opt => opt.name" :track-by="'id'" placeholder="選擇分類" 
+                    :allow-empty="true" :close-on-select="true"
+                    @search-change="onSearch" @select="onSelect" />
+            </div>
             <input v-model="newProduct.model" type="text" class="w-full p-2 border rounded" placeholder="型號（可選）" />
             <input v-model="newProduct.spec" type="text" class="w-full p-2 border rounded" placeholder="規格（如顏色、容量等）" />
 
@@ -33,7 +36,8 @@
                 <div class="flex gap-2 items-center">
                     <input v-model="newProduct.barcode" type="text" placeholder="輸入或掃描條碼"
                         class="flex-1 p-2 border rounded" />
-                    <button type="button" @click="startBarcodeScan" class="text-blue-500 underline text-sm">
+                    <button type="button" @click="startBarcodeScan('productBarcode')" 
+                        class="text-blue-600 hover:text-blue-800 underline text-sm whitespace-nowrap">
                         📷 掃描
                     </button>
                 </div>
@@ -199,11 +203,40 @@
                 </div>
             </div>
 
-            <!-- 掃描器區塊 -->
-            <div v-if="showScanner" class="mt-2">
-                <div id="scanner" class="border rounded-md w-full h-64"></div>
-                <button type="button" @click="stopScanner" class="text-sm mt-2 text-red-500 underline">✖ 關閉掃描器
-                </button>
+            <!-- 全螢幕掃描器模態框 -->
+            <div v-if="showScanner" 
+                class="fixed inset-0 z-50 bg-black overflow-hidden scanner-container">
+                <div class="w-full h-full relative">
+                    <div id="scanner" class="scanner-fullscreen"></div>
+                    <!-- 自定義掃描框指示器 -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div class="border-2 border-white rounded-lg" 
+                            style="width: 80%; max-width: 500px; aspect-ratio: 2.5/1; position: relative;">
+                            <!-- 四個角的指示器 -->
+                            <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-green-400 rounded-tl-lg"></div>
+                            <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-green-400 rounded-tr-lg"></div>
+                            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-green-400 rounded-bl-lg"></div>
+                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-green-400 rounded-br-lg"></div>
+                            <!-- 檢測到條碼時的綠色覆蓋層 -->
+                            <div v-if="barcodeDetected" 
+                                class="absolute inset-0 bg-green-400/30 rounded-lg flex items-center justify-center">
+                                <div class="bg-green-500 text-white px-4 py-2 rounded-lg font-semibold">
+                                    ✓ 已檢測到條碼
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute top-4 right-4 flex gap-2 z-20">
+                        <button type="button" @click="stopScanner" 
+                            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-lg">
+                            ✖ 關閉
+                        </button>
+                    </div>
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-center z-20">
+                        <p class="text-lg font-semibold mb-2">將條碼對準掃描框</p>
+                        <p class="text-sm text-gray-300">請保持條碼水平對齊</p>
+                    </div>
+                </div>
             </div>
 
             <!-- 操作按鈕 -->
@@ -235,11 +268,14 @@ const categories = ref([])
 const selectedCategory = ref(null)
 const searchQuery = ref('')
 const creating = ref(false)
+const creatingCategory = ref(false)
 
 const router = useRouter()
 
 const showScanner = ref(false)
 const isSubmitting = ref(false)
+const scanTarget = ref(null) // 記錄掃描目標：'productBarcode' 或 'itemBarcode'
+const barcodeDetected = ref(false) // 是否檢測到條碼
 
 const fileInput = ref(null)
 const uploadList = ref([])
@@ -331,7 +367,22 @@ const getImagesForApi = () => {
 const selectedProduct = ref(null)
 const products = ref([])
 
-const searchProduct = async (query) => {
+// Debounce 工具函數
+const debounce = (func, delay) => {
+    let timeoutId
+    return (...args) => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => func.apply(null, args), delay)
+    }
+}
+
+// 實際的搜尋函數
+const _searchProduct = async (query) => {
+    if (!query || query.trim() === '') {
+        products.value = []
+        return
+    }
+    
     try {
         const res = await axios.get('/api/products', { params: { q: query } })
         products.value = res.data.items || res.data // 視 API 結構調整
@@ -349,12 +400,18 @@ const searchProduct = async (query) => {
     }
 }
 
+// 使用 debounce 包裝的搜尋函數（500ms 延遲）
+const searchProduct = debounce(_searchProduct, 500)
+
 
 const creatingProduct = ref(false)
 const newProduct = ref({
     name: '',
     brand: '',
-    category: null
+    category: null,
+    model: '',
+    spec: '',
+    barcode: ''
 })
 
 const onProductSelect = (option) => {
@@ -372,16 +429,33 @@ const confirmCreateProduct = async () => {
         const res = await axios.post('/api/products', {
             name: newProduct.value.name,
             brand: newProduct.value.brand,
-            category_id: newProduct.value.category?.id,
+            category_id: newProduct.value.category?.id || null,
             model: newProduct.value.model,
             spec: newProduct.value.spec,
             barcode: newProduct.value.barcode,
         })
 
-        selectedProduct.value = res.data.items?.[0]
+        // 處理 API 返回的數據結構
+        selectedProduct.value = res.data.items?.[0] || res.data.item || res.data
         creatingProduct.value = false
+        newProduct.value = {
+            name: '',
+            brand: '',
+            category: null,
+            model: '',
+            spec: '',
+            barcode: ''
+        }
+        
+        // 重新搜尋產品列表以更新
+        await searchProduct(selectedProduct.value.name)
     } catch (e) {
-        alert('❌ 建立產品失敗，請確認欄位是否正確')
+        console.error('建立產品失敗', e)
+        if (e.response?.data?.message) {
+            alert(`❌ 建立產品失敗：${e.response.data.message}`)
+        } else {
+            alert('❌ 建立產品失敗，請確認欄位是否正確')
+        }
     }
 }
 
@@ -405,15 +479,18 @@ const form = ref({
     expiration_date: '',
     barcode: '',
 })
-const onSearch = async (query) => {
+
+// 實際的分類搜尋函數
+const _searchCategory = async (query) => {
     searchQuery.value = query
     // 這邊呼叫 GET API 搜尋
     try {
         const res = await axios.get('/api/categories', { params: { q: query } })
-        categories.value = res.data
+        // 處理分頁返回的數據結構
+        categories.value = res.data.items || res.data || []
 
-        // 如果沒有完全相符的分類，加入「虛擬新增」選項
-        if (!categories.value.find(c => c.name === query)) {
+        // 如果沒有完全相符的分類，加入「新增分類」選項
+        if (query && !categories.value.find(c => c.name === query)) {
             categories.value.unshift({
                 id: '__create__',
                 name: `➕ 點選以建立新分類：「${query}」`,
@@ -426,21 +503,57 @@ const onSearch = async (query) => {
     }
 }
 
+// 使用 debounce 包裝的分類搜尋函數（500ms 延遲）
+const onSearch = debounce(_searchCategory, 500)
+
 const onSelect = async (option) => {
-    if (option.isNew) {
-        // 建立新分類
-        try {
-            creating.value = true
-            const res = await axios.post('/api/categories', { name: option._rawName })
-            selectedCategory.value = res.data
-            await onSearch('') // 重新拉取分類清單
-        } catch (e) {
-            alert('新增分類失敗')
-        } finally {
-            creating.value = false
+    if (option && option.isNew) {
+        // 顯示確認對話框
+        const categoryName = option._rawName || option.name.replace('➕ 點選以建立新分類：「', '').replace('」', '')
+        const confirmed = confirm(`是否要新增分類「${categoryName}」？`)
+        
+        if (confirmed) {
+            await createCategory(categoryName)
+        } else {
+            // 取消選擇，回到未選擇狀態
+            newProduct.value.category = null
         }
-    } else {
-        selectedCategory.value = option
+    } else if (option) {
+        newProduct.value.category = option
+    }
+}
+
+const createCategory = async (categoryName) => {
+    if (!categoryName || !categoryName.trim()) {
+        alert('請輸入分類名稱')
+        return
+    }
+    
+    if (creatingCategory.value) return
+    creatingCategory.value = true
+    
+    try {
+        const res = await axios.post('/api/categories', { name: categoryName.trim() })
+        const newCategory = res.data.items[0]
+        
+        // 添加到分類列表
+        if (!categories.value.find(c => c.id === newCategory.id)) {
+            categories.value.push(newCategory)
+        }
+        
+        // 自動選中新建的分類
+        newProduct.value.category = newCategory
+    } catch (e) {
+        console.error('新增分類失敗', e)
+        if (e.response?.data?.message) {
+            alert(`❌ 新增分類失敗：${e.response.data.message}`)
+        } else {
+            alert('❌ 新增分類失敗，請確認分類名稱是否正確')
+        }
+        // 失敗時清空選擇
+        newProduct.value.category = null
+    } finally {
+        creatingCategory.value = false
     }
 }
 
@@ -460,7 +573,8 @@ onMounted(async () => {
 
     try {
         const res = await axios.get('/api/categories')
-        categories.value = res.data
+        // 處理分頁返回的數據結構
+        categories.value = res.data.items || res.data || []
     } catch (error) {
         console.error('❌ 讀取分類失敗', error)
     }
@@ -546,35 +660,77 @@ const resetForm = () => {
 
 let html5QrCode
 
-const startBarcodeScan = async () => {
+const startBarcodeScan = async (target) => {
+    scanTarget.value = target
+    barcodeDetected.value = false
     showScanner.value = true
     await nextTick()
     html5QrCode = new Html5Qrcode("scanner")
 
     try {
+        // 計算橫向掃描框尺寸（適合手機直立使用）
+        // 使用視窗寬度的 80%，高度為寬度的 40%（2.5:1 的比例）
+        const viewportWidth = window.innerWidth
+        const viewportHeight = window.innerHeight
+        const scanBoxWidth = Math.min(viewportWidth * 0.8, 500)
+        const scanBoxHeight = scanBoxWidth * 0.4 // 2.5:1 的比例
+
         await html5QrCode.start(
-            { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            (decodedText) => {
-                stopScanner()
-                newProduct.value.barcode = decodedText
-                alert('✅ 條碼已填入')
+            { 
+                facingMode: "environment"
+            },
+            { 
+                fps: 10, 
+                qrbox: { width: scanBoxWidth, height: scanBoxHeight },
+                aspectRatio: 1.0,
+                disableFlip: false
+            },
+            async (decodedText, result) => {
+                // 檢測到條碼時顯示視覺反饋
+                barcodeDetected.value = true
+                
+                // 短暫延遲後停止掃描並顯示確認
+                setTimeout(async () => {
+                    await stopScanner()
+                    
+                    // 顯示確認對話框
+                    const confirmed = confirm(`掃描到的條碼：${decodedText}\n\n是否要使用這個條碼？`)
+                    
+                if (confirmed) {
+                    // 根據目標填入對應的輸入框
+                    if (target === 'productBarcode') {
+                        newProduct.value.barcode = decodedText
+                    }
+                }
+                }, 500) // 給用戶 0.5 秒看到綠色反饋
+            },
+            (errorMessage) => {
+                // 掃描錯誤時的處理（不顯示錯誤訊息避免干擾）
+                barcodeDetected.value = false
             }
         )
     } catch (err) {
-        alert("無法啟動相機掃描")
+        alert("無法啟動相機掃描，請確認瀏覽器權限")
         console.error(err)
         showScanner.value = false
+        scanTarget.value = null
+        barcodeDetected.value = false
     }
 }
 
 const stopScanner = async () => {
     if (html5QrCode) {
-        await html5QrCode.stop()
-        html5QrCode.clear()
+        try {
+            await html5QrCode.stop()
+            html5QrCode.clear()
+        } catch (err) {
+            console.error('停止掃描器時出錯', err)
+        }
         html5QrCode = null
     }
     showScanner.value = false
+    scanTarget.value = null
+    barcodeDetected.value = false
 }
 
 const showManufactureDateModal = ref(false)
@@ -613,3 +769,23 @@ const applyCalculatedDate = () => {
     }
 }
 </script>
+
+<style scoped>
+.scanner-container #scanner {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+.scanner-container #scanner video,
+.scanner-container #scanner canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    object-fit: cover !important;
+}
+</style>
