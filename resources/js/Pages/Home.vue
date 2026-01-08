@@ -149,6 +149,16 @@
                 </router-link>
             </li>
 
+            <li>
+                <router-link
+                    to="/statistics"
+                    class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-purple-50 transition"
+                >
+                    📊 統計分析<br/>
+                    <span class="text-sm text-gray-500">查看物品管理統計資料與分析</span>
+                </router-link>
+            </li>
+
         </ul>
     </div>
 </template>

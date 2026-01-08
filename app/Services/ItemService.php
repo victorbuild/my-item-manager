@@ -197,4 +197,535 @@ class ItemService
 
         return $stats;
     }
+
+    /**
+     * 取得物品統計資料
+     *
+     * @param string $period 時間範圍：all, year, month, week, three_months
+     * @param int|null $year 年份（當 period 為 year 時使用）
+     * @return array
+     */
+    public function getStatistics(string $period = 'all', ?int $year = null): array
+    {
+        $userId = auth()->id();
+        $baseQuery = Item::where('user_id', $userId);
+
+        // 計算時間範圍
+        [$startDate, $endDate] = $this->buildDateRange($period, $year);
+
+        // 建立時間範圍過濾函數（用於新增物品的判斷）
+        $applyCreatedDateFilter = $this->buildCreatedDateFilter($period, $startDate, $endDate);
+
+        // 計算基礎統計
+        $totals = $this->calculateTotalsStatistics($baseQuery, $applyCreatedDateFilter, $startDate, $endDate);
+
+        // 計算價值統計
+        $valueStats = $this->calculateValueStatistics($baseQuery, $applyCreatedDateFilter, $totals['value']);
+
+        // 計算狀態統計
+        $statusStats = $this->calculateStatusStatistics($baseQuery, $applyCreatedDateFilter);
+
+        // 取得最貴前五名
+        $topExpensive = $this->getTopExpensiveItems($baseQuery, $applyCreatedDateFilter);
+
+        // 取得尚未使用的物品
+        $unusedItems = $this->getUnusedItems($baseQuery, $applyCreatedDateFilter);
+
+        // 計算已結案物品成本統計
+        $discardedCostData = $this->calculateDiscardedCostStatistics($baseQuery, $startDate, $endDate);
+
+        // 計算使用中物品成本統計
+        $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter);
+
+        // 計算時間範圍的開始和結束日期
+        $dateRange = $this->calculateDateRange($period, $year, $startDate);
+
+        return [
+            'totals' => $totals,
+            'status' => $statusStats,
+            'top_expensive' => $topExpensive,
+            'value_stats' => $valueStats,
+            'unused_items' => $unusedItems,
+            'discarded_cost_stats' => [
+                'average_cost_per_day' => $discardedCostData['average_cost_per_day'],
+                'top_five' => $discardedCostData['top_five'],
+            ],
+            'in_use_cost_stats' => [
+                'average_cost_per_day' => $inUseCostData['average_cost_per_day'],
+                'top_five' => $inUseCostData['top_five'],
+            ],
+            'date_range' => $dateRange,
+        ];
+    }
+
+    /**
+     * 建立時間範圍（開始和結束日期）
+     *
+     * @param string $period
+     * @param int|null $year
+     * @return array [\Carbon\Carbon|null, \Carbon\Carbon|null]
+     */
+    private function buildDateRange(string $period, ?int $year): array
+    {
+        $startDate = null;
+        $endDate = null;
+
+        if ($period === 'year') {
+            if ($year) {
+                $startDate = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+                $today = now();
+                if ($year === $today->year) {
+                    $endDate = $today;
+                } else {
+                    $endDate = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+                }
+            } else {
+                $startDate = now()->startOfYear();
+            }
+        } elseif ($period === 'three_months') {
+            $startDate = now()->subMonths(3)->startOfDay();
+        } elseif ($period === 'month') {
+            $startDate = now()->startOfMonth();
+        } elseif ($period === 'week') {
+            $startDate = now()->startOfWeek();
+        }
+
+        return [$startDate, $endDate];
+    }
+
+    /**
+     * 建立時間範圍過濾函數（用於新增物品的判斷）
+     *
+     * @param string $period
+     * @param \Carbon\Carbon|null $startDate
+     * @param \Carbon\Carbon|null $endDate
+     * @return \Closure
+     */
+    private function buildCreatedDateFilter(string $period, ?\Carbon\Carbon $startDate, ?\Carbon\Carbon $endDate): \Closure
+    {
+        return function ($query) use ($period, $startDate, $endDate) {
+            if ($period === 'all') {
+                return $query;
+            }
+            if ($startDate) {
+                return $query->where(function ($q) use ($startDate, $endDate) {
+                    $q->where(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereNotNull('purchased_at')
+                            ->where('purchased_at', '>=', $startDate);
+                        if ($endDate) {
+                            $sub->where('purchased_at', '<=', $endDate);
+                        }
+                    })->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereNull('purchased_at')
+                            ->whereNotNull('received_at')
+                            ->where('received_at', '>=', $startDate);
+                        if ($endDate) {
+                            $sub->where('received_at', '<=', $endDate);
+                        }
+                    })->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereNull('purchased_at')
+                            ->whereNull('received_at')
+                            ->where('created_at', '>=', $startDate);
+                        if ($endDate) {
+                            $sub->where('created_at', '<=', $endDate);
+                        }
+                    });
+                });
+            }
+            return $query;
+        };
+    }
+
+    /**
+     * 計算基礎統計（總數、價值等）
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Closure $applyCreatedDateFilter
+     * @param \Carbon\Carbon|null $startDate
+     * @param \Carbon\Carbon|null $endDate
+     * @return array
+     */
+    private function calculateTotalsStatistics($baseQuery, \Closure $applyCreatedDateFilter, ?\Carbon\Carbon $startDate, ?\Carbon\Carbon $endDate): array
+    {
+        $totalCreated = $applyCreatedDateFilter((clone $baseQuery))->count();
+
+        $discardedQuery = (clone $baseQuery)->whereNotNull('discarded_at');
+        if ($startDate) {
+            $discardedQuery->where('discarded_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $discardedQuery->where('discarded_at', '<=', $endDate);
+        }
+        $totalDiscarded = $discardedQuery->count();
+
+        $totalValue = $applyCreatedDateFilter((clone $baseQuery))->sum('price') ?: 0;
+
+        $discardedValueQuery = (clone $baseQuery)->whereNotNull('discarded_at');
+        if ($startDate) {
+            $discardedValueQuery->where('discarded_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $discardedValueQuery->where('discarded_at', '<=', $endDate);
+        }
+        $discardedValue = $discardedValueQuery->sum('price') ?? 0;
+
+        return [
+            'created' => $totalCreated,
+            'discarded' => $totalDiscarded,
+            'value' => $totalValue,
+            'discarded_value' => $discardedValue,
+        ];
+    }
+
+    /**
+     * 計算價值統計（總支出、有效支出、支出效率、棄用物品平均使用成本）
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Closure $applyCreatedDateFilter
+     * @param float $totalValue
+     * @return array
+     */
+    private function calculateValueStatistics($baseQuery, \Closure $applyCreatedDateFilter, float $totalValue): array
+    {
+        // 有效支出：範圍內新增的物品中，使用中 + 使用後棄用的總金額
+        $effectiveExpenseQuery = (clone $baseQuery);
+        $effectiveExpenseQuery = $applyCreatedDateFilter($effectiveExpenseQuery);
+        $effectiveExpense = $effectiveExpenseQuery
+            ->where(function ($q) {
+                $q->where(function ($sub) {
+                    $sub->whereNotNull('used_at')->whereNull('discarded_at');
+                })->orWhere(function ($sub) {
+                    $sub->whereNotNull('used_at')->whereNotNull('discarded_at');
+                });
+            })
+            ->sum('price') ?? 0;
+
+        // 支出效率：有效支出 / 總支出
+        $expenseEfficiency = $totalValue > 0
+            ? round(($effectiveExpense / $totalValue) * 100, 1)
+            : 0;
+
+        // 棄用物品平均使用成本（只計算範圍內新增的物品）
+        $discardedItemsInPeriod = (clone $baseQuery);
+        $discardedItemsInPeriod = $applyCreatedDateFilter($discardedItemsInPeriod);
+        $discardedItemsInPeriod = $discardedItemsInPeriod
+            ->whereNotNull('discarded_at')
+            ->whereNotNull('price')
+            ->where('price', '>', 0)
+            ->get();
+
+        $totalDiscardedCost = 0;
+        $totalUsageDays = 0;
+
+        foreach ($discardedItemsInPeriod as $item) {
+            $usageDays = 0;
+
+            if ($item->used_at && $item->discarded_at) {
+                $usageDays = \Carbon\Carbon::parse($item->used_at)
+                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+            } elseif ($item->purchased_at && $item->discarded_at) {
+                $usageDays = \Carbon\Carbon::parse($item->purchased_at)
+                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+            } elseif ($item->received_at && $item->discarded_at) {
+                $usageDays = \Carbon\Carbon::parse($item->received_at)
+                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+            } elseif ($item->created_at && $item->discarded_at) {
+                $usageDays = \Carbon\Carbon::parse($item->created_at)
+                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+            }
+
+            if ($usageDays > 0) {
+                $totalDiscardedCost += $item->price;
+                $totalUsageDays += $usageDays;
+            }
+        }
+
+        $discardedCostPerDay = $totalUsageDays > 0
+            ? round($totalDiscardedCost / $totalUsageDays, 1)
+            : 0;
+
+        return [
+            'total_expense' => $totalValue,
+            'effective_expense' => $effectiveExpense,
+            'expense_efficiency' => $expenseEfficiency,
+            'discarded_cost_per_day' => $discardedCostPerDay,
+        ];
+    }
+
+    /**
+     * 計算狀態統計
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Closure $applyCreatedDateFilter
+     * @return array
+     */
+    private function calculateStatusStatistics($baseQuery, \Closure $applyCreatedDateFilter): array
+    {
+        $statusFilteredQuery = $applyCreatedDateFilter((clone $baseQuery));
+
+        return [
+            'in_use' => (clone $statusFilteredQuery)
+                ->whereNotNull('used_at')
+                ->whereNull('discarded_at')
+                ->count(),
+            'unused' => (clone $statusFilteredQuery)
+                ->whereNotNull('received_at')
+                ->whereNull('used_at')
+                ->whereNull('discarded_at')
+                ->count(),
+            'pre_arrival' => (clone $statusFilteredQuery)
+                ->whereNull('discarded_at')
+                ->whereNull('used_at')
+                ->whereNull('received_at')
+                ->count(),
+            'used_discarded' => (clone $statusFilteredQuery)
+                ->whereNotNull('discarded_at')
+                ->whereNotNull('used_at')
+                ->count(),
+            'unused_discarded' => (clone $statusFilteredQuery)
+                ->whereNotNull('discarded_at')
+                ->whereNull('used_at')
+                ->count(),
+        ];
+    }
+
+    /**
+     * 取得價格最昂貴的前五名
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Closure $applyCreatedDateFilter
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function getTopExpensiveItems($baseQuery, \Closure $applyCreatedDateFilter)
+    {
+        return $applyCreatedDateFilter((clone $baseQuery))
+            ->whereNotNull('price')
+            ->orderByDesc('price')
+            ->limit(5)
+            ->with(['images', 'product'])
+            ->get();
+    }
+
+    /**
+     * 取得尚未使用的物品
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Closure $applyCreatedDateFilter
+     * @return array
+     */
+    private function getUnusedItems($baseQuery, \Closure $applyCreatedDateFilter): array
+    {
+        $unusedItems = $applyCreatedDateFilter((clone $baseQuery))
+            ->whereNull('discarded_at')
+            ->whereNull('used_at')
+            ->whereNotNull('price')
+            ->orderByDesc('price')
+            ->with(['images', 'product'])
+            ->get();
+
+        $unusedItemsWithDays = $unusedItems->map(function ($item) {
+            $daysUnused = 0;
+            $today = now();
+
+            if ($item->received_at) {
+                $daysUnused = round(\Carbon\Carbon::parse($item->received_at)->diffInDays($today), 1);
+            } elseif ($item->purchased_at) {
+                $daysUnused = round(\Carbon\Carbon::parse($item->purchased_at)->diffInDays($today), 1);
+            } elseif ($item->created_at) {
+                $daysUnused = round(\Carbon\Carbon::parse($item->created_at)->diffInDays($today), 1);
+            }
+
+            return [
+                'item' => $item,
+                'days_unused' => $daysUnused,
+            ];
+        })->sortByDesc(function ($data) {
+            return $data['item']->price;
+        })->values();
+
+        return [
+            'count' => $unusedItems->count(),
+            'top_five' => $unusedItemsWithDays->take(5),
+        ];
+    }
+
+    /**
+     * 計算已結案物品成本統計
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Carbon\Carbon|null $startDate
+     * @param \Carbon\Carbon|null $endDate
+     * @return array
+     */
+    private function calculateDiscardedCostStatistics($baseQuery, ?\Carbon\Carbon $startDate, ?\Carbon\Carbon $endDate): array
+    {
+        $discardedItemsForCost = (clone $baseQuery)
+            ->whereNotNull('discarded_at')
+            ->whereNotNull('price')
+            ->where('price', '>', 0);
+
+        if ($startDate) {
+            $discardedItemsForCost->where('discarded_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $discardedItemsForCost->where('discarded_at', '<=', $endDate);
+        }
+
+        $discardedItemsList = $discardedItemsForCost->get();
+        return $this->calculateItemCosts($discardedItemsList, true);
+    }
+
+    /**
+     * 計算使用中物品成本統計
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param \Closure $applyCreatedDateFilter
+     * @return array
+     */
+    private function calculateInUseCostStatistics($baseQuery, \Closure $applyCreatedDateFilter): array
+    {
+        $inUseItemsForCost = (clone $baseQuery)
+            ->whereNotNull('used_at')
+            ->whereNull('discarded_at')
+            ->whereNotNull('price')
+            ->where('price', '>', 0);
+
+        $inUseItemsForCost = $applyCreatedDateFilter($inUseItemsForCost);
+        $inUseItemsList = $inUseItemsForCost->get();
+        return $this->calculateItemCosts($inUseItemsList, false);
+    }
+
+    /**
+     * 計算物品的每日成本
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $items
+     * @param bool $isDiscarded 是否為已棄用物品
+     * @return array
+     */
+    private function calculateItemCosts($items, bool $isDiscarded): array
+    {
+        $totalCost = 0;
+        $totalDays = 0;
+        $itemsWithCost = [];
+
+        // @var $item App\Models\Item
+        foreach ($items as $item) {
+            $usageDays = 0;
+            $costPerDay = 0;
+
+            if ($isDiscarded) {
+                // 已棄用：計算從開始使用（或到貨）到棄用的天數
+                if ($item->used_at && $item->discarded_at) {
+                    $usageDays = \Carbon\Carbon::parse($item->used_at)
+                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                } elseif ($item->received_at && $item->discarded_at) {
+                    $usageDays = \Carbon\Carbon::parse($item->received_at)
+                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                } elseif ($item->purchased_at && $item->discarded_at) {
+                    $usageDays = \Carbon\Carbon::parse($item->purchased_at)
+                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                } elseif ($item->created_at && $item->discarded_at) {
+                    $usageDays = \Carbon\Carbon::parse($item->created_at)
+                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                }
+            } else {
+                // 使用中：計算從開始使用到查詢當天的天數
+                if ($item->used_at) {
+                    $usageDays = \Carbon\Carbon::parse($item->used_at)
+                        ->diffInDays(now()) + 1;
+                }
+            }
+
+            if ($usageDays > 0 && $item->price > 0) {
+                $costPerDay = round($item->price / $usageDays, 1);
+                $totalCost += $item->price;
+                $totalDays += $usageDays;
+
+                $itemsWithCost[] = [
+                    'item' => $item,
+                    'cost_per_day' => $costPerDay,
+                    'usage_days' => round($usageDays, 1),
+                ];
+            }
+        }
+
+        // 計算平均每日成本
+        $averageCostPerDay = $totalDays > 0
+            ? round($totalCost / $totalDays, 1)
+            : 0;
+
+        // 按每日成本排序，取前五名
+        usort($itemsWithCost, function ($a, $b) {
+            return $b['cost_per_day'] <=> $a['cost_per_day'];
+        });
+
+        $topFive = array_slice($itemsWithCost, 0, 5);
+
+        return [
+            'average_cost_per_day' => $averageCostPerDay,
+            'top_five' => collect($topFive)->map(function ($data) {
+                return [
+                    'item' => $data['item'],
+                    'cost_per_day' => $data['cost_per_day'],
+                    'usage_days' => $data['usage_days'],
+                ];
+            })->values()->all(),
+        ];
+    }
+
+    /**
+     * 計算時間範圍的開始和結束日期
+     *
+     * @param string $period
+     * @param int|null $year
+     * @param \Carbon\Carbon|null $startDate
+     * @return array
+     */
+    private function calculateDateRange(string $period, ?int $year, ?\Carbon\Carbon $startDate): array
+    {
+        $today = now();
+        $start = null;
+        $end = $today;
+
+        if ($period === 'year') {
+            if ($year) {
+                $start = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+                if ($year === $today->year) {
+                    $end = $today;
+                } else {
+                    $end = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+                }
+            } else {
+                $start = $today->copy()->startOfYear();
+                $end = $today;
+            }
+        } elseif ($period === 'three_months') {
+            $start = $today->copy()->subMonths(3)->startOfDay();
+            $end = $today;
+        } elseif ($period === 'month') {
+            $start = $today->copy()->startOfMonth();
+            $end = $today;
+        } elseif ($period === 'week') {
+            $start = $today->copy()->startOfWeek();
+            $end = $today;
+        } else {
+            // 全部時間範圍，使用第一個物品的創建日期
+            $firstItem = Item::where('user_id', auth()->id())
+                ->orderBy('created_at', 'asc')
+                ->first();
+            if ($firstItem && $firstItem->created_at) {
+                $start = \Carbon\Carbon::parse($firstItem->created_at)->startOfDay();
+            } else {
+                $start = $today->copy()->startOfDay();
+            }
+            $end = $today;
+        }
+
+        return [
+            'start' => $start ? $start->format('Y-m-d') : null,
+            'end' => $end->format('Y-m-d'),
+            'start_formatted' => $start ? $start->format('Y年m月d日') : null,
+            'end_formatted' => $end->format('Y年m月d日'),
+        ];
+    }
 }

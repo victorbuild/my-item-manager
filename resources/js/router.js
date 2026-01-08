@@ -12,6 +12,7 @@ import ProductForm from './Pages/Products/Form.vue'
 import ProductShow from './Pages/Products/Show.vue'
 import DiscardedItemList from './Pages/DiscardedItems/List.vue'
 import ExpiringItemList from './Pages/ExpiringItems/List.vue'
+import Statistics from './Pages/Statistics.vue'
 
 const routes = [
     {
@@ -78,6 +79,11 @@ const routes = [
         path: '/expiring-items',
         name: 'ExpiringItems',
         component: ExpiringItemList
+    },
+    {
+        path: '/statistics',
+        name: 'Statistics',
+        component: Statistics
     },
     {
         path: '/:pathMatch(.*)*',
