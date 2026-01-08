@@ -9,7 +9,9 @@ use Illuminate\Support\Collection;
 
 readonly class CategoryService
 {
-    public function __construct(private CategoryRepository $categoryRepository) {}
+    public function __construct(private CategoryRepository $categoryRepository)
+    {
+    }
 
     public function getAll(int $userId): Collection
     {
