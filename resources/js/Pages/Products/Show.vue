@@ -11,7 +11,17 @@
         <div v-if="product" class="bg-white p-6 rounded shadow space-y-4">
             <div><strong>📛 名稱：</strong>{{ product.name }}</div>
             <div><strong>🏷️ 品牌：</strong>{{ product.brand || '—' }}</div>
-            <div><strong>📂 分類：</strong>{{ product.category?.name || '未分類' }}</div>
+            <div>
+                <strong>📂 分類：</strong>
+                <router-link 
+                    v-if="product.category?.id" 
+                    :to="`/categories/${product.category.id}`"
+                    class="text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                    {{ product.category.name }}
+                </router-link>
+                <span v-else>未分類</span>
+            </div>
             <div><strong>🧾 型號：</strong>{{ product.model || '—' }}</div>
             <div><strong>⚙️ 規格：</strong>{{ product.spec || '—' }}</div>
             <div><strong>🔢 條碼：</strong>{{ product.barcode || '—' }}</div>
@@ -23,21 +33,21 @@
              class="bg-white p-4 rounded shadow grid [grid-template-columns:repeat(auto-fit,minmax(0,1fr))] gap-4 text-sm font-medium text-center">
             <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('pre_arrival')">
                 <div class="text-gray-500 whitespace-nowrap">📭 未到貨</div>
-                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.pre_arrival }}</div>
+                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.pre_arrival || 0 }}</div>
                 <div v-if="activeTip === 'pre_arrival'"
                      class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">{{ statusTips.pre_arrival }}
                 </div>
             </div>
             <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('stored')">
                 <div class="text-gray-500 whitespace-nowrap">📦 未使用</div>
-                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.stored }}</div>
+                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.stored || 0 }}</div>
                 <div v-if="activeTip === 'stored'" class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">
                     {{ statusTips.stored }}
                 </div>
             </div>
             <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('in_use')">
                 <div class="text-gray-500 whitespace-nowrap">🟢 使用中</div>
-                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.in_use }}</div>
+                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.in_use || 0 }}</div>
                 <div v-if="activeTip === 'in_use'" class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">
                     {{ statusTips.in_use }}
                 </div>
@@ -45,10 +55,10 @@
             <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('discarded')">
                 <div class="text-gray-500 whitespace-nowrap">🗑️ 報廢</div>
                 <div class="text-xl flex flex-wrap justify-center min-h-[32px]">
-                    <span>{{ product.status_counts.used_and_gone }}</span>
+                    <span>{{ product.status_counts.used_and_gone || 0 }}</span>
                     <span class="text-red-500 cursor-pointer whitespace-nowrap"
                           @click.stop="toggleTip('discarded_unused')">({{
-                            product.status_counts.unused_but_gone
+                            product.status_counts.unused_but_gone || 0
                         }})</span>
                 </div>
                 <div v-if="activeTip === 'discarded'" class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">
@@ -63,9 +73,9 @@
         <template v-if="product?.items?.length">
             <div class="space-y-6">
                 <template v-for="(group, key) in {
-                    using: '🟢 使用中',
-                    owned: '📦 擁有中',
                     pending: '📭 未到貨',
+                    owned: '📦 未使用',
+                    using: '🟢 使用中',
                     discarded: '🗑️ 已棄用'
                 }">
                     <div v-if="groupedItems[key]?.length" :key="key" class="bg-white p-6 rounded shadow space-y-4">

@@ -127,11 +127,11 @@ class ProductController extends Controller
             'items.images',
         ]);
 
-        // 依照 status 欄位排序 items
+        // 依照 status 欄位排序 items（順序：未到貨、未使用、使用中、已棄用）
         $statusOrder = [
-            'in_use' => 0,
+            'pre_arrival' => 0,
             'stored' => 1,
-            'pre_arrival' => 2,
+            'in_use' => 2,
             'used_and_gone' => 3,
             'unused_but_gone' => 3,
         ];
@@ -153,8 +153,8 @@ class ProductController extends Controller
             return $arr;
         })->values()->all();
 
-        // 狀態數量統計
-        $statuses = ['in_use', 'stored', 'pre_arrival', 'used_and_gone', 'unused_but_gone'];
+        // 狀態數量統計（順序：未到貨、未使用、使用中、已棄用）
+        $statuses = ['pre_arrival', 'stored', 'in_use', 'used_and_gone', 'unused_but_gone'];
         $statusCounts = collect($statuses)->mapWithKeys(function ($status) use ($formattedItems) {
             return [$status => collect($formattedItems)->where('status', $status)->count()];
         });

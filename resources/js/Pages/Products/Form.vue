@@ -30,6 +30,8 @@
                     :custom-label="opt => opt.name"
                     :track-by="'id'"
                     placeholder="選擇分類"
+                    :allow-empty="true"
+                    :close-on-select="true"
                     @search-change="onSearch"
                     @select="onSelect"
                 />
@@ -81,13 +83,26 @@ const form = ref({
 })
 
 const categories = ref([])
+const creatingCategory = ref(false)
 
-const onSearch = async (query) => {
+// Debounce 工具函數
+const debounce = (func, delay) => {
+    let timeoutId
+    return (...args) => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => func.apply(null, args), delay)
+    }
+}
+
+// 實際的分類搜尋函數
+const _searchCategory = async (query) => {
     try {
         const res = await axios.get('/api/categories', { params: { q: query } })
-        categories.value = res.data
+        // 處理分頁返回的數據結構
+        categories.value = res.data.items || res.data || []
 
-        if (!categories.value.find(c => c.name === query)) {
+        // 如果沒有完全相符的分類，加入「新增分類」選項
+        if (query && !categories.value.find(c => c.name === query)) {
             categories.value.unshift({
                 id: '__create__',
                 name: `➕ 點選以建立新分類：「${query}」`,
@@ -100,17 +115,57 @@ const onSearch = async (query) => {
     }
 }
 
+// 使用 debounce 包裝的分類搜尋函數（500ms 延遲）
+const onSearch = debounce(_searchCategory, 500)
+
 const onSelect = async (option) => {
-    if (option.isNew) {
-        try {
-            const res = await axios.post('/api/categories', { name: option._rawName })
-            form.value.category = res.data
-            await onSearch('')
-        } catch (e) {
-            alert('新增分類失敗')
+    if (option && option.isNew) {
+        // 顯示確認對話框
+        const categoryName = option._rawName || option.name.replace('➕ 點選以建立新分類：「', '').replace('」', '')
+        const confirmed = confirm(`是否要新增分類「${categoryName}」？`)
+        
+        if (confirmed) {
+            await createCategory(categoryName)
+        } else {
+            // 取消選擇，回到未選擇狀態
+            form.value.category = null
         }
-    } else {
+    } else if (option) {
         form.value.category = option
+    }
+}
+
+const createCategory = async (categoryName) => {
+    if (!categoryName || !categoryName.trim()) {
+        alert('請輸入分類名稱')
+        return
+    }
+    
+    if (creatingCategory.value) return
+    creatingCategory.value = true
+    
+    try {
+        const res = await axios.post('/api/categories', { name: categoryName.trim() })
+        const newCategory = res.data.items[0]
+        
+        // 添加到分類列表
+        if (!categories.value.find(c => c.id === newCategory.id)) {
+            categories.value.push(newCategory)
+        }
+        
+        // 自動選中新建的分類
+        form.value.category = newCategory
+    } catch (e) {
+        console.error('新增分類失敗', e)
+        if (e.response?.data?.message) {
+            alert(`❌ 新增分類失敗：${e.response.data.message}`)
+        } else {
+            alert('❌ 新增分類失敗，請確認分類名稱是否正確')
+        }
+        // 失敗時清空選擇
+        form.value.category = null
+    } finally {
+        creatingCategory.value = false
     }
 }
 
@@ -148,7 +203,8 @@ const submitForm = async () => {
 onMounted(async () => {
     try {
         const res = await axios.get('/api/categories')
-        categories.value = res.data
+        // 處理分頁返回的數據結構
+        categories.value = res.data.items || res.data || []
     } catch (e) {
         console.error('❌ 載入分類失敗', e)
     }
