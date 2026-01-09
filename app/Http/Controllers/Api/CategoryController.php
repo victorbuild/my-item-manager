@@ -17,6 +17,18 @@ readonly class CategoryController
 
     public function index(\Illuminate\Http\Request $request): JsonResponse
     {
+        // 如果請求所有分類（用於下拉選單），不分頁
+        if ($request->query('all') === 'true' || $request->query('all') === '1') {
+            $categories = $this->categoryService->getAll($request->user()->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => '取得成功',
+                'items' => CategoryResource::collection($categories),
+            ]);
+        }
+
+        // 否則使用分頁
         $perPage = (int)($request->query('per_page') ?? 10);
         $page = (int)($request->query('page') ?? 1);
         $search = $request->query('q');
