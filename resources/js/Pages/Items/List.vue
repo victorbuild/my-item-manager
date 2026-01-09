@@ -33,8 +33,9 @@ const tooltipPosition = ref({ x: 0, y: 0 })
 
 
 const fetchCategories = async () => {
-    const res = await axios.get('/api/categories')
-    // 處理分頁返回的數據結構
+    // 取得所有分類（不分頁），用於下拉選單
+    const res = await axios.get('/api/categories', { params: { all: true } })
+    // 處理返回的數據結構
     categories.value = res.data.items || res.data || []
 }
 
