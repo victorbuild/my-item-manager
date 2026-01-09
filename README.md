@@ -1,5 +1,23 @@
 # 物品管理系統
 
+## API 文件
+
+本專案使用 [Scribe](https://scribe.knuckles.wtf/) 產生 API 文件。
+
+### 生成 API 文件
+
+```bash
+php artisan scribe:generate
+```
+
+### 訪問 API 文件
+
+生成文件後，可以透過以下路由訪問：
+
+- **HTML 文件**：`http://localhost:8001/docs`
+- **OpenAPI 規格**：`http://localhost:8001/docs.openapi`
+- **Postman 集合**：`http://localhost:8001/docs.postman`
+
 ## 靜態分析（PHPStan）
 
 本專案使用 [PHPStan](https://phpstan.org/) 搭配 [Larastan](https://github.com/larastan/larastan) 進行靜態程式碼分析，確保程式品質與分層設計遵守團隊規範。

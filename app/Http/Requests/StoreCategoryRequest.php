@@ -28,7 +28,7 @@ class StoreCategoryRequest extends FormRequest
                 'string',
                 'max:255',
                 \Illuminate\Validation\Rule::unique('categories', 'name')
-                    ->where('user_id', $this->user()->id),
+                    ->where('user_id', $this->user()?->id ?? 0),
             ],
         ];
     }

@@ -22,3 +22,12 @@ yarn-error.log
 /.vscode
 /.zed
 .env.docker
+
+# Scribe
+/public/vendor/scribe/
+/resources/views/scribe/
+
+# Scribe endpoints (auto-generated, will change on each generation)
+/.scribe/endpoints/
+/.scribe/endpoints.cache/
+/.scribe/.filehashes
