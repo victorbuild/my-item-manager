@@ -3,6 +3,7 @@
 use Knuckles\Scribe\Extracting\Strategies;
 use Knuckles\Scribe\Config\Defaults;
 use Knuckles\Scribe\Config\AuthIn;
+
 use function Knuckles\Scribe\Config\{removeStrategies, configureStrategy};
 
 // Only the most common configs are shown. See the https://scribe.knuckles.wtf/laravel/reference/config for all.
@@ -18,22 +19,27 @@ return [
     'intro_text' => <<<INTRO
         This documentation aims to provide all the information you need to work with our API.
 
-        <aside>As you scroll, you'll see code examples for working with the API in different programming languages in the dark area to the right (or as part of the content on mobile).
-        You can switch the language used with the tabs at the top right (or from the nav menu at the top left on mobile).</aside>
+        <aside>As you scroll, you'll see code examples for working with the API in different programming languages
+        in the dark area to the right (or as part of the content on mobile).
+        You can switch the language used with the tabs at the top right
+        (or from the nav menu at the top left on mobile).</aside>
     INTRO,
 
     // The base URL displayed in the docs.
-    // If you're using `laravel` type, you can set this to a dynamic string, like '{{ config("app.tenant_url") }}' to get a dynamic base URL.
+    // If you're using `laravel` type, you can set this to a dynamic string,
+    // like '{{ config("app.tenant_url") }}' to get a dynamic base URL.
     'base_url' => config("app.url"),
 
     // Routes to include in the docs
     'routes' => [
         [
             'match' => [
-                // Match only routes whose paths match this pattern (use * as a wildcard to match any characters). Example: 'users/*'.
+                // Match only routes whose paths match this pattern
+                // (use * as a wildcard to match any characters). Example: 'users/*'.
                 'prefixes' => ['api/*'],
 
-                // Match only routes whose domains match this pattern (use * as a wildcard to match any characters). Example: 'api.*'.
+                // Match only routes whose domains match this pattern
+                // (use * as a wildcard to match any characters). Example: 'api.*'.
                 'domains' => ['*'],
             ],
 
@@ -51,8 +57,10 @@ return [
 
     // The type of documentation output to generate.
     // - "static" will generate a static HTMl page in the /public/docs folder,
-    // - "laravel" will generate the documentation as a Blade view, so you can add routing and authentication.
-    // - "external_static" and "external_laravel" do the same as above, but pass the OpenAPI spec as a URL to an external UI template
+    // - "laravel" will generate the documentation as a Blade view,
+    //   so you can add routing and authentication.
+    // - "external_static" and "external_laravel" do the same as above,
+    //   but pass the OpenAPI spec as a URL to an external UI template
     'type' => 'laravel',
 
     // See https://scribe.knuckles.wtf/laravel/reference/config#theme for supported options
@@ -65,11 +73,13 @@ return [
     ],
 
     'laravel' => [
-        // Whether to automatically create a docs route for you to view your generated docs. You can still set up routing manually.
+        // Whether to automatically create a docs route for you to view your generated docs.
+        // You can still set up routing manually.
         'add_routes' => true,
 
         // URL path to use for the docs endpoint (if `add_routes` is true).
-        // By default, `/docs` opens the HTML page, `/docs.postman` opens the Postman collection, and `/docs.openapi` the OpenAPI spec.
+        // By default, `/docs` opens the HTML page, `/docs.postman` opens the Postman collection,
+        // and `/docs.openapi` the OpenAPI spec.
         'docs_url' => '/docs',
 
         // Directory within `public` in which to store CSS and JS assets.
@@ -100,13 +110,16 @@ return [
         'csrf_url' => '/sanctum/csrf-cookie',
     ],
 
-    // How is your API authenticated? This information will be used in the displayed docs, generated examples and response calls.
+    // How is your API authenticated? This information will be used in the displayed docs,
+    // generated examples and response calls.
     'auth' => [
         // Set this to true if ANY endpoints in your API use authentication.
         'enabled' => true,
 
-        // Set this to true if your API should be authenticated by default. If so, you must also set `enabled` (above) to true.
-        // You can then use @unauthenticated or @authenticated on individual endpoints to change their status from the default.
+        // Set this to true if your API should be authenticated by default.
+        // If so, you must also set `enabled` (above) to true.
+        // You can then use @unauthenticated or @authenticated on individual endpoints
+        // to change their status from the default.
         'default' => true,
 
         // Where is the auth value meant to be sent in a request?
@@ -121,7 +134,8 @@ return [
 
         // Placeholder your users will see for the auth parameter in the example requests.
         // Set this to null if you want Scribe to use a random value as placeholder instead.
-        // Note: When using AuthIn::BEARER, Scribe automatically adds "Bearer" prefix, so placeholder should only contain the token part.
+        // Note: When using AuthIn::BEARER, Scribe automatically adds "Bearer" prefix,
+        // so placeholder should only contain the token part.
         'placeholder' => '{token}',
 
         // Any extra authentication-related info for your users. Markdown and HTML are supported.
@@ -174,9 +188,12 @@ return [
         // Endpoints which don't have a @group will be placed in this default group.
         'default' => 'Endpoints',
 
-        // By default, Scribe will sort groups alphabetically, and endpoints in the order their routes are defined.
-        // You can override this by listing the groups, subgroups and endpoints here in the order you want them.
-        // See https://scribe.knuckles.wtf/blog/laravel-v4#easier-sorting and https://scribe.knuckles.wtf/laravel/reference/config#order for details
+        // By default, Scribe will sort groups alphabetically,
+        // and endpoints in the order their routes are defined.
+        // You can override this by listing the groups, subgroups and endpoints
+        // here in the order you want them.
+        // See https://scribe.knuckles.wtf/blog/laravel-v4#easier-sorting
+        // and https://scribe.knuckles.wtf/laravel/reference/config#order for details
         // Note: does not work for `external` docs types
         'order' => [],
     ],
@@ -247,8 +264,10 @@ return [
     ],
 
     // For response calls, API resource responses and transformer responses,
-    // Scribe will try to start database transactions, so no changes are persisted to your database.
-    // Tell Scribe which connections should be transacted here. If you only use one db connection, you can leave this as is.
+    // Scribe will try to start database transactions,
+    // so no changes are persisted to your database.
+    // Tell Scribe which connections should be transacted here.
+    // If you only use one db connection, you can leave this as is.
     'database_connections_to_transact' => [config('database.default')],
 
     'fractal' => [
