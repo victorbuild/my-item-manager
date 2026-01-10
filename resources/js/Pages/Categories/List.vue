@@ -90,21 +90,14 @@ const confirmDelete = async (categoryId) => {
     if (result.isConfirmed) {
         try {
             const res = await axios.delete(`/api/categories/${categoryId}`)
-            if (res.data.success) {
+            if (res.status === 204) {
                 await Swal.fire({
                     icon: 'success',
                     title: '成功',
-                    text: res.data.message,
+                    text: '分類已刪除',
                     confirmButtonText: '確定'
                 })
                 fetchCategories(pagination.value.current_page)
-            } else {
-                await Swal.fire({
-                    icon: 'error',
-                    title: '錯誤',
-                    text: res.data.message || '刪除失敗',
-                    confirmButtonText: '確定'
-                })
             }
         } catch (e) {
             await Swal.fire({
