@@ -154,6 +154,22 @@
             </ul>
         </div>
 
+        <!-- 媒體管理區塊 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">媒體管理</h2>
+            <ul class="space-y-3">
+                <li>
+                    <router-link
+                        to="/media"
+                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-pink-50 transition"
+                    >
+                        🖼️ 媒體櫃<br/>
+                        <span class="text-sm text-gray-500">管理您的圖片媒體，查看和比對圖片與物品的關聯</span>
+                    </router-link>
+                </li>
+            </ul>
+        </div>
+
         <!-- 統計分析區塊 -->
         <div class="mb-6">
             <h2 class="text-lg font-bold text-gray-800 mb-3">統計分析</h2>

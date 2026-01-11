@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemImageController;
 use App\Http\Controllers\Api\ItemUnitController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -22,4 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('items', ItemController::class);
     Route::post('/item-images', [ItemImageController::class, 'store']);
     Route::apiResource('item-units', ItemUnitController::class);
+
+    // 媒體庫
+    Route::get('/media', [MediaController::class, 'index']);
+    Route::get('/media/unused', [MediaController::class, 'unused']); // 未使用的圖片（用於選擇）
+    Route::get('/media/{uuid}', [MediaController::class, 'show']);
 });

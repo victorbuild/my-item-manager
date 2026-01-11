@@ -16,6 +16,7 @@ import Statistics from './Pages/Statistics.vue'
 import CategoryList from './Pages/Categories/List.vue'
 import CategoryForm from './Pages/Categories/Form.vue'
 import CategoryShow from './Pages/Categories/Show.vue'
+import MediaList from './Pages/Media/List.vue'
 
 const routes = [
     {
@@ -107,6 +108,11 @@ const routes = [
         path: '/categories/:id/edit',
         name: 'CategoryEdit',
         component: CategoryForm
+    },
+    {
+        path: '/media',
+        name: 'MediaList',
+        component: MediaList
     },
     {
         path: '/:pathMatch(.*)*',

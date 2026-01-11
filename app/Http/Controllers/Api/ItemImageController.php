@@ -71,6 +71,7 @@ class ItemImageController extends Controller
                 'original_extension' => $extension,
                 'status' => 'draft',
                 'usage_count' => 0,
+                'user_id' => auth()->id(),
             ]);
 
             if (!$itemImage) {
