@@ -65,10 +65,16 @@
         <form @submit.prevent="submitForm(false)" class="space-y-4">
             <!-- 圖片上傳 -->
             <div>
-                <label class="block font-medium">
-                    圖片
-                    <span class="ml-1 text-sm text-gray-500 align-middle">（{{ uploadList.length }}/9）</span>
-                </label>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block font-medium">
+                        圖片
+                        <span class="ml-1 text-sm text-gray-500 align-middle">（{{ uploadList.length }}/9）</span>
+                    </label>
+                    <button type="button" @click="showMediaLibrary = true" 
+                        class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                        🖼️ 從媒體櫃選擇
+                    </button>
+                </div>
                 <div class="grid grid-cols-4 gap-2 mt-2">
                     <div v-for="(item, index) in uploadList" :key="item.id"
                         class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
@@ -93,6 +99,56 @@
                         <span class="text-gray-400 text-sm">+ 加入照片</span>
                         <input type="file" accept="image/*" multiple class="hidden" ref="fileInput"
                             @change="handleFileSelect" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- 媒體櫃選擇 Modal -->
+            <div v-if="showMediaLibrary" 
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                @click.self="showMediaLibrary = false">
+                <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">選擇圖片（媒體櫃）</h2>
+                            <button @click="showMediaLibrary = false" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                        </div>
+                        
+                        <div v-if="loadingMediaLibrary" class="text-center py-8">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p class="mt-3 text-sm text-gray-600">載入中...</p>
+                        </div>
+                        
+                        <div v-else-if="mediaLibraryImages.length === 0" class="text-center py-8">
+                            <p class="text-gray-600">沒有可用的圖片</p>
+                        </div>
+                        
+                        <div v-else class="grid grid-cols-4 gap-2">
+                            <div v-for="image in mediaLibraryImages" :key="image.uuid"
+                                class="relative aspect-square border-2 rounded cursor-pointer transition-all"
+                                :class="selectedMediaImages.includes(image.uuid) 
+                                    ? 'border-blue-500 bg-blue-50' 
+                                    : 'border-gray-300 hover:border-blue-300'"
+                                @click="toggleMediaImage(image)">
+                                <img :src="image.thumb_url" :alt="image.image_path" 
+                                    class="w-full h-full object-cover rounded" />
+                                <div v-if="selectedMediaImages.includes(image.uuid)"
+                                    class="absolute top-1 right-1 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">
+                                    ✓
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-end gap-2">
+                            <button @click="showMediaLibrary = false" 
+                                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">
+                                取消
+                            </button>
+                            <button @click="addSelectedMediaImages" 
+                                class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded">
+                                確認選擇（{{ selectedMediaImages.length }}）
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -259,7 +315,7 @@
 <script setup>
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
-import { ref, onMounted, nextTick, watchEffect, computed } from 'vue'
+import { ref, onMounted, nextTick, watchEffect, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../axios'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -280,6 +336,12 @@ const barcodeDetected = ref(false) // 是否檢測到條碼
 const fileInput = ref(null)
 const uploadList = ref([])
 let uploadId = 0
+
+// 媒體櫃相關
+const showMediaLibrary = ref(false)
+const mediaLibraryImages = ref([])
+const loadingMediaLibrary = ref(false)
+const selectedMediaImages = ref([])
 
 const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)
@@ -347,6 +409,69 @@ const startUploadQueue = async () => {
         }
     }
 }
+
+// 媒體櫃相關函數
+const loadMediaLibrary = async () => {
+    loadingMediaLibrary.value = true
+    try {
+        const res = await axios.get('/api/media/unused', { params: { per_page: 100 } })
+        mediaLibraryImages.value = res.data.data || []
+    } catch (error) {
+        console.error('載入媒體櫃失敗:', error)
+        alert('載入媒體櫃失敗')
+    } finally {
+        loadingMediaLibrary.value = false
+    }
+}
+
+const toggleMediaImage = (image) => {
+    const index = selectedMediaImages.value.indexOf(image.uuid)
+    if (index > -1) {
+        selectedMediaImages.value.splice(index, 1)
+    } else {
+        if (uploadList.value.length + selectedMediaImages.value.length < 9) {
+            selectedMediaImages.value.push(image.uuid)
+        } else {
+            alert('最多只能選擇 9 張圖片')
+        }
+    }
+}
+
+const addSelectedMediaImages = () => {
+    if (uploadList.value.length + selectedMediaImages.value.length > 9) {
+        alert('最多只能選擇 9 張圖片')
+        return
+    }
+    
+    selectedMediaImages.value.forEach(uuid => {
+        const image = mediaLibraryImages.value.find(img => img.uuid === uuid)
+        if (image) {
+            const id = uploadId++
+            uploadList.value.push({
+                id,
+                file: null,
+                preview: image.preview_url,
+                progress: 100,
+                status: 'done',
+                url: image.preview_url,
+                thumb_url: image.thumb_url,
+                preview_url: image.preview_url,
+                uuid: image.uuid,
+                statusFromApi: 'new'
+            })
+        }
+    })
+    
+    selectedMediaImages.value = []
+    showMediaLibrary.value = false
+}
+
+// 監聽媒體櫃 modal 打開
+watch(showMediaLibrary, (newVal) => {
+    if (newVal && mediaLibraryImages.value.length === 0) {
+        loadMediaLibrary()
+    }
+})
 
 const removeImage = (index) => {
     const item = uploadList.value[index]

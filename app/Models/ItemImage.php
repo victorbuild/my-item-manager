@@ -5,6 +5,7 @@ namespace App\Models;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -54,7 +55,8 @@ class ItemImage extends Model
         'image_path',
         'original_extension',
         'status',
-        'usage_count'
+        'usage_count',
+        'user_id',
     ];
 
     protected static function boot()
@@ -65,6 +67,11 @@ class ItemImage extends Model
                 $model->uuid = (string) Str::uuid();
             }
         });
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function items()
