@@ -23,7 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('items', ItemController::class);
     Route::post('/item-images', [ItemImageController::class, 'store']);
     Route::apiResource('item-units', ItemUnitController::class);
-    
+
     // 媒體庫
     Route::get('/media', [MediaController::class, 'index']);
     Route::get('/media/unused', [MediaController::class, 'unused']); // 未使用的圖片（用於選擇）

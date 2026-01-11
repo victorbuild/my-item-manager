@@ -20,7 +20,7 @@ class MediaController extends Controller
         $hasItems = $request->get('has_items'); // 是否有關聯：true=有關聯, false=沒有關聯, null=全部
 
         $userId = auth()->id();
-        
+
         // 只顯示當前用戶的圖片
         $query = ItemImage::where('user_id', $userId);
 
@@ -47,7 +47,7 @@ class MediaController extends Controller
         $transformedData = $images->getCollection()->map(function ($image) {
             $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
             $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
-            
+
             return [
                 'uuid' => $image->uuid,
                 'image_path' => $image->image_path,
@@ -80,7 +80,7 @@ class MediaController extends Controller
     private function getQuotaInfo(): array
     {
         $userId = auth()->id();
-        
+
         // 計算當前用戶的所有圖片數量（直接通過 user_id）
         $userImageCount = ItemImage::where('user_id', $userId)->count();
 
@@ -109,7 +109,7 @@ class MediaController extends Controller
     {
         $userId = auth()->id();
         $perPage = $request->get('per_page', 50);
-        
+
         // 只顯示當前用戶的、沒有關聯的圖片
         $images = ItemImage::where('user_id', $userId)
             ->whereDoesntHave('items')
@@ -120,7 +120,7 @@ class MediaController extends Controller
         $transformedData = $images->getCollection()->map(function ($image) {
             $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
             $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
-            
+
             return [
                 'uuid' => $image->uuid,
                 'image_path' => $image->image_path,
@@ -147,7 +147,7 @@ class MediaController extends Controller
     public function show(string $uuid): JsonResponse
     {
         $userId = auth()->id();
-        
+
         // 只允許查看當前用戶的圖片
         // @phpstan-ignore-next-line
         $image = ItemImage::where('user_id', $userId)
