@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Mockery;
-use Tests\TestCase;
 use RuntimeException;
+use Tests\TestCase;
 
 class CategoryServiceTest extends TestCase
 {
