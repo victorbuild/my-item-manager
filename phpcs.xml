@@ -22,6 +22,11 @@
     <exclude-pattern>*/storage/*</exclude-pattern>
     <exclude-pattern>*/bootstrap/*</exclude-pattern>
 
+    <!-- 測試檔案允許 snake_case 方法命名（Laravel 測試慣例） -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
     <!-- 可選：自訂錯誤等級 -->
     <arg name="colors"/>
     <arg name="extensions" value="php"/>
