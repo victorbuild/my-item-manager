@@ -103,8 +103,8 @@
                             <div>🚚 到貨日期：{{ item.received_at || '—' }}</div>
                             <div>🚀 使用時間：{{ item.used_at || '—' }}</div>
                             <div>🗑️ 棄用時間：{{ item.discarded_at || '—' }}</div>
-                            <div v-if="item.first_thumb_url">
-                                <img :src="item.first_thumb_url" :alt="item.name || '物品圖片'" class="h-24 rounded border"/>
+                            <div v-if="item.main_image?.thumb_url">
+                                <img :src="item.main_image.thumb_url" :alt="item.name || '物品圖片'" class="h-24 rounded border"/>
                             </div>
                         </div>
                     </div>

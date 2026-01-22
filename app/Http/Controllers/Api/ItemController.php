@@ -117,7 +117,7 @@ class ItemController extends Controller
         return response()->json([
             'success' => true,
             'message' => '更新成功',
-            'data' => $updatedItem,
+            'data' => new ItemResource($updatedItem),
         ]);
     }
 

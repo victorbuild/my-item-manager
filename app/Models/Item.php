@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -103,8 +102,6 @@ class Item extends Model
     ];
 
     protected $appends = [
-        'first_thumb_url',
-        'first_preview_url',
         'status',
     ];
 
@@ -160,41 +157,6 @@ class Item extends Model
         return $this->belongsTo(Product::class);
     }
 
-    /**
-     * 取得第一張縮圖網址
-     *
-     * @return string|null
-     */
-    public function getFirstThumbUrlAttribute(): ?string
-    {
-        $image = $this->images->first();
-        if (!$image) {
-            return null;
-        }
-
-        return Storage::disk('gcs')->temporaryUrl(
-            "item-images/{$image->uuid}/thumb_{$image->image_path}.webp",
-            now()->addMinutes(5)
-        );
-    }
-
-    /**
-     * 取得第一張預覽圖網址
-     *
-     * @return string|null
-     */
-    public function getFirstPreviewUrlAttribute(): ?string
-    {
-        $image = $this->images->first();
-        if (!$image) {
-            return null;
-        }
-
-        return Storage::disk('gcs')->temporaryUrl(
-            "item-images/{$image->uuid}/preview_{$image->image_path}.webp",
-            now()->addMinutes(5)
-        );
-    }
 
     /**
      * 動態屬性：取得物品狀態

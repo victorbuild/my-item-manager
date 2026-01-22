@@ -98,14 +98,14 @@ onMounted(() => {
             <li v-for="product in products" :key="product.id"
                 class="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-2 transition hover:shadow-lg">
 
-                <div v-if="product.latest_owned_item?.images?.length"
+                <div v-if="product.latest_owned_item?.main_image?.preview_url"
                     class="relative w-full h-40 rounded-lg overflow-hidden">
                     <!-- 背景：模糊處理的 cover -->
-                    <img :src="product.latest_owned_item.first_preview_url" draggable="false"
+                    <img :src="product.latest_owned_item.main_image.preview_url" draggable="false"
                         class="absolute inset-0 w-full h-full object-cover blur-sm scale-110" alt="模糊背景" />
 
                     <!-- 正中置中的圖片 -->
-                    <img :src="product.latest_owned_item.first_preview_url" draggable="false"
+                    <img :src="product.latest_owned_item.main_image.preview_url" draggable="false"
                         class="relative z-10 h-full object-contain mx-auto" alt="主圖片" />
                 </div>
                 <div>

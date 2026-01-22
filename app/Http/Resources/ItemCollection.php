@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Facades\Storage;
 
 class ItemCollection extends ResourceCollection
 {
@@ -32,9 +33,12 @@ class ItemCollection extends ResourceCollection
                     'expiration_date' => $formatDate($item->expiration_date),
                     'status' => $item->status,
                     // 主圖（第一張圖片）
-                    'main_image' => $item->images->isNotEmpty() ? [
-                        'thumb_url' => $item->images->first()->thumb_url,
-                    ] : null,
+                    'main_image' => $item->images->isNotEmpty() ? (function ($img) {
+                        $thumbPath = "item-images/{$img->uuid}/thumb_{$img->image_path}.webp";
+                        return [
+                            'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
+                        ];
+                    })($item->images->first()) : null,
                 ];
             }),
         ];

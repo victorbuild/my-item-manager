@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -100,17 +99,5 @@ class ItemImage extends Model
             'uuid',            // 本 model 主鍵
             'id'               // 對方 model 主鍵
         );
-    }
-
-    public function getThumbUrlAttribute(): ?string
-    {
-        $thumbPath = "item-images/{$this->uuid}/thumb_{$this->image_path}.webp";
-        return Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60));
-    }
-
-    public function getPreviewUrlAttribute(): ?string
-    {
-        $previewPath = "item-images/{$this->uuid}/preview_{$this->image_path}.webp";
-        return Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60));
     }
 }

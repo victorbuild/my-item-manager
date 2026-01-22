@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ItemResource;
 use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
@@ -47,6 +48,20 @@ class ProductController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
+        // 格式化 products，確保 latest_owned_item 使用 ItemResource
+        $formattedProducts = $products->getCollection()->map(function ($product) {
+            $productArr = $product->toArray();
+            // 確保 latest_owned_item 使用 ItemResource，包含 main_image
+            if ($product->latestOwnedItem) {
+                // 確保 images 關聯已載入
+                if (!$product->latestOwnedItem->relationLoaded('images')) {
+                    $product->latestOwnedItem->load('images');
+                }
+                $productArr['latest_owned_item'] = (new ItemResource($product->latestOwnedItem))->toArray(request());
+            }
+            return $productArr;
+        })->values();
+
         return response()->json([
             'success' => true,
             'message' => '取得成功',
@@ -56,7 +71,7 @@ class ProductController extends Controller
                 'per_page' => $products->perPage(),
                 'total' => $products->total(),
             ],
-            'items' => $products->items(),
+            'items' => $formattedProducts,
         ]);
     }
 
@@ -139,18 +154,9 @@ class ProductController extends Controller
             return $statusOrder[$item->status] ?? 4;
         })->values();
 
-        // 格式化 items 的日期欄位為 Y-m-d（產生 array，不用 Model 實體）
-        $dateFields = ['purchased_at', 'received_at', 'used_at', 'discarded_at', 'expiration_date'];
-        $formattedItems = $product->items->map(function ($item) use ($dateFields) {
-            $arr = $item->toArray();
-            foreach ($dateFields as $field) {
-                if (!empty($arr[$field])) {
-                    $arr[$field] = \Carbon\Carbon::parse($arr[$field])
-                        ->setTimezone(config('app.timezone'))
-                        ->format('Y-m-d');
-                }
-            }
-            return $arr;
+        // 使用 ItemResource 格式化 items，確保包含 main_image 等欄位
+        $formattedItems = $product->items->map(function ($item) {
+            return (new ItemResource($item))->toArray(request());
         })->values()->all();
 
         // 狀態數量統計（順序：未到貨、未使用、使用中、已棄用）
