@@ -153,19 +153,7 @@ class ItemService
         $sortStrategy = $this->sortStrategyFactory->create($sortMode);
         $sortStrategy->apply($query);
 
-        $paginated = $query->paginate($perPage);
-
-        // 圖片網址加工
-        $paginated->getCollection()->transform(function ($item) {
-            $item->images->transform(function ($image) {
-                $filename = $image->image_path;
-                $image->thumb_url = Storage::disk('local')->url("item-images/{$image->uuid}/thumb_{$filename}.webp");
-                return $image;
-            });
-            return $item;
-        });
-
-        return $paginated;
+        return $query->paginate($perPage);
     }
 
     public function findByShortIdOrFail(string $shortId): Item
@@ -216,19 +204,7 @@ class ItemService
             // 按過期日期升序排列（即將過期的在前，已過期的也會顯示）
             ->orderBy('expiration_date', 'asc');
 
-        $paginated = $query->paginate($perPage);
-
-        // 圖片網址加工
-        $paginated->getCollection()->transform(function ($item) {
-            $item->images->transform(function ($image) {
-                $filename = $image->image_path;
-                $image->thumb_url = Storage::disk('local')->url("item-images/{$image->uuid}/thumb_{$filename}.webp");
-                return $image;
-            });
-            return $item;
-        });
-
-        return $paginated;
+        return $query->paginate($perPage);
     }
 
     /**
