@@ -8,7 +8,6 @@ use App\Services\ItemImageService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ItemService
 {
