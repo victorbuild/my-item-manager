@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Models\Item;
 use App\Services\ItemImageService;
 use App\Services\ItemService;
+use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -21,6 +22,11 @@ class ItemServiceTest extends TestCase
      */
     private $mockItemImageService;
 
+    /**
+     * @var \Mockery\MockInterface&SortStrategyFactory
+     */
+    private $mockSortStrategyFactory;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -28,10 +34,14 @@ class ItemServiceTest extends TestCase
         // Mock ItemImageService，避免測試時依賴真實實作
         $this->mockItemImageService = Mockery::mock(ItemImageService::class);
 
+        // Mock SortStrategyFactory，避免測試時依賴真實實作
+        $this->mockSortStrategyFactory = Mockery::mock(SortStrategyFactory::class);
+
         // 直接注入測試值，不依賴 config，符合單元測試原則
         $this->itemService = new ItemService(
             self::TEST_MAX_QUANTITY,
-            $this->mockItemImageService
+            $this->mockItemImageService,
+            $this->mockSortStrategyFactory
         );
     }
 
@@ -50,7 +60,8 @@ class ItemServiceTest extends TestCase
     public function it_should_calculate_quantity_correctly(int $maxQuantity, array $data, int $expected): void
     {
         $mockItemImageService = Mockery::mock(ItemImageService::class);
-        $service = new ItemService($maxQuantity, $mockItemImageService);
+        $mockSortStrategyFactory = Mockery::mock(SortStrategyFactory::class);
+        $service = new ItemService($maxQuantity, $mockItemImageService, $mockSortStrategyFactory);
         $result = $service->calculateQuantity($data);
 
         $this->assertEquals($expected, $result);

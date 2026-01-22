@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Item;
 use App\Services\ItemImageService;
+use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,8 @@ class ItemService
 {
     public function __construct(
         private readonly int $maxItemQuantity,
-        private readonly ItemImageService $itemImageService
+        private readonly ItemImageService $itemImageService,
+        private readonly SortStrategyFactory $sortStrategyFactory
     ) {
     }
 
@@ -133,16 +135,10 @@ class ItemService
             });
         }
 
-        // 根據排序模式決定排序方式
+        // 使用策略模式處理排序
         $sortMode = $filters['sort'] ?? 'default';
-
-        if ($sortMode === 'discarded') {
-            // 棄用排序：按棄用時間降序
-            $query->orderByDesc('discarded_at');
-        } else {
-            // 預設排序：按 ID 降序
-            $query->orderByDesc('id');
-        }
+        $sortStrategy = $this->sortStrategyFactory->create($sortMode);
+        $sortStrategy->apply($query);
 
         $paginated = $query->paginate($perPage);
 

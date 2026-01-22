@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\ItemImageRepository;
 use App\Services\ItemService;
+use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->when(ItemService::class)
             ->needs('$maxItemQuantity')
             ->give(fn() => config('app.max_item_quantity', 100));
+
+        // 註冊排序策略工廠
+        $this->app->singleton(SortStrategyFactory::class);
     }
 
     /**

@@ -26,6 +26,15 @@ const categories = ref([])
 
 const perPage = ref('20')
 
+// 排序選項
+const sort = ref(route.query.sort || 'default')
+const sortOptions = [
+    { value: 'default', label: '🆕 預設（最新）' },
+    { value: 'name_asc', label: '📝 名稱（A-Z）' },
+    { value: 'price_asc', label: '💰 價格（低→高）' },
+    { value: 'price_desc', label: '💰 價格（高→低）' },
+]
+
 // Tooltip 相關
 const showTooltip = ref(false)
 const tooltipItem = ref(null)
@@ -47,6 +56,7 @@ const clearFilters = () => {
     search.value = ''
     category.value = ''
     statuses.value = [...DEFAULT_STATUSES]
+    sort.value = 'default'
     fetchItems(1)
 }
 
@@ -73,6 +83,7 @@ const fetchItems = async (page = 1) => {
         ...(search.value ? { search: search.value } : {}),
         ...(category.value ? { category_id: category.value } : {}),
         ...(statuses.value.length ? { statuses: statuses.value.join(',') } : {}),
+        ...(sort.value !== 'default' ? { sort: sort.value } : {}),
         ...(page > 1 ? { page } : {}),
     }
     
@@ -88,6 +99,7 @@ const fetchItems = async (page = 1) => {
             search: search.value || undefined,
             category_id: category.value || undefined,
             statuses: statuses.value.length ? statuses.value.join(',') : undefined,
+            sort: sort.value !== 'default' ? sort.value : undefined,
             per_page: perPage.value,
         },
     })
@@ -130,6 +142,11 @@ onMounted(() => {
         statuses.value = [...DEFAULT_STATUSES]
     }
 
+    // 初始化排序
+    if (route.query.sort) {
+        sort.value = route.query.sort
+    }
+
     fetchCategories()
     fetchItems(Number(route.query.page) || 1)
     
@@ -155,62 +172,92 @@ onUnmounted(() => {
         </div>
 
         <!-- 搜尋列 -->
-        <form @submit.prevent="doSearch" class="mb-6 flex flex-wrap gap-3 items-center">
-            <input
-                v-model="search"
-                type="text"
-                placeholder="🔍 搜尋名稱"
-                class="flex-1 min-w-[150px] px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
+        <div class="bg-white rounded-2xl shadow-md p-5 mb-6">
+            <form @submit.prevent="doSearch" class="space-y-4">
+                <!-- 第一行：主要篩選條件 -->
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">🔍 搜尋名稱</label>
+                        <input
+                            v-model="search"
+                            type="text"
+                            placeholder="輸入物品名稱..."
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                        />
+                    </div>
 
-            <select
-                v-model="category"
-                class="min-w-[120px] px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            >
-                <option value="">📂 所有分類</option>
-                <option value="none">🚫 未分類</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                    📁 {{ cat.name }}
-                </option>
-            </select>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">📂 分類</label>
+                        <select
+                            v-model="category"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                        >
+                            <option value="">所有分類</option>
+                            <option value="none">🚫 未分類</option>
+                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                                {{ cat.name }}
+                            </option>
+                        </select>
+                    </div>
 
-            <Multiselect
-                v-model="statuses"
-                mode="tags"
-                :close-on-select="false"
-                :searchable="false"
-                :options="[
-    { value: 'pre_arrival', label: '📦 未到貨' },
-    { value: 'unused', label: '📚 未使用' },
-    { value: 'in_use', label: '✅ 使用中' },
-    { value: 'unused_discarded', label: '⚠️ 未使用就棄用' },
-    { value: 'used_discarded', label: '🗑️ 使用後棄用' }
-  ]"
-                placeholder="📊 選擇狀態（可多選）"
-                class="min-w-[200px]"
-            />
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">🔄 排序</label>
+                        <select
+                            v-model="sort"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+                        >
+                            <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">📊 狀態</label>
+                        <Multiselect
+                            v-model="statuses"
+                            mode="tags"
+                            :close-on-select="false"
+                            :searchable="false"
+                            :options="[
+                                { value: 'pre_arrival', label: '📦 未到貨' },
+                                { value: 'unused', label: '📚 未使用' },
+                                { value: 'in_use', label: '✅ 使用中' },
+                                { value: 'unused_discarded', label: '⚠️ 未使用就棄用' },
+                                { value: 'used_discarded', label: '🗑️ 使用後棄用' }
+                            ]"
+                            placeholder="選擇狀態（可多選）"
+                            class="w-full"
+                        />
+                    </div>
+                </div>
 
-            <button
-                type="submit"
-                class="px-5 py-2 bg-blue-500 text-white font-medium rounded-xl shadow hover:bg-blue-600 transition"
-            >
-                🔍 搜尋
-            </button>
+                <!-- 第二行：操作按鈕和結果 -->
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-200">
+                    <div class="flex items-center gap-3">
+                        <button
+                            type="submit"
+                            class="px-6 py-2.5 bg-blue-500 text-white font-medium rounded-xl shadow-md hover:bg-blue-600 hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                        >
+                            🔍 搜尋
+                        </button>
 
-            <button
-                v-if="search || category || statuses.length !== DEFAULT_STATUSES.length"
-                type="button"
-                @click="clearFilters"
-                class="text-sm text-gray-500 underline ml-2"
-            >
-                ❌ 清除
-            </button>
+                        <button
+                            v-if="search || category || statuses.length !== DEFAULT_STATUSES.length || sort !== 'default'"
+                            type="button"
+                            @click="clearFilters"
+                            class="px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-all duration-200"
+                        >
+                            ❌ 清除篩選
+                        </button>
+                    </div>
 
-            <span v-if="pagination.total !== null" class="text-sm text-gray-600 ml-2">
-                （符合條件的 {{ pagination.total }} 筆結果）
-            </span>
-        </form>
+                    <div v-if="pagination.total !== null" class="text-sm text-gray-600 font-medium">
+                        <span class="text-blue-600">{{ pagination.total }}</span> 筆符合條件的結果
+                    </div>
+                </div>
+            </form>
+        </div>
 
         <ul class="space-y-4">
             <li
