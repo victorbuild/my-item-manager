@@ -2,12 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Item;
 use Carbon\Carbon;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
-class StoreItemRequest extends FormRequest
+class UpdateItemRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -15,6 +16,25 @@ class StoreItemRequest extends FormRequest
     public function authorize(): bool
     {
         return Auth::check();
+    }
+    
+    /**
+     * 取得現有模型實例的日期值（如果請求中沒有提供）
+     */
+    private function getExistingDateValue(string $field): ?string
+    {
+        // 如果請求中有提供該欄位，返回 null（使用請求中的值）
+        if ($this->has($field)) {
+            return null;
+        }
+        
+        // 嘗試從路由參數中獲取模型
+        $item = $this->route('item');
+        if ($item instanceof Item && $item->$field) {
+            return Carbon::parse($item->$field)->format('Y-m-d');
+        }
+        
+        return null;
     }
 
     /**
@@ -25,11 +45,11 @@ class StoreItemRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
-            'quantity' => 'nullable|integer|min:1',
             'price' => 'nullable|numeric',
+            'serial_number' => 'nullable|string|max:255',
             'purchased_at' => [
                 'nullable',
                 'date',
@@ -64,8 +84,10 @@ class StoreItemRequest extends FormRequest
                             $fail('到貨日期不能超過今天。');
                         }
                         
-                        $purchasedAt = $this->input('purchased_at');
-                        $usedAt = $this->input('used_at');
+                        // 取得購買日期（請求中的值或現有值）
+                        $purchasedAt = $this->input('purchased_at') ?? $this->getExistingDateValue('purchased_at');
+                        // 取得開始使用日期（請求中的值或現有值）
+                        $usedAt = $this->input('used_at') ?? $this->getExistingDateValue('used_at');
 
                         if ($purchasedAt) {
                             $purchasedDate = Carbon::parse($purchasedAt)->startOfDay();
@@ -94,8 +116,10 @@ class StoreItemRequest extends FormRequest
                             $fail('開始使用日期不能超過今天。');
                         }
                         
-                        $purchasedAt = $this->input('purchased_at');
-                        $receivedAt = $this->input('received_at');
+                        // 取得購買日期（請求中的值或現有值）
+                        $purchasedAt = $this->input('purchased_at') ?? $this->getExistingDateValue('purchased_at');
+                        // 取得到貨日期（請求中的值或現有值）
+                        $receivedAt = $this->input('received_at') ?? $this->getExistingDateValue('received_at');
                         $discardedAt = $this->input('discarded_at');
 
                         // 開始使用日期不能早於購買日期
@@ -136,7 +160,8 @@ class StoreItemRequest extends FormRequest
                             $fail('報廢日期不能超過今天。');
                         }
                         
-                        $usedAt = $this->input('used_at');
+                        // 取得開始使用日期（請求中的值或現有值）
+                        $usedAt = $this->input('used_at') ?? $this->getExistingDateValue('used_at');
                         if ($usedAt) {
                             $usedDate = Carbon::parse($usedAt)->startOfDay();
                             if ($discardedDate->lt($usedDate)) {
@@ -147,11 +172,12 @@ class StoreItemRequest extends FormRequest
                 },
             ],
             'expiration_date' => 'nullable|date',
-            'images' => 'nullable|array|max:9',
+            'discard_note' => 'nullable',
+            'is_discarded' => 'boolean',
+            'notes' => 'nullable|string',
+            'images' => 'nullable|array',
             'images.*.uuid' => 'required|uuid',
-            'images.*.status' => 'required|in:new',
-            'barcode' => 'nullable|string|max:255',
-            'product_id' => 'nullable|exists:products,id',
+            'images.*.status' => 'required|in:new,original,removed',
         ];
     }
 }

@@ -183,22 +183,28 @@
 
             <div>
                 <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
-                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" required />
+                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" :max="todayString" required />
             </div>
 
             <div>
                 <label class="block font-medium">📦 到貨日期</label>
-                <input v-model="form.received_at" type="date" class="w-full p-2 border rounded" />
+                <input v-model="form.received_at" type="date" class="w-full p-2 border rounded" 
+                    :min="form.purchased_at || undefined" 
+                    :max="todayString" />
             </div>
 
             <div>
                 <label class="block font-medium">🚀 開始使用日期</label>
-                <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" />
+                <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" 
+                    :min="form.received_at || form.purchased_at || undefined" 
+                    :max="todayString" />
             </div>
 
             <div>
                 <label class="block font-medium">🗑️ 報廢日期</label>
-                <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" />
+                <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" 
+                    :min="form.used_at || form.received_at || form.purchased_at || undefined" 
+                    :max="todayString" />
             </div>
             <div>
                 <label class="block font-medium">
@@ -327,6 +333,9 @@ const creating = ref(false)
 const creatingCategory = ref(false)
 
 const router = useRouter()
+
+// 今天的日期字串（用於 max 屬性）
+const todayString = new Date().toISOString().split('T')[0]
 
 const showScanner = ref(false)
 const isSubmitting = ref(false)

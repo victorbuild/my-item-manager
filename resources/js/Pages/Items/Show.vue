@@ -47,23 +47,53 @@
                 <div class="space-y-2">
                     <div>
                         📅 購買日期：
-                        <input type="date" class="p-1 border rounded" :value="item.purchased_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('purchased_at', e.target.value)" />
+                        <input type="date" class="p-1 border rounded" 
+                            :value="tempDates.purchased_at !== null && tempDates.purchased_at !== undefined ? tempDates.purchased_at : (item.purchased_at?.slice(0, 10) || '')"
+                            :min="undefined"
+                            :max="todayString"
+                            @input="(e) => handleDateInput('purchased_at', e.target.value)"
+                            @blur="validateDate('purchased_at')"
+                            @keyup.enter="saveItemDate('purchased_at')" />
                     </div>
                     <div>
                         📦 到貨日期：
-                        <input type="date" class="p-1 border rounded" :value="item.received_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('received_at', e.target.value)" />
+                        <input type="date" class="p-1 border rounded" 
+                            :value="tempDates.received_at !== null && tempDates.received_at !== undefined ? tempDates.received_at : (item.received_at?.slice(0, 10) || '')"
+                            :min="(tempDates.purchased_at || item.purchased_at?.slice(0, 10)) || undefined"
+                            :max="todayString"
+                            @input="(e) => handleDateInput('received_at', e.target.value)"
+                            @blur="validateDate('received_at')"
+                            @keyup.enter="saveItemDate('received_at')" />
                     </div>
                     <div>
                         🚀 開始使用日期：
-                        <input type="date" class="p-1 border rounded" :value="item.used_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('used_at', e.target.value)" />
+                        <input type="date" class="p-1 border rounded" 
+                            :value="tempDates.used_at !== null && tempDates.used_at !== undefined ? tempDates.used_at : (item.used_at?.slice(0, 10) || '')"
+                            :min="getUsedAtMinDate()"
+                            :max="todayString"
+                            @input="(e) => handleDateInput('used_at', e.target.value)"
+                            @blur="validateDate('used_at')"
+                            @keyup.enter="saveItemDate('used_at')" />
                     </div>
                     <div>
                         🗑️ 報廢日期：
-                        <input type="date" class="p-1 border rounded" :value="item.discarded_at?.slice(0, 10)"
-                            @change="(e) => updateItemDate('discarded_at', e.target.value)" />
+                        <input type="date" class="p-1 border rounded" 
+                            :value="tempDates.discarded_at !== null && tempDates.discarded_at !== undefined ? tempDates.discarded_at : (item.discarded_at?.slice(0, 10) || '')"
+                            :min="(tempDates.used_at || item.used_at?.slice(0, 10)) || (tempDates.received_at || item.received_at?.slice(0, 10)) || (tempDates.purchased_at || item.purchased_at?.slice(0, 10)) || undefined"
+                            :max="todayString"
+                            @input="(e) => handleDateInput('discarded_at', e.target.value)"
+                            @blur="validateDate('discarded_at')"
+                            @keyup.enter="saveItemDate('discarded_at')" />
+                    </div>
+                    <div v-if="hasDateChanges" class="mt-2">
+                        <button @click="saveAllDates" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow">
+                            💾 儲存日期變更
+                        </button>
+                        <button @click="cancelDateChanges" 
+                            class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 shadow">
+                            ❌ 取消變更
+                        </button>
                     </div>
                     <hr>
                     <div class="mt-3">
@@ -171,10 +201,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
 import dayjs from 'dayjs'
+import Swal from 'sweetalert2'
 
 const route = useRoute()
 const router = useRouter()
@@ -183,6 +214,17 @@ const item = ref(null)
 const today = dayjs()
 const discardNote = ref('')
 
+// 今天的日期字串（用於 max 屬性）
+const todayString = today.format('YYYY-MM-DD')
+
+// 臨時日期狀態
+const tempDates = ref({
+    purchased_at: null,
+    received_at: null,
+    used_at: null,
+    discarded_at: null,
+})
+
 import { ITEM_STATUS_LABEL_MAP as statusLabelMap } from '@/constants/itemStatus'
 
 const saveDiscardNote = async () => {
@@ -190,10 +232,29 @@ const saveDiscardNote = async () => {
         await axios.patch(`/api/items/${item.value.short_id}`, {
             discard_note: discardNote.value,
         })
-        alert('✅ 備註已儲存')
+        await Swal.fire({
+            icon: 'success',
+            title: '成功',
+            text: '備註已儲存',
+            confirmButtonText: '確定'
+        })
         fetchItem()
     } catch (err) {
-        alert('❌ 儲存失敗')
+        let errorMessage = '儲存失敗，請確認欄位是否正確'
+        if (err.response?.data?.errors) {
+            const errors = err.response.data.errors
+            const firstError = Object.values(errors)[0]
+            errorMessage = Array.isArray(firstError) ? firstError[0] : firstError
+        } else if (err.response?.data?.message) {
+            errorMessage = err.response.data.message
+        }
+        
+        await Swal.fire({
+            icon: 'error',
+            title: '錯誤',
+            text: errorMessage,
+            confirmButtonText: '確定'
+        })
         console.error(err)
     }
 }
@@ -203,6 +264,13 @@ const fetchItem = async () => {
         const res = await axios.get(`/api/items/${route.params.id}`)
         item.value = res.data.items[0]
         discardNote.value = res.data.items[0]?.discard_note || ''
+        // 重置臨時日期狀態
+        tempDates.value = {
+            purchased_at: null,
+            received_at: null,
+            used_at: null,
+            discarded_at: null,
+        }
     } catch (error) {
         if (error.response && error.response.status === 404) {
             // ✅ 跳轉 Vue 的 404 NotFound 頁面
@@ -221,6 +289,332 @@ const formatPrice = (val) => {
     return Number(val).toLocaleString()
 }
 
+// 取得開始使用日期的最小日期（購買日期或到貨日期，取較晚者）
+const getUsedAtMinDate = () => {
+    const purchasedAt = tempDates.value.purchased_at || item.value?.purchased_at?.slice(0, 10) || ''
+    const receivedAt = tempDates.value.received_at || item.value?.received_at?.slice(0, 10) || ''
+    
+    // 如果有到貨日期，使用到貨日期；否則使用購買日期
+    if (receivedAt) {
+        return receivedAt
+    } else if (purchasedAt) {
+        return purchasedAt
+    }
+    return undefined
+}
+
+// 檢查是否有日期變更
+const hasDateChanges = computed(() => {
+    // 檢查是否有變更（包括要清除的情況，空字串也算變更）
+    return (tempDates.value.purchased_at !== null && tempDates.value.purchased_at !== undefined) ||
+           (tempDates.value.received_at !== null && tempDates.value.received_at !== undefined) ||
+           (tempDates.value.used_at !== null && tempDates.value.used_at !== undefined) ||
+           (tempDates.value.discarded_at !== null && tempDates.value.discarded_at !== undefined)
+})
+
+// 取消所有日期變更
+const cancelDateChanges = () => {
+    tempDates.value = {
+        purchased_at: null,
+        received_at: null,
+        used_at: null,
+        discarded_at: null,
+    }
+}
+
+// 處理日期輸入
+const handleDateInput = (field, value) => {
+    // 如果值為空，表示用戶想要清除日期
+    if (!value) {
+        // 使用空字串標記「要清除」的意圖
+        const currentValue = item.value?.[field]?.slice(0, 10) || ''
+        if (currentValue) {
+            // 如果原本有值，設置為空字串表示要清除
+            tempDates.value[field] = ''
+        } else {
+            // 如果原本就沒有值，清除臨時值
+            tempDates.value[field] = null
+        }
+        return
+    }
+    
+    // 檢查日期格式是否有效
+    if (!isValidDate(value)) {
+        // 如果日期無效，暫時儲存但會在失焦時驗證
+        tempDates.value[field] = value
+        return
+    }
+    
+    // 如果日期有效，儲存到臨時狀態
+    tempDates.value[field] = value
+}
+
+// 檢查日期是否有效
+const isValidDate = (dateString) => {
+    if (!dateString) return false
+    
+    // 檢查格式是否為 YYYY-MM-DD
+    if (!dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return false
+    }
+    
+    // 解析日期字串
+    const [year, month, day] = dateString.split('-').map(Number)
+    
+    // 基本範圍檢查
+    if (year < 1900 || year > 2100) return false
+    if (month < 1 || month > 12) return false
+    if (day < 1 || day > 31) return false
+    
+    // 使用本地時間創建日期對象（避免時區問題）
+    const date = new Date(year, month - 1, day)
+    
+    // 驗證日期是否正確（避免月份溢出等問題，如 2025-11-31）
+    return date.getFullYear() === year &&
+           date.getMonth() === month - 1 &&
+           date.getDate() === day
+}
+
+// 驗證單個日期（失焦時）
+const validateDate = (field) => {
+    const value = tempDates.value[field]
+    
+    // 如果值為空字串，表示要清除日期，這是有效的操作
+    if (value === '') {
+        return
+    }
+    
+    // 如果值為 null 或 undefined，清除臨時值
+    if (!value) {
+        tempDates.value[field] = null
+        return
+    }
+    
+    // 檢查日期格式是否有效
+    if (!isValidDate(value)) {
+        Swal.fire({
+            icon: 'warning',
+            title: '日期格式錯誤',
+            text: '請輸入有效的日期格式（YYYY-MM-DD）',
+            confirmButtonText: '確定'
+        }).then(() => {
+            // 恢復原始值
+            tempDates.value[field] = null
+        })
+        return
+    }
+    
+    // 檢查日期是否超過今天
+    if (value > todayString) {
+        Swal.fire({
+            icon: 'warning',
+            title: '日期驗證',
+            text: '日期不能超過今天',
+            confirmButtonText: '確定'
+        }).then(() => {
+            // 恢復原始值
+            tempDates.value[field] = null
+        })
+        return
+    }
+    
+    const currentValue = item.value?.[field]?.slice(0, 10) || ''
+    if (value === currentValue) {
+        // 如果與當前值相同，清除臨時值
+        tempDates.value[field] = null
+        return
+    }
+    
+    // 前端驗證日期順序
+    const purchasedAt = tempDates.value.purchased_at || item.value?.purchased_at?.slice(0, 10) || ''
+    const receivedAt = tempDates.value.received_at || item.value?.received_at?.slice(0, 10) || ''
+    const usedAt = tempDates.value.used_at || item.value?.used_at?.slice(0, 10) || ''
+    const discardedAt = tempDates.value.discarded_at || item.value?.discarded_at?.slice(0, 10) || ''
+    
+    let errorMessage = null
+    
+    if (field === 'received_at' && value && purchasedAt && value < purchasedAt) {
+        errorMessage = '到貨日期不能早於購買日期'
+    } else if (field === 'used_at' && value) {
+        // 開始使用日期不能早於購買日期
+        if (purchasedAt && value < purchasedAt) {
+            errorMessage = '開始使用日期不能早於購買日期'
+        }
+        // 開始使用日期不能早於到貨日期
+        else if (receivedAt && value < receivedAt) {
+            errorMessage = '開始使用日期不能早於到貨日期'
+        }
+    } else if (field === 'discarded_at' && value && usedAt && value < usedAt) {
+        errorMessage = '報廢日期不能早於開始使用日期'
+    } else if (field === 'discarded_at' && value && receivedAt && !usedAt && value < receivedAt) {
+        errorMessage = '報廢日期不能早於到貨日期'
+    } else if (field === 'discarded_at' && value && purchasedAt && !receivedAt && !usedAt && value < purchasedAt) {
+        errorMessage = '報廢日期不能早於購買日期'
+    }
+    
+    if (errorMessage) {
+        Swal.fire({
+            icon: 'warning',
+            title: '日期驗證',
+            text: errorMessage,
+            confirmButtonText: '確定'
+        }).then(() => {
+            // 恢復原始值
+            tempDates.value[field] = null
+        })
+    }
+}
+
+// 儲存單個日期（Enter 鍵）
+const saveItemDate = async (field) => {
+    const value = tempDates.value[field]
+    
+    // 如果值為空字串，表示要清除日期
+    if (value === '') {
+        const currentValue = item.value?.[field]?.slice(0, 10) || ''
+        if (!currentValue) {
+            // 如果原本就沒有值，不需要更新
+            tempDates.value[field] = null
+            return
+        }
+        
+        try {
+            await updateItemDate(field, null)
+            tempDates.value[field] = null
+        } catch (err) {
+            tempDates.value[field] = null
+        }
+        return
+    }
+    
+    if (!value) return
+    
+    // 檢查日期格式是否有效
+    if (!isValidDate(value)) {
+        await Swal.fire({
+            icon: 'warning',
+            title: '日期格式錯誤',
+            text: '請輸入有效的日期格式（YYYY-MM-DD）',
+            confirmButtonText: '確定'
+        })
+        tempDates.value[field] = null
+        return
+    }
+    
+    // 檢查日期是否超過今天
+    if (value > todayString) {
+        await Swal.fire({
+            icon: 'warning',
+            title: '日期驗證',
+            text: '日期不能超過今天',
+            confirmButtonText: '確定'
+        })
+        tempDates.value[field] = null
+        return
+    }
+    
+    const currentValue = item.value?.[field]?.slice(0, 10) || ''
+    if (value === currentValue) {
+        tempDates.value[field] = null
+        return
+    }
+    
+    try {
+        await updateItemDate(field, value)
+        tempDates.value[field] = null
+    } catch (err) {
+        // updateItemDate 內部已經處理錯誤，這裡只需要清除臨時值
+        tempDates.value[field] = null
+    }
+}
+
+// 儲存所有日期變更
+const saveAllDates = async () => {
+    const updates = {}
+    let hasUpdates = false
+    const invalidFields = []
+    
+    // 先驗證所有日期
+    for (const field of ['purchased_at', 'received_at', 'used_at', 'discarded_at']) {
+        const value = tempDates.value[field]
+        
+        // 如果值為空字串，表示要清除日期
+        if (value === '') {
+            const currentValue = item.value?.[field]?.slice(0, 10) || ''
+            if (currentValue) {
+                // 如果原本有值，發送 null 來清除
+                updates[field] = null
+                hasUpdates = true
+            }
+            continue
+        }
+        
+        if (!value) continue
+        
+        // 檢查日期格式是否有效
+        if (!isValidDate(value)) {
+            invalidFields.push(field)
+            continue
+        }
+        
+        // 檢查日期是否超過今天
+        if (value > todayString) {
+            invalidFields.push(field)
+            continue
+        }
+        
+        const currentValue = item.value?.[field]?.slice(0, 10) || ''
+        if (value !== currentValue) {
+            updates[field] = value
+            hasUpdates = true
+        }
+    }
+    
+    if (invalidFields.length > 0) {
+        await Swal.fire({
+            icon: 'warning',
+            title: '日期格式錯誤',
+            text: `以下欄位的日期格式無效：${invalidFields.join('、')}`,
+            confirmButtonText: '確定'
+        })
+        return
+    }
+    
+    if (!hasUpdates) {
+        cancelDateChanges()
+        return
+    }
+    
+    try {
+        await axios.patch(`/api/items/${item.value.short_id}`, updates)
+        await Swal.fire({
+            icon: 'success',
+            title: '成功',
+            text: '日期已更新',
+            confirmButtonText: '確定'
+        })
+        cancelDateChanges()
+        fetchItem()
+    } catch (err) {
+        let errorMessage = '更新失敗，請確認欄位是否正確'
+        if (err.response?.data?.errors) {
+            const errors = err.response.data.errors
+            const firstError = Object.values(errors)[0]
+            errorMessage = Array.isArray(firstError) ? firstError[0] : firstError
+        } else if (err.response?.data?.message) {
+            errorMessage = err.response.data.message
+        }
+        
+        await Swal.fire({
+            icon: 'error',
+            title: '錯誤',
+            text: errorMessage,
+            confirmButtonText: '確定'
+        })
+        console.error(err)
+    }
+}
+
 const updateItemDate = async (field, value) => {
     if (!['purchased_at', 'received_at', 'used_at', 'discarded_at'].includes(field)) return
 
@@ -230,8 +624,23 @@ const updateItemDate = async (field, value) => {
         })
         fetchItem() // 重新取得資料
     } catch (err) {
-        alert('❌ 更新失敗')
+        let errorMessage = '更新失敗，請確認欄位是否正確'
+        if (err.response?.data?.errors) {
+            const errors = err.response.data.errors
+            const firstError = Object.values(errors)[0]
+            errorMessage = Array.isArray(firstError) ? firstError[0] : firstError
+        } else if (err.response?.data?.message) {
+            errorMessage = err.response.data.message
+        }
+        
+        await Swal.fire({
+            icon: 'error',
+            title: '錯誤',
+            text: errorMessage,
+            confirmButtonText: '確定'
+        })
         console.error(err)
+        throw err
     }
 }
 

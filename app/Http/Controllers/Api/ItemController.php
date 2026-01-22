@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreItemRequest;
+use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
@@ -113,30 +114,13 @@ class ItemController extends Controller
     }
 
     /**
-     * @param Request $request
+     * @param UpdateItemRequest $request
      * @param Item $item
      * @return JsonResponse
      */
-    public function update(Request $request, Item $item): JsonResponse
+    public function update(UpdateItemRequest $request, Item $item): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'location' => 'nullable|string|max:255',
-            'price' => 'nullable|numeric',
-            'serial_number' => 'nullable|string|max:255',
-            'purchased_at' => 'nullable|date',
-            'received_at' => 'nullable|date',
-            'used_at' => 'nullable|date',
-            'discarded_at' => 'nullable|date',
-            'expiration_date' => 'nullable|date',
-            'discard_note' => 'nullable',
-            'is_discarded' => 'boolean',
-            'notes' => 'nullable|string',
-            'images' => 'nullable|array',
-            'images.*.uuid' => 'required|uuid',
-            'images.*.status' => 'required|in:new,original,removed',
-        ]);
+        $validated = $request->validated();
 
         // 1. 驗證圖片數量（僅計算 new + original）
         $images = $request->input('images', []);
