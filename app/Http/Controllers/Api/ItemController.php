@@ -12,6 +12,8 @@ use App\Services\ItemImageService;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
@@ -58,28 +60,61 @@ class ItemController extends Controller
     public function store(StoreItemRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $maxQuantity = config('app.max_item_quantity');
-        $quantity = max((int) ($validated['quantity'] ?? 1), 1);
-        $quantity = min($quantity, $maxQuantity);
-
-        $createdItems = [];
-
-        for ($i = 0; $i < $quantity; $i++) {
-            $item = $this->itemService->create($validated);
-
-            // 處理圖片關聯（如果有提供）
-            if (!empty($validated['images'])) {
-                $this->itemImageService->attachImagesToItem($item, $validated['images']);
-            }
-
-            $createdItems[] = $item;
-        }
+        $quantity = $this->calculateQuantity($validated);
+        
+        $createdItems = $this->createItemsWithImages($validated, $quantity);
 
         return response()->json([
             'success' => true,
-            'message' => '成功建立 ' . count($createdItems) . ' 筆物品',
-            'data' => collect($createdItems)->map->only(['id', 'uuid', 'name']),
+            'message' => '成功建立 ' . $createdItems->count() . ' 筆物品',
+            'data' => $createdItems->map->only(['id', 'uuid', 'name']),
         ], Response::HTTP_CREATED);
+    }
+
+    /**
+     * 計算建立數量（含上限檢查）
+     *
+     * @param array $validated
+     * @return int
+     */
+    private function calculateQuantity(array $validated): int
+    {
+        $maxQuantity = config('app.max_item_quantity');
+        $quantity = max((int) ($validated['quantity'] ?? 1), 1);
+        return min($quantity, $maxQuantity);
+    }
+
+    /**
+     * 批次建立物品並關聯圖片
+     *
+     * @param array $data
+     * @param int $quantity
+     * @return Collection<Item>
+     */
+    private function createItemsWithImages(array $data, int $quantity): Collection
+    {
+        $createdItems = collect();
+
+        DB::beginTransaction();
+        try {
+            for ($i = 0; $i < $quantity; $i++) {
+                $item = $this->itemService->create($data);
+
+                // 處理圖片關聯（如果有提供）
+                if (!empty($data['images'])) {
+                    $this->itemImageService->attachImagesToItem($item, $data['images']);
+                }
+
+                $createdItems->push($item);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return $createdItems;
     }
 
     /**
