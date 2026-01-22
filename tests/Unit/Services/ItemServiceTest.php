@@ -16,7 +16,7 @@ class ItemServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // 直接注入測試值，不依賴 config，符合單元測試原則
         $this->itemService = new ItemService(self::TEST_MAX_QUANTITY);
     }

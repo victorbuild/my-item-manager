@@ -61,7 +61,7 @@ class ItemController extends Controller
     {
         $validated = $request->validated();
         $quantity = $this->itemService->calculateQuantity($validated);
-        
+
         $createdItems = $this->createItemsWithImages($validated, $quantity);
 
         return response()->json([
