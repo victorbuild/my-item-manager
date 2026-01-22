@@ -3,24 +3,18 @@ parameters:
 		-
 			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:first\(\) is forbidden, ❌ 禁止在 Controller 內直接使用 first\(\)。\.$#'
 			identifier: disallowed.method
-			count: 3
+			count: 2
 			path: app/Http/Controllers/Api/ItemController.php
 
 		-
 			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:save\(\) \(as App\\Models\\ItemImage\:\:save\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 save\(\)。\.$#'
 			identifier: disallowed.method
-			count: 3
+			count: 2
 			path: app/Http/Controllers/Api/ItemController.php
 
 		-
 			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:update\(\) \(as App\\Models\\Item\:\:update\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 update\(\)。\.$#'
 			identifier: disallowed.method
-			count: 1
-			path: app/Http/Controllers/Api/ItemController.php
-
-		-
-			message: '#^Variable \$loopIndex on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.variable
 			count: 1
 			path: app/Http/Controllers/Api/ItemController.php
 
