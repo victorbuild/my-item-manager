@@ -27,6 +27,14 @@ interface ItemImageRepositoryInterface
     public function incrementUsageCount(ItemImage $image): void;
 
     /**
+     * 減少圖片使用次數
+     *
+     * @param ItemImage $image 圖片實例
+     * @return void
+     */
+    public function decrementUsageCount(ItemImage $image): void;
+
+    /**
      * 更新圖片狀態
      *
      * @param ItemImage $image 圖片實例

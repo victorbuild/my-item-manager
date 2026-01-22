@@ -34,6 +34,17 @@ class ItemImageRepository implements ItemImageRepositoryInterface
     }
 
     /**
+     * 減少圖片使用次數
+     *
+     * @param ItemImage $image 圖片實例
+     * @return void
+     */
+    public function decrementUsageCount(ItemImage $image): void
+    {
+        $image->decrement('usage_count');
+    }
+
+    /**
      * 更新圖片狀態
      *
      * @param ItemImage $image 圖片實例

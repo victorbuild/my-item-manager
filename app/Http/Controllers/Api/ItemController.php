@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
+use App\Services\ItemImageService;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
 class ItemController extends Controller
 {
     public function __construct(
-        private readonly ItemService $itemService
+        private readonly ItemService $itemService,
+        private readonly ItemImageService $itemImageService
     ) {
     }
 
@@ -89,6 +91,8 @@ class ItemController extends Controller
     }
 
     /**
+     * 更新物品
+     *
      * @param UpdateItemRequest $request
      * @param Item $item
      * @return JsonResponse
@@ -96,69 +100,24 @@ class ItemController extends Controller
     public function update(UpdateItemRequest $request, Item $item): JsonResponse
     {
         $validated = $request->validated();
-
-        // 1. 驗證圖片數量（僅計算 new + original）
         $images = $request->input('images', []);
-        $activeImages = collect($images)->whereIn('status', ['new', 'original']);
-        if ($activeImages->count() > 9) {
+
+        // 驗證圖片數量（僅計算 new + original）
+        if (!$this->itemImageService->validateImageCount($images, 9)) {
             return response()->json([
+                'success' => false,
                 'message' => '最多只能有 9 張圖片',
                 'errors' => ['images' => ['最多只能有 9 張圖片']],
-            ], 422);
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // 2. 先處理 removed 的圖片
-        $removedImages = collect($images)->where('status', 'removed');
-        foreach ($removedImages as $imgObj) {
-            $uuid = $imgObj['uuid'] ?? null;
-            if (!$uuid) {
-                continue;
-            }
-            $item->images()->detach($uuid);
-            $image = \App\Models\ItemImage::where('uuid', $uuid)->first();
-            if ($image) {
-                $image->decrement('usage_count');
-                if ($image->usage_count <= 0) {
-                    $image->status = 'draft';
-                }
-                $image->save();
-            }
-        }
-
-        // 3. 新增 new 的圖片
-        $newImages = collect($images)->where('status', 'new');
-        $loopIndex = 0;
-        foreach ($newImages as $imgObj) {
-            $uuid = $imgObj['uuid'] ?? null;
-            if (!$uuid) {
-                continue;
-            }
-            // 避免重複 attach
-            if (!$item->images->contains('uuid', $uuid)) {
-                $item->images()->attach($uuid, [
-                    'sort_order' => ++$loopIndex,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-            $image = \App\Models\ItemImage::where('uuid', $uuid)->first();
-            if ($image) {
-                $image->increment('usage_count');
-                if ($image->usage_count === 1) {
-                    $image->status = 'used';
-                }
-                $image->save();
-            }
-        }
-
-        // 4. 原始圖片不異動
-        // 5. 更新 item 其他欄位
-        $item->update($validated);
+        // 更新物品（包含圖片同步）
+        $updatedItem = $this->itemService->update($item, $validated, $images);
 
         return response()->json([
             'success' => true,
             'message' => '更新成功',
-            'item' => $item->fresh(['images', 'units', 'category', 'product.category']),
+            'data' => $updatedItem,
         ]);
     }
 

@@ -29,6 +29,27 @@ class ItemService
     }
 
     /**
+     * 更新物品
+     *
+     * @param Item $item 物品實例
+     * @param array $data 驗證後的資料
+     * @param array|null $images 圖片陣列，格式：[['uuid' => '...', 'status' => 'new|removed|original'], ...]
+     * @return Item 更新後的物品實例
+     */
+    public function update(Item $item, array $data, ?array $images = null): Item
+    {
+        // 更新物品基本資料
+        $item->update($data);
+
+        // 如果有提供圖片，同步圖片
+        if ($images !== null) {
+            $this->itemImageService->syncItemImages($item, $images);
+        }
+
+        return $item->fresh(['images', 'units', 'category', 'product.category']);
+    }
+
+    /**
      * 計算建立數量（含上限檢查）
      *
      * @param array $data 驗證後的資料

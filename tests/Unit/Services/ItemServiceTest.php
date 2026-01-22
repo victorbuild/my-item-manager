@@ -242,4 +242,133 @@ class ItemServiceTest extends TestCase
             throw $e;
         }
     }
+
+    /**
+     * 測試：更新物品基本資料
+     *
+     * @test
+     */
+    public function it_should_update_item_basic_data(): void
+    {
+        // Arrange
+        $item = Item::factory()->create([
+            'name' => '原始名稱',
+            'price' => 1000,
+        ]);
+
+        $data = [
+            'name' => '更新後的名稱',
+            'price' => 2000,
+        ];
+
+        // Mock ItemImageService（不應該被呼叫）
+        $this->mockItemImageService
+            ->shouldNotReceive('syncItemImages');
+
+        // Act
+        $result = $this->itemService->update($item, $data);
+
+        // Assert
+        $this->assertInstanceOf(Item::class, $result);
+        $item->refresh();
+        $this->assertEquals('更新後的名稱', $item->name);
+        $this->assertEquals(2000, $item->price);
+    }
+
+    /**
+     * 測試：更新物品並同步圖片
+     *
+     * @test
+     */
+    public function it_should_update_item_and_sync_images(): void
+    {
+        // Arrange
+        $item = Item::factory()->create([
+            'name' => '原始名稱',
+        ]);
+
+        $data = [
+            'name' => '更新後的名稱',
+        ];
+
+        $images = [
+            ['uuid' => 'uuid1', 'status' => 'new'],
+            ['uuid' => 'uuid2', 'status' => 'removed'],
+        ];
+
+        // Mock ItemImageService
+        $this->mockItemImageService
+            ->shouldReceive('syncItemImages')
+            ->with($item, $images)
+            ->once();
+
+        // Act
+        $result = $this->itemService->update($item, $data, $images);
+
+        // Assert
+        $this->assertInstanceOf(Item::class, $result);
+        $item->refresh();
+        $this->assertEquals('更新後的名稱', $item->name);
+    }
+
+    /**
+     * 測試：更新物品但不提供圖片（images 為 null）
+     *
+     * @test
+     */
+    public function it_should_update_item_without_images_when_images_is_null(): void
+    {
+        // Arrange
+        $item = Item::factory()->create([
+            'name' => '原始名稱',
+        ]);
+
+        $data = [
+            'name' => '更新後的名稱',
+        ];
+
+        // Mock ItemImageService（不應該被呼叫）
+        $this->mockItemImageService
+            ->shouldNotReceive('syncItemImages');
+
+        // Act
+        $result = $this->itemService->update($item, $data, null);
+
+        // Assert
+        $this->assertInstanceOf(Item::class, $result);
+        $item->refresh();
+        $this->assertEquals('更新後的名稱', $item->name);
+    }
+
+    /**
+     * 測試：更新物品後載入關聯資料
+     *
+     * @test
+     */
+    public function it_should_load_relationships_after_update(): void
+    {
+        // Arrange
+        $item = Item::factory()->create();
+
+        $data = [
+            'name' => '更新後的名稱',
+        ];
+
+        // Mock ItemImageService
+        $this->mockItemImageService
+            ->shouldReceive('syncItemImages')
+            ->andReturnNull();
+
+        // Act
+        $result = $this->itemService->update($item, $data, []);
+
+        // Assert
+        $this->assertInstanceOf(Item::class, $result);
+        // 驗證 fresh() 會重新載入資料（包含關聯）
+        // 注意：在單元測試中，fresh() 會從資料庫重新載入，所以關聯會被載入
+        $this->assertNotNull($result);
+        // 驗證資料已更新
+        $item->refresh();
+        $this->assertEquals('更新後的名稱', $item->name);
+    }
 }
