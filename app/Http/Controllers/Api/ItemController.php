@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
+use App\Services\ItemImageService;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
 {
-    public function __construct(private readonly ItemService $itemService)
-    {
+    public function __construct(
+        private readonly ItemService $itemService,
+        private readonly ItemImageService $itemImageService
+    ) {
     }
 
     /**
@@ -47,6 +50,8 @@ class ItemController extends Controller
     }
 
     /**
+     * 建立物品
+     *
      * @param StoreItemRequest $request
      * @return JsonResponse
      */
@@ -60,30 +65,9 @@ class ItemController extends Controller
         for ($i = 0; $i < $quantity; $i++) {
             $item = $this->itemService->create($validated);
 
+            // 處理圖片關聯（如果有提供）
             if (!empty($validated['images'])) {
-                $loopIndex = 0;
-                foreach ($validated['images'] as $imgObj) {
-                    if (($imgObj['status'] ?? null) !== 'new' || empty($imgObj['uuid'])) {
-                        continue;
-                    }
-
-                    // 使用已存在的圖片 UUID 建立多對多關聯
-                    $item->images()->attach($imgObj['uuid'], [
-                        'sort_order' => $loopIndex = ($loopIndex ?? 0) + 1,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-
-                    // 更新圖片使用次數
-                    $image = \App\Models\ItemImage::where('uuid', $imgObj['uuid'])->first();
-                    if ($image) {
-                        $image->increment('usage_count');
-                        if ($image->status === 'draft') {
-                            $image->status = 'used';
-                            $image->save();
-                        }
-                    }
-                }
+                $this->itemImageService->attachImagesToItem($item, $validated['images']);
             }
 
             $createdItems[] = $item;
