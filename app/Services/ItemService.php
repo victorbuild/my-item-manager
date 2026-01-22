@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Storage;
 
 class ItemService
 {
+    public function __construct(
+        private readonly int $maxItemQuantity
+    ) {
+    }
+
     public function create(array $data): Item
     {
         $item = Item::create($data);
@@ -16,6 +21,18 @@ class ItemService
         $item->save();
 
         return $item;
+    }
+
+    /**
+     * 計算建立數量（含上限檢查）
+     *
+     * @param array $data 驗證後的資料
+     * @return int 處理後的數量
+     */
+    public function calculateQuantity(array $data): int
+    {
+        $quantity = max((int) ($data['quantity'] ?? 1), 1);
+        return min($quantity, $this->maxItemQuantity);
     }
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator

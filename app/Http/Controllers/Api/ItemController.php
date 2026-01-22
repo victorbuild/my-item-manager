@@ -60,7 +60,7 @@ class ItemController extends Controller
     public function store(StoreItemRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $quantity = $this->calculateQuantity($validated);
+        $quantity = $this->itemService->calculateQuantity($validated);
         
         $createdItems = $this->createItemsWithImages($validated, $quantity);
 
@@ -69,19 +69,6 @@ class ItemController extends Controller
             'message' => '成功建立 ' . $createdItems->count() . ' 筆物品',
             'data' => $createdItems->map->only(['id', 'uuid', 'name']),
         ], Response::HTTP_CREATED);
-    }
-
-    /**
-     * 計算建立數量（含上限檢查）
-     *
-     * @param array $validated
-     * @return int
-     */
-    private function calculateQuantity(array $validated): int
-    {
-        $maxQuantity = config('app.max_item_quantity');
-        $quantity = max((int) ($validated['quantity'] ?? 1), 1);
-        return min($quantity, $maxQuantity);
     }
 
     /**
