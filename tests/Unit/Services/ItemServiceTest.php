@@ -154,11 +154,12 @@ class ItemServiceTest extends TestCase
 
         $result = $this->itemService->createBatch($data, 3);
 
-        $this->assertCount(3, $result);
-        $result->each(function ($item) use ($data) {
-            $this->assertInstanceOf(Item::class, $item);
-            $this->assertEquals($data['name'], $item->name);
-        });
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('item', $result);
+        $this->assertArrayHasKey('quantity', $result);
+        $this->assertEquals(3, $result['quantity']);
+        $this->assertInstanceOf(Item::class, $result['item']);
+        $this->assertEquals($data['name'], $result['item']->name);
     }
 
     /**
@@ -185,11 +186,12 @@ class ItemServiceTest extends TestCase
 
         $result = $this->itemService->createBatch($data, 3);
 
-        $this->assertCount(3, $result);
-        $result->each(function ($item) use ($data) {
-            $this->assertInstanceOf(Item::class, $item);
-            $this->assertEquals($data['name'], $item->name);
-        });
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('item', $result);
+        $this->assertArrayHasKey('quantity', $result);
+        $this->assertEquals(3, $result['quantity']);
+        $this->assertInstanceOf(Item::class, $result['item']);
+        $this->assertEquals($data['name'], $result['item']->name);
     }
 
     /**

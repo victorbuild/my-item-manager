@@ -43,11 +43,12 @@ class ItemService
      *
      * @param array $data 物品資料
      * @param int $quantity 建立數量
-     * @return Collection<Item>
+     * @return array{item: Item|null, quantity: int}
+     * @throws \Exception 當資料庫操作或圖片關聯失敗時拋出，已自動執行 rollback
      */
-    public function createBatch(array $data, int $quantity): Collection
+    public function createBatch(array $data, int $quantity): array
     {
-        $createdItems = collect();
+        $firstItem = null;
 
         DB::beginTransaction();
         try {
@@ -59,7 +60,10 @@ class ItemService
                     $this->itemImageService->attachImagesToItem($item, $data['images']);
                 }
 
-                $createdItems->push($item);
+                // 只記錄第一筆物品
+                if ($i === 0) {
+                    $firstItem = $item;
+                }
             }
 
             DB::commit();
@@ -68,7 +72,15 @@ class ItemService
             throw $e;
         }
 
-        return $createdItems;
+        // 載入第一筆物品的關聯資料
+        if ($firstItem) {
+            $firstItem->load(['images', 'category', 'product.category']);
+        }
+
+        return [
+            'item' => $firstItem,
+            'quantity' => $quantity,
+        ];
     }
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator

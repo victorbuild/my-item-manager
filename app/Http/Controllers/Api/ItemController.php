@@ -52,18 +52,22 @@ class ItemController extends Controller
      *
      * @param StoreItemRequest $request
      * @return JsonResponse
+     * @throws \Exception 當批次建立物品失敗時拋出
      */
     public function store(StoreItemRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $quantity = $this->itemService->calculateQuantity($validated);
 
-        $createdItems = $this->itemService->createBatch($validated, $quantity);
+        $result = $this->itemService->createBatch($validated, $quantity);
 
         return response()->json([
             'success' => true,
-            'message' => '成功建立 ' . $createdItems->count() . ' 筆物品',
-            'data' => $createdItems->map->only(['id', 'uuid', 'name']),
+            'message' => '成功建立 ' . $result['quantity'] . ' 筆物品',
+            'data' => [
+                'item' => $result['item'] ? new ItemResource($result['item']) : null,
+                'quantity' => $result['quantity'],
+            ],
         ], Response::HTTP_CREATED);
     }
 
