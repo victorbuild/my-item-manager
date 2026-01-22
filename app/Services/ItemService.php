@@ -72,7 +72,7 @@ class ItemService
      * @param array $data 物品資料
      * @param int $quantity 建立數量
      * @param int $userId 用戶 ID
-     * @return array{item: Item|null, quantity: int}
+     * @return array{items: array<Item>, item: Item|null, quantity: int} items 為所有建立的物品，item 為第一個物品（向後相容）
      * @throws \Exception 當資料庫操作或圖片關聯失敗時拋出，已自動執行 rollback
      */
     public function createBatch(array $data, int $quantity, int $userId): array
@@ -81,13 +81,13 @@ class ItemService
         try {
             // 使用 Repository 批次建立物品
             $result = $this->itemRepository->createBatch($data, $quantity, $userId);
-            $firstItem = $result['item'];
+            $items = $result['items'];
 
-            // 處理圖片關聯（如果有提供）
-            // 注意：目前只為第一筆物品附加圖片
-            // 如果需要為所有物品附加圖片，需要修改 Repository 的 createBatch 返回所有物品
-            if (!empty($data['images']) && $firstItem) {
-                $this->itemImageService->attachImagesToItem($firstItem, $data['images']);
+            // 處理圖片關聯（如果有提供，為所有物品附加圖片）
+            if (!empty($data['images']) && !empty($items)) {
+                foreach ($items as $item) {
+                    $this->itemImageService->attachImagesToItem($item, $data['images']);
+                }
             }
 
             DB::commit();

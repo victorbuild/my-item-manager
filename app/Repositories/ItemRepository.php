@@ -46,27 +46,30 @@ class ItemRepository implements ItemRepositoryInterface
      * @param array $data 物品資料
      * @param int $quantity 建立數量
      * @param int $userId 用戶 ID
-     * @return array{item: Item|null, quantity: int}
+     * @return array{items: array<Item>, item: Item|null, quantity: int} items 為所有建立的物品，item 為第一個物品（向後相容）
      */
     public function createBatch(array $data, int $quantity, int $userId): array
     {
+        $items = [];
         $firstItem = null;
 
         for ($i = 0; $i < $quantity; $i++) {
             $item = $this->create($data, $userId);
+            $items[] = $item;
 
-            // 只記錄第一筆物品
+            // 記錄第一筆物品（向後相容）
             if ($i === 0) {
                 $firstItem = $item;
             }
         }
 
-        // 載入第一筆物品的關聯資料
+        // 載入第一筆物品的關聯資料（向後相容）
         if ($firstItem) {
             $firstItem->load(['images', 'category', 'product.category']);
         }
 
         return [
+            'items' => $items,
             'item' => $firstItem,
             'quantity' => $quantity,
         ];

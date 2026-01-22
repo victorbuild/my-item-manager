@@ -170,14 +170,18 @@ class ItemServiceTest extends TestCase
         ];
 
         // 使用真實的 Item 實例（不保存到資料庫，只是作為返回值）
-        $item = new Item($data);
+        $item1 = new Item($data);
+        $item2 = new Item($data);
+        $item3 = new Item($data);
+        $items = [$item1, $item2, $item3];
         
         $this->mockItemRepository
             ->shouldReceive('createBatch')
             ->once()
             ->with($data, 3, self::TEST_USER_ID)
             ->andReturn([
-                'item' => $item,
+                'items' => $items,
+                'item' => $item1,
                 'quantity' => 3,
             ]);
 
@@ -187,11 +191,13 @@ class ItemServiceTest extends TestCase
         $result = $this->itemService->createBatch($data, 3, self::TEST_USER_ID);
 
         $this->assertIsArray($result);
+        $this->assertArrayHasKey('items', $result);
         $this->assertArrayHasKey('item', $result);
         $this->assertArrayHasKey('quantity', $result);
         $this->assertEquals(3, $result['quantity']);
+        $this->assertCount(3, $result['items']);
         $this->assertInstanceOf(Item::class, $result['item']);
-        $this->assertSame($item, $result['item']);
+        $this->assertSame($item1, $result['item']);
     }
 
     /**
@@ -211,31 +217,47 @@ class ItemServiceTest extends TestCase
         ];
 
         // 使用真實的 Item 實例（不保存到資料庫，只是作為返回值）
-        $item = new Item($data);
+        $item1 = new Item($data);
+        $item2 = new Item($data);
+        $item3 = new Item($data);
+        $items = [$item1, $item2, $item3];
         
         $this->mockItemRepository
             ->shouldReceive('createBatch')
             ->once()
             ->with($data, 3, self::TEST_USER_ID)
             ->andReturn([
-                'item' => $item,
+                'items' => $items,
+                'item' => $item1,
                 'quantity' => 3,
             ]);
 
-        // Mock ItemImageService 的行為（只為第一筆物品附加圖片）
+        // Mock ItemImageService 的行為（為所有物品附加圖片）
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
             ->once()
-            ->with($item, $data['images']);
+            ->with($item1, $data['images']);
+        
+        $this->mockItemImageService
+            ->shouldReceive('attachImagesToItem')
+            ->once()
+            ->with($item2, $data['images']);
+        
+        $this->mockItemImageService
+            ->shouldReceive('attachImagesToItem')
+            ->once()
+            ->with($item3, $data['images']);
 
         $result = $this->itemService->createBatch($data, 3, self::TEST_USER_ID);
 
         $this->assertIsArray($result);
+        $this->assertArrayHasKey('items', $result);
         $this->assertArrayHasKey('item', $result);
         $this->assertArrayHasKey('quantity', $result);
         $this->assertEquals(3, $result['quantity']);
+        $this->assertCount(3, $result['items']);
         $this->assertInstanceOf(Item::class, $result['item']);
-        $this->assertSame($item, $result['item']);
+        $this->assertSame($item1, $result['item']);
     }
 
     /**
@@ -254,7 +276,10 @@ class ItemServiceTest extends TestCase
         ];
 
         // 使用真實的 Item 實例（不保存到資料庫，只是作為返回值）
-        $item = new Item($data);
+        $item1 = new Item($data);
+        $item2 = new Item($data);
+        $item3 = new Item($data);
+        $items = [$item1, $item2, $item3];
         
         // Mock ItemRepository 的 createBatch 成功返回
         $this->mockItemRepository
@@ -262,15 +287,21 @@ class ItemServiceTest extends TestCase
             ->once()
             ->with($data, 3, self::TEST_USER_ID)
             ->andReturn([
-                'item' => $item,
+                'items' => $items,
+                'item' => $item1,
                 'quantity' => 3,
             ]);
 
-        // Mock ItemImageService 拋出異常（模擬圖片附加失敗）
+        // Mock ItemImageService 在為第二個物品附加圖片時拋出異常（模擬圖片附加失敗）
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
             ->once()
-            ->with($item, $data['images'])
+            ->with($item1, $data['images']);
+        
+        $this->mockItemImageService
+            ->shouldReceive('attachImagesToItem')
+            ->once()
+            ->with($item2, $data['images'])
             ->andThrow(new \Exception('模擬錯誤'));
 
         $this->expectException(\Exception::class);

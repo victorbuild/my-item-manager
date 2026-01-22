@@ -34,7 +34,7 @@ interface ItemRepositoryInterface
      * @param array $data 物品資料
      * @param int $quantity 建立數量
      * @param int $userId 用戶 ID
-     * @return array{item: Item|null, quantity: int}
+     * @return array{items: array<Item>, item: Item|null, quantity: int} items 為所有建立的物品，item 為第一個物品（向後相容）
      */
     public function createBatch(array $data, int $quantity, int $userId): array;
 }
