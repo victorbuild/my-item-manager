@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Item;
 use App\Models\ItemImage;
+use App\Repositories\Contracts\ItemImageRepositoryInterface;
 
 /**
  * 物品圖片服務
@@ -11,6 +12,11 @@ use App\Models\ItemImage;
  */
 class ItemImageService
 {
+    public function __construct(
+        private readonly ItemImageRepositoryInterface $itemImageRepository
+    ) {
+    }
+
     /**
      * 將圖片附加到物品
      *
@@ -53,12 +59,11 @@ class ItemImageService
      */
     private function incrementImageUsage(string $uuid): void
     {
-        $image = ItemImage::where('uuid', $uuid)->first();
+        $image = $this->itemImageRepository->findByUuid($uuid);
         if ($image) {
-            $image->increment('usage_count');
+            $this->itemImageRepository->incrementUsageCount($image);
             if ($image->status === ItemImage::STATUS_DRAFT) {
-                $image->status = ItemImage::STATUS_USED;
-                $image->save();
+                $this->itemImageRepository->updateStatus($image, ItemImage::STATUS_USED);
             }
         }
     }
