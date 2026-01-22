@@ -65,6 +65,13 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Item whereUsedAt($value)
  * @property int|null $user_id
  * @method static Builder<static>|Item whereUserId($value)
+ * @property string|null $discard_note 棄用反思或情緒想法
+ * @property Carbon|null $expiration_date 物品有效期限
+ * @property-read string $status
+ * @property-read \App\Models\Product|null $product
+ * @method static \Database\Factories\ItemFactory factory($count = null, $state = [])
+ * @method static Builder<static>|Item whereDiscardNote($value)
+ * @method static Builder<static>|Item whereExpirationDate($value)
  * @mixin Eloquent
  */
 class Item extends Model

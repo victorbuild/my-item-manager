@@ -30,6 +30,8 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Category whereName($value)
  * @method static Builder<static>|Category whereUpdatedAt($value)
  * @method static Builder<static>|Category whereUuid($value)
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $products
+ * @method static Builder<static>|Category whereUserId($value)
  * @mixin Eloquent
  */
 class Category extends Model

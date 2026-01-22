@@ -46,6 +46,8 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Item> $items
  * @property-read int|null $items_count
  * @method static Builder<static>|Product whereCategoryId($value)
+ * @property-read \App\Models\Item|null $latestOwnedItem
+ * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
  * @mixin Eloquent
  */
 class Product extends Model

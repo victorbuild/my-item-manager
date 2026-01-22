@@ -40,6 +40,7 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|ItemImage whereUsageCount($value)
  * @method static Builder<static>|ItemImage whereUserId($value)
  * @method static Builder<static>|ItemImage whereUuid($value)
+ * @method static \Database\Factories\ItemImageFactory factory($count = null, $state = [])
  * @mixin Eloquent
  */
 class ItemImage extends Model
