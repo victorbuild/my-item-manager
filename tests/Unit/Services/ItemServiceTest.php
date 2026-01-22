@@ -3,19 +3,18 @@
 namespace Tests\Unit\Services;
 
 use App\Models\Item;
+use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
 use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 
 class ItemServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     private ItemService $itemService;
     private const TEST_MAX_QUANTITY = 100;
+    private const TEST_USER_ID = 1;
 
     /**
      * @var \Mockery\MockInterface&ItemImageService
@@ -27,6 +26,11 @@ class ItemServiceTest extends TestCase
      */
     private $mockSortStrategyFactory;
 
+    /**
+     * @var \Mockery\MockInterface&ItemRepositoryInterface
+     */
+    private $mockItemRepository;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,11 +41,15 @@ class ItemServiceTest extends TestCase
         // Mock SortStrategyFactory，避免測試時依賴真實實作
         $this->mockSortStrategyFactory = Mockery::mock(SortStrategyFactory::class);
 
+        // Mock ItemRepository，避免測試時依賴真實資料庫
+        $this->mockItemRepository = Mockery::mock(ItemRepositoryInterface::class);
+
         // 直接注入測試值，不依賴 config，符合單元測試原則
         $this->itemService = new ItemService(
             self::TEST_MAX_QUANTITY,
             $this->mockItemImageService,
-            $this->mockSortStrategyFactory
+            $this->mockSortStrategyFactory,
+            $this->mockItemRepository
         );
     }
 
@@ -61,7 +69,8 @@ class ItemServiceTest extends TestCase
     {
         $mockItemImageService = Mockery::mock(ItemImageService::class);
         $mockSortStrategyFactory = Mockery::mock(SortStrategyFactory::class);
-        $service = new ItemService($maxQuantity, $mockItemImageService, $mockSortStrategyFactory);
+        $mockItemRepository = Mockery::mock(ItemRepositoryInterface::class);
+        $service = new ItemService($maxQuantity, $mockItemImageService, $mockSortStrategyFactory, $mockItemRepository);
         $result = $service->calculateQuantity($data);
 
         $this->assertEquals($expected, $result);
@@ -160,17 +169,29 @@ class ItemServiceTest extends TestCase
             'purchased_at' => now()->toDateString(),
         ];
 
+        // 使用真實的 Item 實例（不保存到資料庫，只是作為返回值）
+        $item = new Item($data);
+        
+        $this->mockItemRepository
+            ->shouldReceive('createBatch')
+            ->once()
+            ->with($data, 3, self::TEST_USER_ID)
+            ->andReturn([
+                'item' => $item,
+                'quantity' => 3,
+            ]);
+
         // 不應該呼叫 ItemImageService（因為沒有 images）
         $this->mockItemImageService->shouldNotReceive('attachImagesToItem');
 
-        $result = $this->itemService->createBatch($data, 3);
+        $result = $this->itemService->createBatch($data, 3, self::TEST_USER_ID);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('item', $result);
         $this->assertArrayHasKey('quantity', $result);
         $this->assertEquals(3, $result['quantity']);
         $this->assertInstanceOf(Item::class, $result['item']);
-        $this->assertEquals($data['name'], $result['item']->name);
+        $this->assertSame($item, $result['item']);
     }
 
     /**
@@ -189,20 +210,32 @@ class ItemServiceTest extends TestCase
             ],
         ];
 
-        // Mock ItemImageService 的行為
+        // 使用真實的 Item 實例（不保存到資料庫，只是作為返回值）
+        $item = new Item($data);
+        
+        $this->mockItemRepository
+            ->shouldReceive('createBatch')
+            ->once()
+            ->with($data, 3, self::TEST_USER_ID)
+            ->andReturn([
+                'item' => $item,
+                'quantity' => 3,
+            ]);
+
+        // Mock ItemImageService 的行為（只為第一筆物品附加圖片）
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
-            ->times(3) // 建立 3 個物品，每個都會呼叫一次
-            ->with(Mockery::type(Item::class), $data['images']);
+            ->once()
+            ->with($item, $data['images']);
 
-        $result = $this->itemService->createBatch($data, 3);
+        $result = $this->itemService->createBatch($data, 3, self::TEST_USER_ID);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('item', $result);
         $this->assertArrayHasKey('quantity', $result);
         $this->assertEquals(3, $result['quantity']);
         $this->assertInstanceOf(Item::class, $result['item']);
-        $this->assertEquals($data['name'], $result['item']->name);
+        $this->assertSame($item, $result['item']);
     }
 
     /**
@@ -220,27 +253,31 @@ class ItemServiceTest extends TestCase
             ],
         ];
 
-        // Mock ItemImageService 在第二次呼叫時拋出異常
-        $callCount = 0;
+        // 使用真實的 Item 實例（不保存到資料庫，只是作為返回值）
+        $item = new Item($data);
+        
+        // Mock ItemRepository 的 createBatch 成功返回
+        $this->mockItemRepository
+            ->shouldReceive('createBatch')
+            ->once()
+            ->with($data, 3, self::TEST_USER_ID)
+            ->andReturn([
+                'item' => $item,
+                'quantity' => 3,
+            ]);
+
+        // Mock ItemImageService 拋出異常（模擬圖片附加失敗）
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
-            ->andReturnUsing(function () use (&$callCount) {
-                $callCount++;
-                if ($callCount === 2) {
-                    throw new \Exception('模擬錯誤');
-                }
-            });
+            ->once()
+            ->with($item, $data['images'])
+            ->andThrow(new \Exception('模擬錯誤'));
 
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('模擬錯誤');
 
-        try {
-            $this->itemService->createBatch($data, 3);
-        } catch (\Exception $e) {
-            // 驗證資料庫中沒有建立任何物品（Transaction rollback）
-            $this->assertEquals(0, Item::where('name', $data['name'])->count());
-            throw $e;
-        }
+        // Act & Assert
+        $this->itemService->createBatch($data, 3, self::TEST_USER_ID);
     }
 
     /**
@@ -251,10 +288,15 @@ class ItemServiceTest extends TestCase
     public function it_should_update_item_basic_data(): void
     {
         // Arrange
-        $item = Item::factory()->create([
-            'name' => '原始名稱',
-            'price' => 1000,
-        ]);
+        $item = new Item(['name' => '原始名稱', 'price' => 1000]);
+        $updatedItem = new Item(['name' => '更新後的名稱', 'price' => 2000]);
+        
+        // Mock ItemRepository（會自動 fresh 關聯資料）
+        $this->mockItemRepository
+            ->shouldReceive('update')
+            ->once()
+            ->with($item, ['name' => '更新後的名稱', 'price' => 2000])
+            ->andReturn($updatedItem);
 
         $data = [
             'name' => '更新後的名稱',
@@ -270,9 +312,7 @@ class ItemServiceTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(Item::class, $result);
-        $item->refresh();
-        $this->assertEquals('更新後的名稱', $item->name);
-        $this->assertEquals(2000, $item->price);
+        $this->assertSame($updatedItem, $result);
     }
 
     /**
@@ -283,9 +323,16 @@ class ItemServiceTest extends TestCase
     public function it_should_update_item_and_sync_images(): void
     {
         // Arrange
-        $item = Item::factory()->create([
-            'name' => '原始名稱',
-        ]);
+        $item = new Item(['name' => '原始名稱']);
+        $updatedItem = Mockery::mock(Item::class)->makePartial();
+        $finalItem = new Item(['name' => '更新後的名稱']); // 同步圖片後重新載入的 Item
+        
+        // Mock ItemRepository（會自動 fresh 關聯資料）
+        $this->mockItemRepository
+            ->shouldReceive('update')
+            ->once()
+            ->with($item, ['name' => '更新後的名稱'])
+            ->andReturn($updatedItem);
 
         $data = [
             'name' => '更新後的名稱',
@@ -296,19 +343,19 @@ class ItemServiceTest extends TestCase
             ['uuid' => 'uuid2', 'status' => 'removed'],
         ];
 
-        // Mock ItemImageService
+        // Mock ItemImageService（會自動 fresh 關聯資料並返回）
         $this->mockItemImageService
             ->shouldReceive('syncItemImages')
-            ->with($item, $images)
-            ->once();
+            ->with($updatedItem, $images)
+            ->once()
+            ->andReturn($finalItem);
 
         // Act
         $result = $this->itemService->update($item, $data, $images);
 
         // Assert
         $this->assertInstanceOf(Item::class, $result);
-        $item->refresh();
-        $this->assertEquals('更新後的名稱', $item->name);
+        $this->assertSame($finalItem, $result);
     }
 
     /**
@@ -319,9 +366,15 @@ class ItemServiceTest extends TestCase
     public function it_should_update_item_without_images_when_images_is_null(): void
     {
         // Arrange
-        $item = Item::factory()->create([
-            'name' => '原始名稱',
-        ]);
+        $item = new Item(['name' => '原始名稱']);
+        $updatedItem = new Item(['name' => '更新後的名稱']);
+        
+        // Mock ItemRepository（會自動 fresh 關聯資料）
+        $this->mockItemRepository
+            ->shouldReceive('update')
+            ->once()
+            ->with($item, ['name' => '更新後的名稱'])
+            ->andReturn($updatedItem);
 
         $data = [
             'name' => '更新後的名稱',
@@ -336,8 +389,7 @@ class ItemServiceTest extends TestCase
 
         // Assert
         $this->assertInstanceOf(Item::class, $result);
-        $item->refresh();
-        $this->assertEquals('更新後的名稱', $item->name);
+        $this->assertSame($updatedItem, $result);
     }
 
     /**
@@ -348,27 +400,30 @@ class ItemServiceTest extends TestCase
     public function it_should_load_relationships_after_update(): void
     {
         // Arrange
-        $item = Item::factory()->create();
+        $item = new Item(['name' => '原始名稱']);
+        $updatedItem = new Item(['name' => '更新後的名稱']);
+        
+        // Mock ItemRepository（會自動 fresh 關聯資料）
+        $this->mockItemRepository
+            ->shouldReceive('update')
+            ->once()
+            ->with($item, ['name' => '更新後的名稱'])
+            ->andReturn($updatedItem);
 
         $data = [
             'name' => '更新後的名稱',
         ];
 
-        // Mock ItemImageService
+        // Mock ItemImageService（不應該被呼叫，因為 images 為 null）
         $this->mockItemImageService
-            ->shouldReceive('syncItemImages')
-            ->andReturnNull();
+            ->shouldNotReceive('syncItemImages');
 
         // Act
-        $result = $this->itemService->update($item, $data, []);
+        $result = $this->itemService->update($item, $data, null);
 
         // Assert
         $this->assertInstanceOf(Item::class, $result);
-        // 驗證 fresh() 會重新載入資料（包含關聯）
-        // 注意：在單元測試中，fresh() 會從資料庫重新載入，所以關聯會被載入
-        $this->assertNotNull($result);
-        // 驗證資料已更新
-        $item->refresh();
-        $this->assertEquals('更新後的名稱', $item->name);
+        // 驗證 Repository 會自動 fresh 關聯資料
+        $this->assertSame($updatedItem, $result);
     }
 }

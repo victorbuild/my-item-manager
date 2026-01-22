@@ -57,12 +57,12 @@ class ItemImageService
      *
      * @param Item $item 物品實例
      * @param array $images 圖片陣列，格式：[['uuid' => '...', 'status' => 'new|removed|original'], ...]
-     * @return void
+     * @return Item 同步後並重新載入關聯資料的物品實例
      */
-    public function syncItemImages(Item $item, array $images): void
+    public function syncItemImages(Item $item, array $images): Item
     {
         if (empty($images)) {
-            return;
+            return $item->fresh(['images', 'units', 'category', 'product.category']);
         }
 
         // 處理移除的圖片
@@ -103,6 +103,9 @@ class ItemImageService
         }
 
         // 原始圖片（status === 'original'）不異動
+        
+        // 重新載入關聯資料以反映最新的圖片狀態
+        return $item->fresh(['images', 'units', 'category', 'product.category']);
     }
 
     /**

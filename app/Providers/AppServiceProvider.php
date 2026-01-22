@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
+use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Repositories\ItemImageRepository;
+use App\Repositories\ItemRepository;
 use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Support\ServiceProvider;
@@ -19,6 +21,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ItemImageRepositoryInterface::class,
             ItemImageRepository::class
+        );
+
+        $this->app->bind(
+            ItemRepositoryInterface::class,
+            ItemRepository::class
         );
 
         // 綁定 ItemService 時注入 config 值，避免 Service 直接依賴 config

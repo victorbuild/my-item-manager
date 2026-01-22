@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Item;
+use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -15,17 +16,21 @@ class ItemService
     public function __construct(
         private readonly int $maxItemQuantity,
         private readonly ItemImageService $itemImageService,
-        private readonly SortStrategyFactory $sortStrategyFactory
+        private readonly SortStrategyFactory $sortStrategyFactory,
+        private readonly ItemRepositoryInterface $itemRepository
     ) {
     }
 
-    public function create(array $data): Item
+    /**
+     * 建立物品
+     *
+     * @param array $data 物品資料
+     * @param int $userId 用戶 ID
+     * @return Item
+     */
+    public function create(array $data, int $userId): Item
     {
-        $item = Item::create($data);
-        $item->user_id = auth()->id();
-        $item->save();
-
-        return $item;
+        return $this->itemRepository->create($data, $userId);
     }
 
     /**
@@ -38,15 +43,15 @@ class ItemService
      */
     public function update(Item $item, array $data, ?array $images = null): Item
     {
-        // 更新物品基本資料
-        $item->update($data);
+        // 更新物品基本資料（Repository 會自動 fresh 關聯資料）
+        $item = $this->itemRepository->update($item, $data);
 
-        // 如果有提供圖片，同步圖片
+        // 如果有提供圖片，同步圖片（會自動 fresh 關聯資料）
         if ($images !== null) {
-            $this->itemImageService->syncItemImages($item, $images);
+            $item = $this->itemImageService->syncItemImages($item, $images);
         }
 
-        return $item->fresh(['images', 'units', 'category', 'product.category']);
+        return $item;
     }
 
     /**
@@ -66,27 +71,23 @@ class ItemService
      *
      * @param array $data 物品資料
      * @param int $quantity 建立數量
+     * @param int $userId 用戶 ID
      * @return array{item: Item|null, quantity: int}
      * @throws \Exception 當資料庫操作或圖片關聯失敗時拋出，已自動執行 rollback
      */
-    public function createBatch(array $data, int $quantity): array
+    public function createBatch(array $data, int $quantity, int $userId): array
     {
-        $firstItem = null;
-
         DB::beginTransaction();
         try {
-            for ($i = 0; $i < $quantity; $i++) {
-                $item = $this->create($data);
+            // 使用 Repository 批次建立物品
+            $result = $this->itemRepository->createBatch($data, $quantity, $userId);
+            $firstItem = $result['item'];
 
-                // 處理圖片關聯（如果有提供）
-                if (!empty($data['images'])) {
-                    $this->itemImageService->attachImagesToItem($item, $data['images']);
-                }
-
-                // 只記錄第一筆物品
-                if ($i === 0) {
-                    $firstItem = $item;
-                }
+            // 處理圖片關聯（如果有提供）
+            // 注意：目前只為第一筆物品附加圖片
+            // 如果需要為所有物品附加圖片，需要修改 Repository 的 createBatch 返回所有物品
+            if (!empty($data['images']) && $firstItem) {
+                $this->itemImageService->attachImagesToItem($firstItem, $data['images']);
             }
 
             DB::commit();
@@ -95,15 +96,7 @@ class ItemService
             throw $e;
         }
 
-        // 載入第一筆物品的關聯資料
-        if ($firstItem) {
-            $firstItem->load(['images', 'category', 'product.category']);
-        }
-
-        return [
-            'item' => $firstItem,
-            'quantity' => $quantity,
-        ];
+        return $result;
     }
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator

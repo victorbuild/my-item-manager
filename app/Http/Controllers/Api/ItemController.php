@@ -61,7 +61,7 @@ class ItemController extends Controller
         $validated = $request->validated();
         $quantity = $this->itemService->calculateQuantity($validated);
 
-        $result = $this->itemService->createBatch($validated, $quantity);
+        $result = $this->itemService->createBatch($validated, $quantity, auth()->id());
 
         return response()->json([
             'success' => true,
