@@ -41,7 +41,7 @@ class StoreItemRequest extends FormRequest
                         if ($purchasedDate->gt($today)) {
                             $fail('購買日期不能超過今天。');
                         }
-                        
+
                         $receivedAt = $this->input('received_at');
                         if ($receivedAt) {
                             $receivedDate = Carbon::parse($receivedAt)->startOfDay();
@@ -63,7 +63,7 @@ class StoreItemRequest extends FormRequest
                         if ($receivedDate->gt($today)) {
                             $fail('到貨日期不能超過今天。');
                         }
-                        
+
                         $purchasedAt = $this->input('purchased_at');
                         $usedAt = $this->input('used_at');
 
@@ -93,7 +93,7 @@ class StoreItemRequest extends FormRequest
                         if ($usedDate->gt($today)) {
                             $fail('開始使用日期不能超過今天。');
                         }
-                        
+
                         $purchasedAt = $this->input('purchased_at');
                         $receivedAt = $this->input('received_at');
                         $discardedAt = $this->input('discarded_at');
@@ -105,7 +105,7 @@ class StoreItemRequest extends FormRequest
                                 $fail('開始使用日期不能早於購買日期。');
                             }
                         }
-                        
+
                         // 開始使用日期不能早於到貨日期
                         if ($receivedAt) {
                             $receivedDate = Carbon::parse($receivedAt)->startOfDay();
@@ -113,7 +113,7 @@ class StoreItemRequest extends FormRequest
                                 $fail('開始使用日期不能早於到貨日期。');
                             }
                         }
-                        
+
                         // 開始使用日期不能晚於報廢日期
                         if ($discardedAt) {
                             $discardedDate = Carbon::parse($discardedAt)->startOfDay();
@@ -135,7 +135,7 @@ class StoreItemRequest extends FormRequest
                         if ($discardedDate->gt($today)) {
                             $fail('報廢日期不能超過今天。');
                         }
-                        
+
                         $usedAt = $this->input('used_at');
                         if ($usedAt) {
                             $usedDate = Carbon::parse($usedAt)->startOfDay();

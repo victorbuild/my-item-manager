@@ -17,7 +17,7 @@ class UpdateItemRequest extends FormRequest
     {
         return Auth::check();
     }
-    
+
     /**
      * 取得現有模型實例的日期值（如果請求中沒有提供）
      */
@@ -27,13 +27,13 @@ class UpdateItemRequest extends FormRequest
         if ($this->has($field)) {
             return null;
         }
-        
+
         // 嘗試從路由參數中獲取模型
         $item = $this->route('item');
         if ($item instanceof Item && $item->$field) {
             return Carbon::parse($item->$field)->format('Y-m-d');
         }
-        
+
         return null;
     }
 
@@ -61,7 +61,7 @@ class UpdateItemRequest extends FormRequest
                         if ($purchasedDate->gt($today)) {
                             $fail('購買日期不能超過今天。');
                         }
-                        
+
                         $receivedAt = $this->input('received_at');
                         if ($receivedAt) {
                             $receivedDate = Carbon::parse($receivedAt)->startOfDay();
@@ -83,7 +83,7 @@ class UpdateItemRequest extends FormRequest
                         if ($receivedDate->gt($today)) {
                             $fail('到貨日期不能超過今天。');
                         }
-                        
+
                         // 取得購買日期（請求中的值或現有值）
                         $purchasedAt = $this->input('purchased_at') ?? $this->getExistingDateValue('purchased_at');
                         // 取得開始使用日期（請求中的值或現有值）
@@ -115,7 +115,7 @@ class UpdateItemRequest extends FormRequest
                         if ($usedDate->gt($today)) {
                             $fail('開始使用日期不能超過今天。');
                         }
-                        
+
                         // 取得購買日期（請求中的值或現有值）
                         $purchasedAt = $this->input('purchased_at') ?? $this->getExistingDateValue('purchased_at');
                         // 取得到貨日期（請求中的值或現有值）
@@ -129,7 +129,7 @@ class UpdateItemRequest extends FormRequest
                                 $fail('開始使用日期不能早於購買日期。');
                             }
                         }
-                        
+
                         // 開始使用日期不能早於到貨日期
                         if ($receivedAt) {
                             $receivedDate = Carbon::parse($receivedAt)->startOfDay();
@@ -137,7 +137,7 @@ class UpdateItemRequest extends FormRequest
                                 $fail('開始使用日期不能早於到貨日期。');
                             }
                         }
-                        
+
                         // 開始使用日期不能晚於報廢日期
                         if ($discardedAt) {
                             $discardedDate = Carbon::parse($discardedAt)->startOfDay();
@@ -159,7 +159,7 @@ class UpdateItemRequest extends FormRequest
                         if ($discardedDate->gt($today)) {
                             $fail('報廢日期不能超過今天。');
                         }
-                        
+
                         // 取得開始使用日期（請求中的值或現有值）
                         $usedAt = $this->input('used_at') ?? $this->getExistingDateValue('used_at');
                         if ($usedAt) {
