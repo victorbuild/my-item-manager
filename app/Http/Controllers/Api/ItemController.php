@@ -74,6 +74,8 @@ class ItemController extends Controller
     }
 
     /**
+     * 顯示物品詳情
+     *
      * @param string $shortId
      * @return JsonResponse
      */
@@ -84,9 +86,7 @@ class ItemController extends Controller
         return response()->json([
             'success' => true,
             'message' => '資料載入成功',
-            'items' => [
-                new ItemResource($item->load(['images', 'units', 'category', 'product.category']))
-            ],
+            'data' => new ItemResource($item->load(['images', 'units', 'category', 'product.category'])),
         ]);
     }
 

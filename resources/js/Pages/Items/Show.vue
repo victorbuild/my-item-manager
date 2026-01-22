@@ -262,8 +262,8 @@ const saveDiscardNote = async () => {
 const fetchItem = async () => {
     try {
         const res = await axios.get(`/api/items/${route.params.id}`)
-        item.value = res.data.items[0]
-        discardNote.value = res.data.items[0]?.discard_note || ''
+        item.value = res.data.data
+        discardNote.value = res.data.data?.discard_note || ''
         // 重置臨時日期狀態
         tempDates.value = {
             purchased_at: null,
