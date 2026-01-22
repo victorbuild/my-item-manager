@@ -37,16 +37,16 @@ class ItemService
      *
      * @param Item $item 物品實例
      * @param array $data 驗證後的資料
-     * @param array|null $images 圖片陣列，格式：[['uuid' => '...', 'status' => 'new|removed|original'], ...]
+     * @param array $images 圖片陣列，格式：[['uuid' => '...', 'status' => 'new|removed|original'], ...]，空陣列表示不更新圖片
      * @return Item 更新後的物品實例
      */
-    public function update(Item $item, array $data, ?array $images = null): Item
+    public function update(Item $item, array $data, array $images = []): Item
     {
         // 更新物品基本資料（Repository 會自動 fresh 關聯資料）
         $item = $this->itemRepository->update($item, $data);
 
-        // 如果有提供圖片，同步圖片（會自動 fresh 關聯資料）
-        if ($images !== null) {
+        // 如果有提供圖片（非空陣列），同步圖片（會自動 fresh 關聯資料）
+        if (!empty($images)) {
             $item = $this->itemImageService->syncItemImages($item, $images);
         }
 

@@ -390,11 +390,11 @@ class ItemServiceTest extends TestCase
     }
 
     /**
-     * 測試：更新物品但不提供圖片（images 為 null）
+     * 測試：更新物品但不提供圖片（images 為空陣列）
      *
      * @test
      */
-    public function it_should_update_item_without_images_when_images_is_null(): void
+    public function it_should_update_item_without_images_when_images_is_empty(): void
     {
         // Arrange
         $item = new Item(['name' => '原始名稱']);
@@ -416,7 +416,7 @@ class ItemServiceTest extends TestCase
             ->shouldNotReceive('syncItemImages');
 
         // Act
-        $result = $this->itemService->update($item, $data, null);
+        $result = $this->itemService->update($item, $data, []);
 
         // Assert
         $this->assertInstanceOf(Item::class, $result);
@@ -445,12 +445,12 @@ class ItemServiceTest extends TestCase
             'name' => '更新後的名稱',
         ];
 
-        // Mock ItemImageService（不應該被呼叫，因為 images 為 null）
+        // Mock ItemImageService（不應該被呼叫，因為 images 為空陣列）
         $this->mockItemImageService
             ->shouldNotReceive('syncItemImages');
 
         // Act
-        $result = $this->itemService->update($item, $data, null);
+        $result = $this->itemService->update($item, $data, []);
 
         // Assert
         $this->assertInstanceOf(Item::class, $result);
