@@ -42,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Laravel 12 使用 Event Discovery，不需要手動註冊
+        // 只要 Listener 的 handle() 方法 typehint Event，Laravel 會自動發現
     }
 }

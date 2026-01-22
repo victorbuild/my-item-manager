@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserLoggedIn;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,13 @@ class AuthController extends Controller
 
         RateLimiter::clear($key);
         $request->session()->regenerate();
+
+        // 觸發登入事件（Observer Pattern）
+        event(new UserLoggedIn(
+            Auth::user(),
+            $request->ip(),
+            $request->userAgent()
+        ));
 
         return response()->json(['message' => '登入成功']);
     }
