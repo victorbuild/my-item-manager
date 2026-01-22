@@ -58,7 +58,9 @@ class ItemController extends Controller
     public function store(StoreItemRequest $request): JsonResponse
     {
         $validated = $request->validated();
+        $maxQuantity = config('app.max_item_quantity');
         $quantity = max((int) ($validated['quantity'] ?? 1), 1);
+        $quantity = min($quantity, $maxQuantity);
 
         $createdItems = [];
 
@@ -76,8 +78,8 @@ class ItemController extends Controller
         return response()->json([
             'success' => true,
             'message' => '成功建立 ' . count($createdItems) . ' 筆物品',
-            'items' => collect($createdItems)->map->only(['id', 'uuid', 'name']),
-        ], 201);
+            'data' => collect($createdItems)->map->only(['id', 'uuid', 'name']),
+        ], Response::HTTP_CREATED);
     }
 
     /**

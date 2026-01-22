@@ -78,7 +78,7 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => env('APP_LOCALE', 'zh_TW'),
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
@@ -122,5 +122,16 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Item Quantity Limit
+    |--------------------------------------------------------------------------
+    |
+    | 單次建立物品的最大數量限制
+    |
+    */
+
+    'max_item_quantity' => env('MAX_ITEM_QUANTITY', 100),
 
 ];

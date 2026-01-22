@@ -75,6 +75,7 @@
                         🖼️ 從媒體櫃選擇
                     </button>
                 </div>
+                <p v-if="formErrors.images" class="text-sm text-red-500 mt-1 mb-2">{{ formErrors.images }}</p>
                 <div class="grid grid-cols-4 gap-2 mt-2">
                     <div v-for="(item, index) in uploadList" :key="item.id"
                         class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
@@ -155,56 +156,79 @@
 
             <div>
                 <label class="block font-medium">名稱 <span class="text-red-500">*</span></label>
-                <input v-model="form.name" type="text" class="w-full p-2 border rounded" required @keydown.enter.prevent />
+                <input v-model="form.name" type="text" 
+                    :class="['w-full p-2 border rounded', formErrors.name ? 'border-red-500' : '']" 
+                    required @keydown.enter.prevent />
+                <p v-if="formErrors.name" class="text-sm text-red-500 mt-1">{{ formErrors.name }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">描述</label>
-                <textarea v-model="form.description" class="w-full p-2 border rounded" placeholder="可輸入多行描述" rows="4"></textarea>
+                <textarea v-model="form.description" 
+                    :class="['w-full p-2 border rounded', formErrors.description ? 'border-red-500' : '']" 
+                    placeholder="可輸入多行描述" rows="4"></textarea>
+                <p v-if="formErrors.description" class="text-sm text-red-500 mt-1">{{ formErrors.description }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">位置</label>
-                <input v-model="form.location" type="text" class="w-full p-2 border rounded" @keydown.enter.prevent />
+                <input v-model="form.location" type="text" 
+                    :class="['w-full p-2 border rounded', formErrors.location ? 'border-red-500' : '']" 
+                    @keydown.enter.prevent />
+                <p v-if="formErrors.location" class="text-sm text-red-500 mt-1">{{ formErrors.location }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">數量</label>
-                <input v-model.number="form.quantity" type="number" min="1" class="w-full p-2 border rounded" />
-                <p class="text-sm text-gray-500 mt-1">
+                <input v-model.number="form.quantity" type="number" min="1" 
+                    :class="['w-full p-2 border rounded', formErrors.quantity ? 'border-red-500' : '']" />
+                <p v-if="formErrors.quantity" class="text-sm text-red-500 mt-1">{{ formErrors.quantity }}</p>
+                <p v-else class="text-sm text-gray-500 mt-1">
                     輸入的數量會建立相對應數量的物品（例如填 3 會建立 3 筆物品）
                 </p>
             </div>
 
             <div>
                 <label class="block font-medium">單價</label>
-                <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded" @keydown.enter.prevent />
+                <input v-model.number="form.price" type="number" step="0.01" 
+                    :class="['w-full p-2 border rounded', formErrors.price ? 'border-red-500' : '']" 
+                    @keydown.enter.prevent />
+                <p v-if="formErrors.price" class="text-sm text-red-500 mt-1">{{ formErrors.price }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
-                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" :max="todayString" required />
+                <input v-model="form.purchased_at" type="date" 
+                    :class="['w-full p-2 border rounded', formErrors.purchased_at ? 'border-red-500' : '']" 
+                    :max="todayString" required />
+                <p v-if="formErrors.purchased_at" class="text-sm text-red-500 mt-1">{{ formErrors.purchased_at }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">📦 到貨日期</label>
-                <input v-model="form.received_at" type="date" class="w-full p-2 border rounded" 
+                <input v-model="form.received_at" type="date" 
+                    :class="['w-full p-2 border rounded', formErrors.received_at ? 'border-red-500' : '']" 
                     :min="form.purchased_at || undefined" 
                     :max="todayString" />
+                <p v-if="formErrors.received_at" class="text-sm text-red-500 mt-1">{{ formErrors.received_at }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">🚀 開始使用日期</label>
-                <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" 
+                <input v-model="form.used_at" type="date" 
+                    :class="['w-full p-2 border rounded', formErrors.used_at ? 'border-red-500' : '']" 
                     :min="form.received_at || form.purchased_at || undefined" 
                     :max="todayString" />
+                <p v-if="formErrors.used_at" class="text-sm text-red-500 mt-1">{{ formErrors.used_at }}</p>
             </div>
 
             <div>
                 <label class="block font-medium">🗑️ 報廢日期</label>
-                <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" 
+                <input v-model="form.discarded_at" type="date" 
+                    :class="['w-full p-2 border rounded', formErrors.discarded_at ? 'border-red-500' : '']" 
                     :min="form.used_at || form.received_at || form.purchased_at || undefined" 
                     :max="todayString" />
+                <p v-if="formErrors.discarded_at" class="text-sm text-red-500 mt-1">{{ formErrors.discarded_at }}</p>
             </div>
             <div>
                 <label class="block font-medium">
@@ -214,7 +238,9 @@
                         （使用製造日期換算）
                     </button>
                 </label>
-                <input v-model="form.expiration_date" type="date" class="w-full p-2 border rounded" />
+                <input v-model="form.expiration_date" type="date" 
+                    :class="['w-full p-2 border rounded', formErrors.expiration_date ? 'border-red-500' : '']" />
+                <p v-if="formErrors.expiration_date" class="text-sm text-red-500 mt-1">{{ formErrors.expiration_date }}</p>
             </div>
 
             <!-- 製造日期換算模態框 -->
@@ -325,6 +351,7 @@ import { ref, onMounted, nextTick, watchEffect, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../axios'
 import { Html5Qrcode } from 'html5-qrcode'
+import Swal from 'sweetalert2'
 
 const categories = ref([])
 const selectedCategory = ref(null)
@@ -614,6 +641,9 @@ const form = ref({
     barcode: '',
 })
 
+// 表單驗證錯誤訊息
+const formErrors = ref({})
+
 // 實際的分類搜尋函數
 const _searchCategory = async (query) => {
     searchQuery.value = query
@@ -744,6 +774,9 @@ const submitForm = async (stay = false) => {
     if (isSubmitting.value) return
     isSubmitting.value = true
 
+    // 清除之前的錯誤訊息
+    formErrors.value = {}
+
     const images = getImagesForApi()
 
     const payload = {
@@ -757,15 +790,52 @@ const submitForm = async (stay = false) => {
     try {
         await axios.post('/api/items', payload)
 
+        await Swal.fire({
+            icon: 'success',
+            title: '成功',
+            text: '已新增物品',
+            confirmButtonText: '確定'
+        })
+
         if (stay) {
-            alert('✅ 已新增成功，可以繼續新增')
             resetForm()
         } else {
             router.push('/items')
         }
     } catch (error) {
-        console.error('❌ 儲存失敗', error.response?.data ?? error)
-        alert('儲存失敗，請確認欄位填寫正確')
+        console.error('儲存失敗', error.response?.data ?? error)
+
+        // 處理 422 表單驗證錯誤
+        if (error.response?.status === 422 && error.response?.data?.errors) {
+            const errors = error.response.data.errors
+            
+            // 將錯誤訊息對應到表單欄位
+            Object.keys(errors).forEach(field => {
+                const errorMessages = errors[field]
+                formErrors.value[field] = Array.isArray(errorMessages) ? errorMessages[0] : errorMessages
+            })
+
+            // 顯示 SweetAlert 提示
+            await Swal.fire({
+                icon: 'error',
+                title: '表單驗證失敗',
+                text: '請檢查表單欄位並修正錯誤',
+                confirmButtonText: '確定'
+            })
+        } else {
+            // 處理其他錯誤
+            let errorMessage = '儲存失敗，請確認欄位填寫正確'
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message
+            }
+
+            await Swal.fire({
+                icon: 'error',
+                title: '錯誤',
+                text: errorMessage,
+                confirmButtonText: '確定'
+            })
+        }
     } finally {
         isSubmitting.value = false
     }
@@ -786,6 +856,7 @@ const resetForm = () => {
         expiration_date: '',
         barcode: '',
     }
+    formErrors.value = {}
     selectedCategory.value = null
     selectedProduct.value = null
     creatingProduct.value = false
