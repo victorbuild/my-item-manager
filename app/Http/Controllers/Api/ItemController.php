@@ -78,6 +78,7 @@ class ItemController extends Controller
      *
      * @param string $shortId
      * @return JsonResponse
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 當物品不存在時拋出
      */
     public function show(string $shortId): JsonResponse
     {
