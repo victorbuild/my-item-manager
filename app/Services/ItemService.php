@@ -3,14 +3,17 @@
 namespace App\Services;
 
 use App\Models\Item;
+use App\Services\ItemImageService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ItemService
 {
     public function __construct(
-        private readonly int $maxItemQuantity
+        private readonly int $maxItemQuantity,
+        private readonly ItemImageService $itemImageService
     ) {
     }
 
@@ -33,6 +36,39 @@ class ItemService
     {
         $quantity = max((int) ($data['quantity'] ?? 1), 1);
         return min($quantity, $this->maxItemQuantity);
+    }
+
+    /**
+     * 批次建立物品並關聯圖片
+     *
+     * @param array $data 物品資料
+     * @param int $quantity 建立數量
+     * @return Collection<Item>
+     */
+    public function createBatch(array $data, int $quantity): Collection
+    {
+        $createdItems = collect();
+
+        DB::beginTransaction();
+        try {
+            for ($i = 0; $i < $quantity; $i++) {
+                $item = $this->create($data);
+
+                // 處理圖片關聯（如果有提供）
+                if (!empty($data['images'])) {
+                    $this->itemImageService->attachImagesToItem($item, $data['images']);
+                }
+
+                $createdItems->push($item);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
+        return $createdItems;
     }
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator

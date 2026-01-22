@@ -8,19 +8,15 @@ use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
-use App\Services\ItemImageService;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
 {
     public function __construct(
-        private readonly ItemService $itemService,
-        private readonly ItemImageService $itemImageService
+        private readonly ItemService $itemService
     ) {
     }
 
@@ -62,46 +58,13 @@ class ItemController extends Controller
         $validated = $request->validated();
         $quantity = $this->itemService->calculateQuantity($validated);
 
-        $createdItems = $this->createItemsWithImages($validated, $quantity);
+        $createdItems = $this->itemService->createBatch($validated, $quantity);
 
         return response()->json([
             'success' => true,
             'message' => '成功建立 ' . $createdItems->count() . ' 筆物品',
             'data' => $createdItems->map->only(['id', 'uuid', 'name']),
         ], Response::HTTP_CREATED);
-    }
-
-    /**
-     * 批次建立物品並關聯圖片
-     *
-     * @param array $data
-     * @param int $quantity
-     * @return Collection<Item>
-     */
-    private function createItemsWithImages(array $data, int $quantity): Collection
-    {
-        $createdItems = collect();
-
-        DB::beginTransaction();
-        try {
-            for ($i = 0; $i < $quantity; $i++) {
-                $item = $this->itemService->create($data);
-
-                // 處理圖片關聯（如果有提供）
-                if (!empty($data['images'])) {
-                    $this->itemImageService->attachImagesToItem($item, $data['images']);
-                }
-
-                $createdItems->push($item);
-            }
-
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
-
-        return $createdItems;
     }
 
     /**

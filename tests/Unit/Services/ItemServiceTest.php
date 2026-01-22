@@ -2,8 +2,11 @@
 
 namespace Tests\Unit\Services;
 
+use App\Models\Item;
+use App\Services\ItemImageService;
 use App\Services\ItemService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 use Tests\TestCase;
 
 class ItemServiceTest extends TestCase
@@ -13,12 +16,29 @@ class ItemServiceTest extends TestCase
     private ItemService $itemService;
     private const TEST_MAX_QUANTITY = 100;
 
+    /**
+     * @var \Mockery\MockInterface&ItemImageService
+     */
+    private $mockItemImageService;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        // Mock ItemImageService，避免測試時依賴真實實作
+        $this->mockItemImageService = Mockery::mock(ItemImageService::class);
+
         // 直接注入測試值，不依賴 config，符合單元測試原則
-        $this->itemService = new ItemService(self::TEST_MAX_QUANTITY);
+        $this->itemService = new ItemService(
+            self::TEST_MAX_QUANTITY,
+            $this->mockItemImageService
+        );
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /**
@@ -29,7 +49,8 @@ class ItemServiceTest extends TestCase
      */
     public function it_should_calculate_quantity_correctly(int $maxQuantity, array $data, int $expected): void
     {
-        $service = new ItemService($maxQuantity);
+        $mockItemImageService = Mockery::mock(ItemImageService::class);
+        $service = new ItemService($maxQuantity, $mockItemImageService);
         $result = $service->calculateQuantity($data);
 
         $this->assertEquals($expected, $result);
@@ -114,5 +135,98 @@ class ItemServiceTest extends TestCase
                 1,
             ],
         ];
+    }
+
+    /**
+     * 測試：批次建立物品（不含圖片）
+     *
+     * @test
+     */
+    public function it_should_create_batch_items_without_images(): void
+    {
+        $data = [
+            'name' => '測試物品',
+            'purchased_at' => now()->toDateString(),
+        ];
+
+        // 不應該呼叫 ItemImageService（因為沒有 images）
+        $this->mockItemImageService->shouldNotReceive('attachImagesToItem');
+
+        $result = $this->itemService->createBatch($data, 3);
+
+        $this->assertCount(3, $result);
+        $result->each(function ($item) use ($data) {
+            $this->assertInstanceOf(Item::class, $item);
+            $this->assertEquals($data['name'], $item->name);
+        });
+    }
+
+    /**
+     * 測試：批次建立物品（含圖片）
+     *
+     * @test
+     */
+    public function it_should_create_batch_items_with_images(): void
+    {
+        $data = [
+            'name' => '測試物品',
+            'purchased_at' => now()->toDateString(),
+            'images' => [
+                ['uuid' => 'test-uuid-1', 'status' => 'new'],
+                ['uuid' => 'test-uuid-2', 'status' => 'new'],
+            ],
+        ];
+
+        // Mock ItemImageService 的行為
+        $this->mockItemImageService
+            ->shouldReceive('attachImagesToItem')
+            ->times(3) // 建立 3 個物品，每個都會呼叫一次
+            ->with(Mockery::type(Item::class), $data['images']);
+
+        $result = $this->itemService->createBatch($data, 3);
+
+        $this->assertCount(3, $result);
+        $result->each(function ($item) use ($data) {
+            $this->assertInstanceOf(Item::class, $item);
+            $this->assertEquals($data['name'], $item->name);
+        });
+    }
+
+    /**
+     * 測試：批次建立失敗時應該 rollback
+     *
+     * @test
+     */
+    public function it_should_rollback_when_batch_creation_fails(): void
+    {
+        $data = [
+            'name' => '測試物品',
+            'purchased_at' => now()->toDateString(),
+            'images' => [
+                ['uuid' => 'test-uuid-1', 'status' => 'new'],
+            ],
+        ];
+
+        // Mock ItemImageService 在第二次呼叫時拋出異常
+        $callCount = 0;
+        $this->mockItemImageService
+            ->shouldReceive('attachImagesToItem')
+            ->andReturnUsing(function () use (&$callCount) {
+                $callCount++;
+                if ($callCount === 2) {
+                    throw new \Exception('模擬錯誤');
+                }
+            });
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('模擬錯誤');
+
+        try {
+            $this->itemService->createBatch($data, 3);
+        } catch (\Exception $e) {
+            // 驗證資料庫中沒有建立任何物品（Transaction rollback）
+            $this->assertEquals(0, Item::where('name', $data['name'])->count());
+            throw $e;
+        }
     }
 }
