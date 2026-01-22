@@ -103,7 +103,7 @@ class ItemImageService
         }
 
         // 原始圖片（status === 'original'）不異動
-        
+
         // 重新載入關聯資料以反映最新的圖片狀態
         return $item->fresh(['images', 'units', 'category', 'product.category']);
     }

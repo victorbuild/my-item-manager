@@ -174,7 +174,7 @@ class ItemServiceTest extends TestCase
         $item2 = new Item($data);
         $item3 = new Item($data);
         $items = [$item1, $item2, $item3];
-        
+
         $this->mockItemRepository
             ->shouldReceive('createBatch')
             ->once()
@@ -221,7 +221,7 @@ class ItemServiceTest extends TestCase
         $item2 = new Item($data);
         $item3 = new Item($data);
         $items = [$item1, $item2, $item3];
-        
+
         $this->mockItemRepository
             ->shouldReceive('createBatch')
             ->once()
@@ -237,12 +237,12 @@ class ItemServiceTest extends TestCase
             ->shouldReceive('attachImagesToItem')
             ->once()
             ->with($item1, $data['images']);
-        
+
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
             ->once()
             ->with($item2, $data['images']);
-        
+
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
             ->once()
@@ -280,7 +280,7 @@ class ItemServiceTest extends TestCase
         $item2 = new Item($data);
         $item3 = new Item($data);
         $items = [$item1, $item2, $item3];
-        
+
         // Mock ItemRepository 的 createBatch 成功返回
         $this->mockItemRepository
             ->shouldReceive('createBatch')
@@ -297,7 +297,7 @@ class ItemServiceTest extends TestCase
             ->shouldReceive('attachImagesToItem')
             ->once()
             ->with($item1, $data['images']);
-        
+
         $this->mockItemImageService
             ->shouldReceive('attachImagesToItem')
             ->once()
@@ -321,7 +321,7 @@ class ItemServiceTest extends TestCase
         // Arrange
         $item = new Item(['name' => '原始名稱', 'price' => 1000]);
         $updatedItem = new Item(['name' => '更新後的名稱', 'price' => 2000]);
-        
+
         // Mock ItemRepository（會自動 fresh 關聯資料）
         $this->mockItemRepository
             ->shouldReceive('update')
@@ -357,7 +357,7 @@ class ItemServiceTest extends TestCase
         $item = new Item(['name' => '原始名稱']);
         $updatedItem = Mockery::mock(Item::class)->makePartial();
         $finalItem = new Item(['name' => '更新後的名稱']); // 同步圖片後重新載入的 Item
-        
+
         // Mock ItemRepository（會自動 fresh 關聯資料）
         $this->mockItemRepository
             ->shouldReceive('update')
@@ -399,7 +399,7 @@ class ItemServiceTest extends TestCase
         // Arrange
         $item = new Item(['name' => '原始名稱']);
         $updatedItem = new Item(['name' => '更新後的名稱']);
-        
+
         // Mock ItemRepository（會自動 fresh 關聯資料）
         $this->mockItemRepository
             ->shouldReceive('update')
@@ -433,7 +433,7 @@ class ItemServiceTest extends TestCase
         // Arrange
         $item = new Item(['name' => '原始名稱']);
         $updatedItem = new Item(['name' => '更新後的名稱']);
-        
+
         // Mock ItemRepository（會自動 fresh 關聯資料）
         $this->mockItemRepository
             ->shouldReceive('update')

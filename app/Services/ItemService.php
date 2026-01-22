@@ -7,7 +7,6 @@ use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
