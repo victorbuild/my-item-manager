@@ -107,9 +107,3 @@ parameters:
 			identifier: closure.unusedUse
 			count: 1
 			path: app/Services/ItemService.php
-
-		-
-			message: '#^Relation ''images'' is not found in App\\Models\\Item model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Services/ItemService.php

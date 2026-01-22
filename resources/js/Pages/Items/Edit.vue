@@ -389,7 +389,7 @@ const canSubmit = computed(() => {
 const loadItem = async () => {
     try {
         const res = await axios.get(`/api/items/${itemId}`)
-        const item = res.data.items[0] || res.data.items
+        const item = res.data.data
         form.value = {
             name: item.name || '',
             description: item.description || '',

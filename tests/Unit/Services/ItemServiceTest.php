@@ -457,4 +457,54 @@ class ItemServiceTest extends TestCase
         // 驗證 Repository 會自動 fresh 關聯資料
         $this->assertSame($updatedItem, $result);
     }
+
+    /**
+     * 測試：根據 short_id 查詢物品 - 成功
+     *
+     * @test
+     */
+    public function it_should_find_item_by_short_id_successfully(): void
+    {
+        // Arrange
+        $shortId = 'test1234567';
+        $expectedItem = new Item();
+        $expectedItem->short_id = $shortId;
+        $expectedItem->name = '測試物品';
+
+        $this->mockItemRepository
+            ->shouldReceive('findByShortIdOrFail')
+            ->once()
+            ->with($shortId)
+            ->andReturn($expectedItem);
+
+        // Act
+        $result = $this->itemService->findByShortIdOrFail($shortId);
+
+        // Assert
+        $this->assertInstanceOf(Item::class, $result);
+        $this->assertSame($expectedItem, $result);
+        $this->assertEquals($shortId, $result->short_id);
+    }
+
+    /**
+     * 測試：根據 short_id 查詢物品 - 找不到時拋出異常
+     *
+     * @test
+     */
+    public function it_should_throw_exception_when_item_not_found_by_short_id(): void
+    {
+        // Arrange
+        $shortId = 'nonexistent';
+        $exception = new \Illuminate\Database\Eloquent\ModelNotFoundException();
+
+        $this->mockItemRepository
+            ->shouldReceive('findByShortIdOrFail')
+            ->once()
+            ->with($shortId)
+            ->andThrow($exception);
+
+        // Act & Assert
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->itemService->findByShortIdOrFail($shortId);
+    }
 }

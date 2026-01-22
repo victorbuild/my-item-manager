@@ -155,11 +155,16 @@ class ItemService
         return $query->paginate($perPage);
     }
 
+    /**
+     * 根據 short_id 查詢物品（找不到時拋出異常）
+     *
+     * @param string $shortId 物品 short_id
+     * @return Item
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
     public function findByShortIdOrFail(string $shortId): Item
     {
-        return Item::with(['images', 'units', 'category'])
-            ->where('short_id', $shortId)
-            ->firstOrFail();
+        return $this->itemRepository->findByShortIdOrFail($shortId);
     }
 
     public function delete(Item $item): void

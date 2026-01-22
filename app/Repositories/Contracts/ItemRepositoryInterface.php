@@ -37,4 +37,13 @@ interface ItemRepositoryInterface
      * @return array{items: array<Item>, item: Item|null, quantity: int} items 為所有建立的物品，item 為第一個物品（向後相容）
      */
     public function createBatch(array $data, int $quantity, int $userId): array;
+
+    /**
+     * 根據 short_id 查詢物品（找不到時拋出異常）
+     *
+     * @param string $shortId 物品 short_id
+     * @return Item
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
+    public function findByShortIdOrFail(string $shortId): Item;
 }
