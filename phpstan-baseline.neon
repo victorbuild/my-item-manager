@@ -72,35 +72,6 @@ parameters:
 			count: 1
 			path: app/Http/Resources/ItemCollection.php
 
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$barcode\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/ItemResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$category\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Http/Resources/ItemResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/ItemResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/ItemResource.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$short_id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Resources/ItemResource.php
 
 		-
 			message: '#^Anonymous function has an unused use \$categoryId\.$#'
