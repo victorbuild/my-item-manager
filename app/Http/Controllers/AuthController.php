@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -19,16 +20,12 @@ class AuthController extends Controller
     /**
      * 處理註冊請求
      *
-     * @param  Request  $request  含 name、email、password（confirmed）
+     * @param  RegisterRequest  $request  註冊請求（已驗證）
      * @return JsonResponse { user: User }
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $fields = $request->validate([
-            'name' => 'required|string|max:60',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        $fields = $request->validated();
 
         $user = User::create([
             'name' => $fields['name'],
