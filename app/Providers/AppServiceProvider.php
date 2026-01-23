@@ -6,9 +6,11 @@ use App\Models\Item;
 use App\Policies\ItemPolicy;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\Contracts\ItemRepositoryInterface;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\ItemImageRepository;
 use App\Repositories\ItemRepository;
+use App\Repositories\ProductRepository;
 use App\Repositories\UserRepository;
 use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
@@ -36,6 +38,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             UserRepositoryInterface::class,
             UserRepository::class
+        );
+
+        $this->app->bind(
+            ProductRepositoryInterface::class,
+            ProductRepository::class
         );
 
         // 綁定 ItemService 時注入 config 值，避免 Service 直接依賴 config

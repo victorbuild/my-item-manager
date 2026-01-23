@@ -3,11 +3,11 @@
 namespace App\Services;
 
 use App\Models\Product;
-use App\Repositories\ProductRepository;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 
 class ProductService
 {
-    public function __construct(private readonly ProductRepository $productRepository)
+    public function __construct(private readonly ProductRepositoryInterface $productRepository)
     {
     }
 

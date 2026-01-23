@@ -3,7 +3,7 @@
 namespace Tests\Unit\Services;
 
 use App\Models\Product;
-use App\Repositories\ProductRepository;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Services\ProductService;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
@@ -12,7 +12,7 @@ use Tests\TestCase;
 /**
  * ProductService 單元測試
  *
- * 透過 mock ProductRepository，隔離 Service 邏輯，驗證：
+ * 透過 mock ProductRepositoryInterface，隔離 Service 邏輯，驗證：
  * - deleteIfNoItems 正確呼叫 Repository
  * - 正確傳遞 Repository 的返回值
  */
@@ -21,7 +21,7 @@ class ProductServiceTest extends TestCase
     private ProductService $productService;
 
     /**
-     * @var \Mockery\MockInterface&ProductRepository
+     * @var \Mockery\MockInterface&ProductRepositoryInterface
      */
     private $mockProductRepository;
 
@@ -29,8 +29,7 @@ class ProductServiceTest extends TestCase
     {
         parent::setUp();
 
-        // Mock ProductRepository（使用 Mockery，與專案其他測試一致）
-        $this->mockProductRepository = Mockery::mock(ProductRepository::class);
+        $this->mockProductRepository = Mockery::mock(ProductRepositoryInterface::class);
 
         // 建立 ProductService 實例（注入 mock repository）
         $this->productService = new ProductService($this->mockProductRepository);
