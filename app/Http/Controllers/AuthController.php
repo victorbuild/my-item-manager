@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\UserLoggedIn;
 use App\Events\UserLoginFailed;
+use App\Http\Requests\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,14 +34,17 @@ class AuthController extends Controller
         return response()->json(['user' => $user]);
     }
 
-    public function login(Request $request): JsonResponse
+    /**
+     * 處理登入請求
+     *
+     * @param LoginRequest $request 登入請求（已驗證）
+     * @return JsonResponse
+     */
+    public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        $credentials = $request->validated();
 
-        $key = Str::lower($request->input('email')) . '|' . $request->ip();
+        $key = Str::lower($credentials['email']) . '|' . $request->ip();
         $maxAttempts = 5;
         $cooldown = 60;
 
