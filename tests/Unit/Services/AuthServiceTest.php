@@ -19,10 +19,11 @@ use Tests\TestCase;
 /**
  * AuthService 單元測試
  *
- * 透過 mock Auth、RateLimiter 等 Facade，隔離 Service 邏輯，驗證：
- * - 成功：clear、UserLoggedIn、回傳 User
- * - 失敗：increment、UserLoginFailed、AuthenticationException
+ * 透過 mock Auth、RateLimiter、UserRepository 等，隔離 Service 邏輯，驗證：
+ * - attemptLogin 成功：clear、UserLoggedIn、回傳 User
+ * - attemptLogin 失敗：increment、UserLoginFailed、AuthenticationException
  * - 限流：ThrottleRequestsException
+ * - register：UserRepository->create、Auth::login、回傳 User
  */
 class AuthServiceTest extends TestCase
 {
@@ -41,6 +42,12 @@ class AuthServiceTest extends TestCase
     private string $ip = '192.168.1.1';
 
     private ?string $userAgent = 'TestAgent/1.0';
+
+    private array $registerValidated = [
+        'name' => 'Test User',
+        'email' => 'register@example.com',
+        'password' => 'password123',
+    ];
 
     protected function setUp(): void
     {
@@ -177,5 +184,36 @@ class AuthServiceTest extends TestCase
         $this->expectExceptionMessage('嘗試次數過多，請 42 秒後再試');
 
         $this->authService->attemptLogin($this->credentials, $this->ip, $this->userAgent);
+    }
+
+    /**
+     * 註冊成功：應透過 UserRepository 建立使用者、Auth::login 登入、回傳 User
+     */
+    #[Test]
+    public function it_should_create_user_via_repository_and_login_when_register_succeeds(): void
+    {
+        $user = User::factory()->make([
+            'name' => $this->registerValidated['name'],
+            'email' => $this->registerValidated['email'],
+        ]);
+        $user->id = 1;
+
+        $this->mockUserRepository
+            ->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(function (array $data) {
+                return $data['name'] === $this->registerValidated['name']
+                    && $data['email'] === $this->registerValidated['email']
+                    && $data['password'] === $this->registerValidated['password'];
+            }))
+            ->andReturn($user);
+
+        Auth::shouldReceive('login')
+            ->once()
+            ->with($user);
+
+        $result = $this->authService->register($this->registerValidated);
+
+        $this->assertSame($user, $result);
     }
 }
