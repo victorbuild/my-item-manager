@@ -2,21 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\UserLoggedIn;
-use App\Events\UserLoginFailed;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
-use Illuminate\Auth\AuthenticationException;
-use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly AuthService $authService)
+    {
+    }
+
+    /**
+     * 處理註冊請求
+     *
+     * @param  Request  $request  含 name、email、password（confirmed）
+     * @return JsonResponse { user: User }
+     */
     public function register(Request $request): JsonResponse
     {
         $fields = $request->validate([
@@ -39,61 +44,44 @@ class AuthController extends Controller
     /**
      * 處理登入請求
      *
-     * @param LoginRequest $request 登入請求（已驗證）
-     * @return JsonResponse
+     * @param  LoginRequest  $request  登入請求（已驗證）
+     *
+     * @throws \Illuminate\Auth\AuthenticationException 認證失敗時由 AuthService 拋出
+     * @throws \Illuminate\Http\Exceptions\ThrottleRequestsException 嘗試次數過多時由 AuthService 拋出
      */
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
 
-        $key = Str::lower($credentials['email']) . '|' . $request->ip();
-        $maxAttempts = 5;
-        $cooldown = 60;
-
-        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
-            $seconds = RateLimiter::availableIn($key);
-            throw new ThrottleRequestsException(
-                "嘗試次數過多，請 $seconds 秒後再試"
-            );
-        }
-
-        if (!Auth::attempt($credentials)) {
-            $attempts = RateLimiter::increment($key); // +1，且延遲設定會自動套用 cooldown
-            if ($attempts >= $maxAttempts) {
-                RateLimiter::hit($key, $cooldown); // 第五次才鎖住 60 秒
-            }
-
-            // 觸發登入失敗事件
-            event(new UserLoginFailed(
-                $credentials['email'],
-                $request->ip(),
-                $request->userAgent()
-            ));
-
-            throw new AuthenticationException('帳號或密碼錯誤');
-        }
-
-        RateLimiter::clear($key);
-        $request->session()->regenerate();
-
-        // 觸發登入事件
-        event(new UserLoggedIn(
-            Auth::user(),
+        $this->authService->attemptLogin(
+            $credentials,
             $request->ip(),
             $request->userAgent()
-        ));
+        );
+
+        $request->session()->regenerate();
 
         return response()->json([
             'success' => true,
-            'message' => '登入成功'
+            'message' => '登入成功',
         ]);
     }
 
+    /**
+     * 取得當前已登入使用者
+     *
+     * @return JsonResponse 當前使用者物件，未登入則 null
+     */
     public function me(Request $request): JsonResponse
     {
         return response()->json($request->user());
     }
 
+    /**
+     * 處理登出請求
+     *
+     * @return JsonResponse { message: "Logged out" }
+     */
     public function logout(Request $request): JsonResponse
     {
         Auth::logout();
