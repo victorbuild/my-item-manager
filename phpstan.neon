@@ -7,6 +7,9 @@ parameters:
     level: 5
     paths:
         - app
+    excludePaths:
+        - .phpstorm.meta.php
+        - _ide_helper.php
     disallowedMethodCalls:
         - method: Illuminate\Database\Eloquent\Model::save
           message: "❌ 禁止在 Controller 內直接使用 save()。"

@@ -1,0 +1,25 @@
+grumphp:
+    tasks:
+        # PHPStan（靜態分析）
+        phpstan:
+            configuration: phpstan.neon
+            level: 5
+            memory_limit: 512M
+            use_grumphp_paths: false
+        
+        # PHP_CodeSniffer（程式碼風格檢查）
+        phpcs:
+            standard: phpcs.xml
+            ignore_patterns:
+                - '*/vendor/*'
+                - '*/public/*'
+                - '*/storage/*'
+                - '*/bootstrap/*'
+                - '*/resources/views/*'
+        
+        # PHPUnit（測試）
+        phpunit:
+            config_file: phpunit.xml
+        
+        # Composer（檢查依賴）
+        composer: ~
