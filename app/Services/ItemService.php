@@ -97,9 +97,18 @@ class ItemService
         return $result;
     }
 
-    public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator
+    /**
+     * 分頁查詢物品（含篩選、排序），僅限指定使用者的物品
+     *
+     * @param  array  $filters  篩選條件（search, category_id, statuses, sort）
+     * @param  int  $userId  使用者 ID（由 Controller 傳入 auth()->id()，便於測試）
+     * @param  int  $perPage  每頁筆數
+     * @return LengthAwarePaginator
+     */
+    public function paginateWithFilters(array $filters, int $userId, int $perPage = 10): LengthAwarePaginator
     {
-        $query = Item::with(['images', 'units', 'product.category']);
+        $query = Item::with(['images', 'units', 'product.category'])
+            ->where('user_id', $userId);
 
         // 搜尋關鍵字
         if (!empty($filters['search'])) {

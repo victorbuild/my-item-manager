@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ItemService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\LengthAwarePaginator;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ItemServiceTest extends TestCase
@@ -20,16 +21,14 @@ class ItemServiceTest extends TestCase
     {
         parent::setUp();
         $this->user = User::factory()->create();
-
         // 使用真實的依賴，測試完整的整合
         $this->service = app(ItemService::class);
     }
 
     /**
      * 測試：預設排序（按 ID 降序）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_sort_items_by_default_strategy(): void
     {
         // Arrange
@@ -39,7 +38,7 @@ class ItemServiceTest extends TestCase
         ]);
 
         // Act
-        $result = $this->service->paginateWithFilters(['sort' => 'default'], 10);
+        $result = $this->service->paginateWithFilters(['sort' => 'default'], $this->user->id);
 
         // Assert
         $this->assertInstanceOf(LengthAwarePaginator::class, $result);
@@ -54,9 +53,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：棄用時間排序（按 discarded_at 降序）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_sort_items_by_discarded_strategy(): void
     {
         // Arrange
@@ -74,7 +72,7 @@ class ItemServiceTest extends TestCase
         ]);
 
         // Act
-        $result = $this->service->paginateWithFilters(['sort' => 'discarded'], 10);
+        $result = $this->service->paginateWithFilters(['sort' => 'discarded'], $this->user->id);
 
         // Assert
         $this->assertInstanceOf(LengthAwarePaginator::class, $result);
@@ -89,9 +87,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：價格升序排序
-     *
-     * @test
      */
+    #[Test]
     public function it_should_sort_items_by_price_asc_strategy(): void
     {
         // Arrange
@@ -109,7 +106,7 @@ class ItemServiceTest extends TestCase
         ]);
 
         // Act
-        $result = $this->service->paginateWithFilters(['sort' => 'price_asc'], 10);
+        $result = $this->service->paginateWithFilters(['sort' => 'price_asc'], $this->user->id);
 
         // Assert
         $this->assertInstanceOf(LengthAwarePaginator::class, $result);
@@ -124,9 +121,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：價格降序排序
-     *
-     * @test
      */
+    #[Test]
     public function it_should_sort_items_by_price_desc_strategy(): void
     {
         // Arrange
@@ -144,7 +140,7 @@ class ItemServiceTest extends TestCase
         ]);
 
         // Act
-        $result = $this->service->paginateWithFilters(['sort' => 'price_desc'], 10);
+        $result = $this->service->paginateWithFilters(['sort' => 'price_desc'], $this->user->id);
 
         // Assert
         $this->assertInstanceOf(LengthAwarePaginator::class, $result);
@@ -159,9 +155,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：名稱升序排序
-     *
-     * @test
      */
+    #[Test]
     public function it_should_sort_items_by_name_asc_strategy(): void
     {
         // Arrange
@@ -179,7 +174,7 @@ class ItemServiceTest extends TestCase
         ]);
 
         // Act
-        $result = $this->service->paginateWithFilters(['sort' => 'name_asc'], 10);
+        $result = $this->service->paginateWithFilters(['sort' => 'name_asc'], $this->user->id);
 
         // Assert
         $this->assertInstanceOf(LengthAwarePaginator::class, $result);

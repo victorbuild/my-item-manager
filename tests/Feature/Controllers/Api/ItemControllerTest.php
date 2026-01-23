@@ -7,6 +7,7 @@ use App\Models\ItemImage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ItemControllerTest extends TestCase
@@ -24,10 +25,38 @@ class ItemControllerTest extends TestCase
     }
 
     /**
-     * 測試：更新物品 - 成功
-     *
-     * @test
+     * 測試：index 只回傳當前登入使用者的物品，不包含其他使用者的
      */
+    #[Test]
+    public function it_should_only_return_current_users_items_in_index(): void
+    {
+        // Arrange
+        $userA = $this->user;
+        $userB = User::factory()->create();
+
+        $itemsA = Item::factory()->count(2)->create(['user_id' => $userA->id]);
+        Item::factory()->count(3)->create(['user_id' => $userB->id]);
+
+        $expectedShortIds = $itemsA->pluck('short_id')->sort()->values()->toArray();
+
+        // Act
+        $response = $this->actingAs($userA)->getJson('/api/items');
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'message' => '取得成功']);
+
+        $items = $response->json('items');
+        $this->assertCount(2, $items);
+
+        $actualShortIds = collect($items)->pluck('short_id')->sort()->values()->toArray();
+        $this->assertEquals($expectedShortIds, $actualShortIds);
+    }
+
+    /**
+     * 測試：更新物品 - 成功
+     */
+    #[Test]
     public function it_should_update_item_successfully(): void
     {
         // Arrange
@@ -69,9 +98,8 @@ class ItemControllerTest extends TestCase
 
     /**
      * 測試：更新物品 - 驗證失敗（圖片數量超過限制）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_return_422_when_image_count_exceeds_limit(): void
     {
         // Arrange
@@ -115,9 +143,8 @@ class ItemControllerTest extends TestCase
 
     /**
      * 測試：更新物品 - 同步圖片（新增）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_sync_images_when_updating_item(): void
     {
         // Arrange
@@ -155,9 +182,8 @@ class ItemControllerTest extends TestCase
 
     /**
      * 測試：更新物品 - 同步圖片（移除）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_remove_images_when_updating_item(): void
     {
         // Arrange
@@ -199,9 +225,8 @@ class ItemControllerTest extends TestCase
 
     /**
      * 測試：更新物品 - 未認證
-     *
-     * @test
      */
+    #[Test]
     public function it_should_return_401_when_unauthenticated(): void
     {
         // Arrange
@@ -222,9 +247,8 @@ class ItemControllerTest extends TestCase
 
     /**
      * 測試：更新物品 - 驗證失敗（表單驗證）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_return_422_when_validation_fails(): void
     {
         // Arrange
