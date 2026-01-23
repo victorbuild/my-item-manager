@@ -62,14 +62,14 @@ class AuthController extends Controller
             if ($attempts >= $maxAttempts) {
                 RateLimiter::hit($key, $cooldown); // 第五次才鎖住 60 秒
             }
-            
+
             // 觸發登入失敗事件
             event(new UserLoginFailed(
                 $credentials['email'],
                 $request->ip(),
                 $request->userAgent()
             ));
-            
+
             throw new AuthenticationException('帳號或密碼錯誤');
         }
 

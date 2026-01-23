@@ -12,7 +12,8 @@ use Illuminate\Queue\SerializesModels;
  */
 class UserLoggedIn
 {
-    use Dispatchable, SerializesModels;
+    use Dispatchable;
+    use SerializesModels;
 
     /**
      * 建立新的事件實例

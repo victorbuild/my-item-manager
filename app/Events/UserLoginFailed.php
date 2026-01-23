@@ -11,7 +11,8 @@ use Illuminate\Queue\SerializesModels;
  */
 class UserLoginFailed
 {
-    use Dispatchable, SerializesModels;
+    use Dispatchable;
+    use SerializesModels;
 
     /**
      * 建立新的事件實例
