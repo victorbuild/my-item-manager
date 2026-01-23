@@ -272,11 +272,17 @@ const fetchItem = async () => {
             discarded_at: null,
         }
     } catch (error) {
-        if (error.response && error.response.status === 404) {
-            // ✅ 跳轉 Vue 的 404 NotFound 頁面
+        if (error.response?.status === 404) {
             router.push({ name: 'NotFound' })
+        } else if (error.response?.status === 403) {
+            await Swal.fire({
+                icon: 'warning',
+                title: '無權限',
+                text: '您沒有權限檢視此物品，將返回首頁。',
+                confirmButtonText: '確定'
+            })
+            router.push('/')
         } else {
-            // ✅ 可選：處理其他錯誤
             console.error('載入失敗', error)
         }
     }
