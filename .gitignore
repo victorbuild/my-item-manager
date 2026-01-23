@@ -26,6 +26,9 @@ yarn-error.log
 # Code coverage reports
 /coverage
 
+# Documentation (個人筆記和 TODO，不提交到公開 repo)
+/docs
+
 # Scribe
 /public/vendor/scribe/
 /resources/views/scribe/
