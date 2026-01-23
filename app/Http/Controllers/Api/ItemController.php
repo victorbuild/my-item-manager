@@ -76,13 +76,15 @@ class ItemController extends Controller
     /**
      * 顯示物品詳情
      *
-     * @param string $shortId
+     * @param  string  $shortId
      * @return JsonResponse
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 當物品不存在時拋出
+     * @throws \Illuminate\Auth\Access\AuthorizationException 當非物品擁有者時拋出（403）
      */
     public function show(string $shortId): JsonResponse
     {
         $item = $this->itemService->findByShortIdOrFail($shortId);
+        $this->authorize('view', $item);
 
         return response()->json([
             'success' => true,
@@ -94,12 +96,17 @@ class ItemController extends Controller
     /**
      * 更新物品
      *
-     * @param UpdateItemRequest $request
-     * @param Item $item
+     * @param  UpdateItemRequest  $request
+     * @param  Item  $item
      * @return JsonResponse
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 當物品不存在時拋出（route model binding）
+     * @throws \Illuminate\Auth\Access\AuthorizationException 當非物品擁有者時拋出（403）
+     * @throws \Illuminate\Validation\ValidationException 當表單驗證失敗時拋出（422）
      */
     public function update(UpdateItemRequest $request, Item $item): JsonResponse
     {
+        $this->authorize('update', $item);
+
         $validated = $request->validated();
         $images = $request->input('images', []);
 
@@ -123,11 +130,17 @@ class ItemController extends Controller
     }
 
     /**
-     * @param Item $item
+     * 刪除物品
+     *
+     * @param  Item  $item
      * @return JsonResponse
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 當物品不存在時拋出（route model binding）
+     * @throws \Illuminate\Auth\Access\AuthorizationException 當非物品擁有者時拋出（403）
      */
     public function destroy(Item $item): JsonResponse
     {
+        $this->authorize('delete', $item);
+
         $this->itemService->delete($item);
 
         return response()->json(null, Response::HTTP_NO_CONTENT);

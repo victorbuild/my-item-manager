@@ -35,9 +35,10 @@ class ItemControllerTest extends TestCase
         $userB = User::factory()->create();
 
         $itemsA = Item::factory()->count(2)->create(['user_id' => $userA->id]);
-        Item::factory()->count(3)->create(['user_id' => $userB->id]);
+        $itemsB = Item::factory()->count(3)->create(['user_id' => $userB->id]);
 
         $expectedShortIds = $itemsA->pluck('short_id')->sort()->values()->toArray();
+        $shortIdsB = $itemsB->pluck('short_id')->toArray();
 
         // Act
         $response = $this->actingAs($userA)->getJson('/api/items');
@@ -50,7 +51,44 @@ class ItemControllerTest extends TestCase
         $this->assertCount(2, $items);
 
         $actualShortIds = collect($items)->pluck('short_id')->sort()->values()->toArray();
+
+        // 可以看到自己的：回應的 2 筆就是 A 的
         $this->assertEquals($expectedShortIds, $actualShortIds);
+
+        // 看不到別人的：回應中不包含任何 B 的 short_id
+        $this->assertEmpty(
+            array_intersect($actualShortIds, $shortIdsB),
+            'index 回應不應包含他人（userB）的物品'
+        );
+    }
+
+    /**
+     * 測試：show 自己的物品 - 成功
+     */
+    #[Test]
+    public function it_should_return_200_when_viewing_own_item(): void
+    {
+        $item = Item::factory()->create(['user_id' => $this->user->id, 'name' => '我的物品']);
+
+        $response = $this->actingAs($this->user)->getJson("/api/items/{$item->short_id}");
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'message' => '資料載入成功'])
+            ->assertJsonPath('data.name', '我的物品');
+    }
+
+    /**
+     * 測試：show 他人的物品 - 403（ItemPolicy view）
+     */
+    #[Test]
+    public function it_should_return_403_when_viewing_other_users_item(): void
+    {
+        $userB = User::factory()->create();
+        $itemB = Item::factory()->create(['user_id' => $userB->id, 'name' => 'B 的物品']);
+
+        $response = $this->actingAs($this->user)->getJson("/api/items/{$itemB->short_id}");
+
+        $response->assertStatus(403);
     }
 
     /**
@@ -94,6 +132,24 @@ class ItemControllerTest extends TestCase
         $item->refresh();
         $this->assertEquals('更新後的名稱', $item->name);
         $this->assertEquals(2000, $item->price);
+    }
+
+    /**
+     * 測試：更新他人的物品 - 403（ItemPolicy update）
+     */
+    #[Test]
+    public function it_should_return_403_when_updating_other_users_item(): void
+    {
+        $userB = User::factory()->create();
+        $itemB = Item::factory()->create(['user_id' => $userB->id, 'name' => 'B 的物品']);
+
+        $response = $this->actingAs($this->user)->putJson("/api/items/{$itemB->short_id}", [
+            'name' => '想改成我的',
+        ]);
+
+        $response->assertStatus(403);
+        $itemB->refresh();
+        $this->assertSame('B 的物品', $itemB->name);
     }
 
     /**
@@ -270,5 +326,34 @@ class ItemControllerTest extends TestCase
                 'message',
                 'errors',
             ]);
+    }
+
+    /**
+     * 測試：delete 自己的物品 - 204
+     */
+    #[Test]
+    public function it_should_return_204_when_deleting_own_item(): void
+    {
+        $item = Item::factory()->create(['user_id' => $this->user->id]);
+
+        $response = $this->actingAs($this->user)->deleteJson("/api/items/{$item->short_id}");
+
+        $response->assertStatus(204);
+        $this->assertDatabaseMissing('items', ['id' => $item->id]);
+    }
+
+    /**
+     * 測試：delete 他人的物品 - 403（ItemPolicy delete）
+     */
+    #[Test]
+    public function it_should_return_403_when_deleting_other_users_item(): void
+    {
+        $userB = User::factory()->create();
+        $itemB = Item::factory()->create(['user_id' => $userB->id]);
+
+        $response = $this->actingAs($this->user)->deleteJson("/api/items/{$itemB->short_id}");
+
+        $response->assertStatus(403);
+        $this->assertDatabaseHas('items', ['id' => $itemB->id]);
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Item;
+use App\Policies\ItemPolicy;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Repositories\Contracts\UserRepositoryInterface;
@@ -10,6 +12,7 @@ use App\Repositories\ItemRepository;
 use App\Repositories\UserRepository;
 use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -49,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Item::class, ItemPolicy::class);
+
         // Laravel 12 使用 Event Discovery，不需要手動註冊
         // 只要 Listener 的 handle() 方法 typehint Event，Laravel 會自動發現
     }
