@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\UserLoggedIn;
+use App\Events\UserLoginFailed;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,13 +56,21 @@ class AuthController extends Controller
             if ($attempts >= $maxAttempts) {
                 RateLimiter::hit($key, $cooldown); // 第五次才鎖住 60 秒
             }
+            
+            // 觸發登入失敗事件
+            event(new UserLoginFailed(
+                $credentials['email'],
+                $request->ip(),
+                $request->userAgent()
+            ));
+            
             return response()->json(['message' => '帳號或密碼錯誤'], 401);
         }
 
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        // 觸發登入事件（Observer Pattern）
+        // 觸發登入事件
         event(new UserLoggedIn(
             Auth::user(),
             $request->ip(),

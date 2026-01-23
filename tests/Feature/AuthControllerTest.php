@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Events\UserLoggedIn;
+use App\Events\UserLoginFailed;
 use App\Models\LoginLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -74,8 +75,10 @@ class AuthControllerTest extends TestCase
 
         $this->assertDatabaseHas('login_logs', [
             'user_id' => $user->id,
+            'email' => $user->email,
             'ip_address' => '127.0.0.1',
             'user_agent' => 'Test Browser',
+            'status' => 'success',
         ]);
 
         $loginLog = LoginLog::where('user_id', $user->id)->first();
@@ -113,11 +116,11 @@ class AuthControllerTest extends TestCase
     }
 
     /**
-     * 測試：登入失敗時不應該建立登入紀錄
+     * 測試：登入失敗時應該建立失敗登入紀錄
      *
      * @test
      */
-    public function it_should_not_create_login_log_on_failed_login(): void
+    public function it_should_create_failed_login_log_on_failed_login(): void
     {
         // Arrange
         $user = User::factory()->create([
@@ -125,7 +128,45 @@ class AuthControllerTest extends TestCase
             'password' => Hash::make('password'),
         ]);
 
-        $initialCount = LoginLog::count();
+        // Act
+        $response = $this->postJson('/login', [
+            'email' => 'test@example.com',
+            'password' => 'wrong-password',
+        ], [
+            'User-Agent' => 'Test Browser',
+        ]);
+
+        // Assert
+        $response->assertStatus(401)
+            ->assertJson(['message' => '帳號或密碼錯誤']);
+
+        $this->assertDatabaseHas('login_logs', [
+            'user_id' => null, // 失敗時沒有 user_id
+            'email' => 'test@example.com',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Test Browser',
+            'status' => 'failed',
+        ]);
+
+        $failedLog = LoginLog::where('status', 'failed')->first();
+        $this->assertNotNull($failedLog);
+        $this->assertNull($failedLog->user_id);
+        $this->assertEquals('test@example.com', $failedLog->email);
+    }
+
+    /**
+     * 測試：登入失敗時應該觸發 UserLoginFailed 事件
+     *
+     * @test
+     */
+    public function it_should_dispatch_user_login_failed_event_on_failed_login(): void
+    {
+        // Arrange
+        Event::fake();
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'password' => Hash::make('password'),
+        ]);
 
         // Act
         $response = $this->postJson('/login', [
@@ -134,10 +175,46 @@ class AuthControllerTest extends TestCase
         ]);
 
         // Assert
+        $response->assertStatus(401);
+
+        Event::assertDispatched(UserLoginFailed::class, function ($event) {
+            return $event->email === 'test@example.com';
+        });
+    }
+
+    /**
+     * 測試：Email 不存在時也應該記錄失敗登入
+     *
+     * @test
+     */
+    public function it_should_create_failed_login_log_when_email_not_exists(): void
+    {
+        // Arrange - 不建立任何使用者
+
+        // Act
+        $response = $this->postJson('/login', [
+            'email' => 'nonexistent@example.com',
+            'password' => 'any-password',
+        ], [
+            'User-Agent' => 'Test Browser',
+        ]);
+
+        // Assert
         $response->assertStatus(401)
             ->assertJson(['message' => '帳號或密碼錯誤']);
 
-        $this->assertEquals($initialCount, LoginLog::count());
+        // 應該記錄失敗登入，即使 email 不存在
+        $this->assertDatabaseHas('login_logs', [
+            'user_id' => null,
+            'email' => 'nonexistent@example.com',
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'Test Browser',
+            'status' => 'failed',
+        ]);
+
+        $failedLog = LoginLog::where('email', 'nonexistent@example.com')->first();
+        $this->assertNotNull($failedLog);
+        $this->assertEquals('failed', $failedLog->status);
     }
 
     /**

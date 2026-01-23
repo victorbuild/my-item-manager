@@ -21,8 +21,10 @@ class LogUserLogin
     {
         LoginLog::create([
             'user_id' => $event->user->id,
+            'email' => $event->user->email,
             'ip_address' => $event->ipAddress,
             'user_agent' => $event->userAgent,
+            'status' => 'success',
             'logged_in_at' => now(),
         ]);
     }
