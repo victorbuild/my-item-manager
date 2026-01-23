@@ -19,13 +19,17 @@ class AuthController extends Controller
      * 處理註冊請求
      *
      * @param  RegisterRequest  $request  註冊請求（已驗證）
-     * @return JsonResponse { user: User }
+     * @return JsonResponse { success: true, message: "註冊成功", data: User }
      */
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = $this->authService->register($request->validated());
 
-        return response()->json(['user' => $user]);
+        return response()->json([
+            'success' => true,
+            'message' => '註冊成功',
+            'data' => $user,
+        ]);
     }
 
     /**
@@ -51,23 +55,28 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => '登入成功',
+            'data' => null,
         ]);
     }
 
     /**
      * 取得當前已登入使用者
      *
-     * @return JsonResponse 當前使用者物件，未登入則 null
+     * @return JsonResponse { success: true, message: "取得成功", data: User|null }
      */
     public function me(Request $request): JsonResponse
     {
-        return response()->json($request->user());
+        return response()->json([
+            'success' => true,
+            'message' => '取得成功',
+            'data' => $request->user(),
+        ]);
     }
 
     /**
      * 處理登出請求
      *
-     * @return JsonResponse { message: "Logged out" }
+     * @return JsonResponse { success: true, message: "登出成功", data: null }
      */
     public function logout(Request $request): JsonResponse
     {
@@ -76,6 +85,10 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(['message' => 'Logged out']);
+        return response()->json([
+            'success' => true,
+            'message' => '登出成功',
+            'data' => null,
+        ]);
     }
 }

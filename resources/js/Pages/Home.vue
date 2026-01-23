@@ -270,7 +270,7 @@ onMounted(async () => {
     try {
         const res = await axios.get('/api/user');
         isLoggedIn.value = true;
-        user.value = res.data;
+        user.value = res.data.data;
         // 登入後載入過期商品
         await fetchExpiringItems();
     } catch {
