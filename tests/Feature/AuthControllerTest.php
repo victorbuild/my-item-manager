@@ -42,7 +42,10 @@ class AuthControllerTest extends TestCase
 
         // Assert
         $response->assertStatus(200)
-            ->assertJson(['message' => '登入成功']);
+            ->assertJson([
+                'success' => true,
+                'message' => '登入成功'
+            ]);
 
         Event::assertDispatched(UserLoggedIn::class, function ($event) use ($user) {
             return $event->user->id === $user->id;
@@ -138,7 +141,10 @@ class AuthControllerTest extends TestCase
 
         // Assert
         $response->assertStatus(401)
-            ->assertJson(['message' => '帳號或密碼錯誤']);
+            ->assertJson([
+                'success' => false,
+                'message' => '帳號或密碼錯誤'
+            ]);
 
         $this->assertDatabaseHas('login_logs', [
             'user_id' => null, // 失敗時沒有 user_id
@@ -175,7 +181,11 @@ class AuthControllerTest extends TestCase
         ]);
 
         // Assert
-        $response->assertStatus(401);
+        $response->assertStatus(401)
+            ->assertJson([
+                'success' => false,
+                'message' => '帳號或密碼錯誤'
+            ]);
 
         Event::assertDispatched(UserLoginFailed::class, function ($event) {
             return $event->email === 'test@example.com';
@@ -201,7 +211,10 @@ class AuthControllerTest extends TestCase
 
         // Assert
         $response->assertStatus(401)
-            ->assertJson(['message' => '帳號或密碼錯誤']);
+            ->assertJson([
+                'success' => false,
+                'message' => '帳號或密碼錯誤'
+            ]);
 
         // 應該記錄失敗登入，即使 email 不存在
         $this->assertDatabaseHas('login_logs', [

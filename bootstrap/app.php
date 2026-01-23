@@ -20,9 +20,18 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // 統一處理 API 路由的所有異常，確保都返回 JSON 格式
+        // 統一處理 API 路由和認證路由的所有異常，確保都返回 JSON 格式
         $exceptions->render(function (Exception $e, Request $request) {
-            if (!$request->is('api/*')) {
+            // 處理 API 路由和認證路由（login, register, logout）
+            $isApiRoute = $request->is('api/*');
+            $isAuthRoute = in_array($request->path(), ['login', 'register', 'logout']);
+            
+            if (!$isApiRoute && !$isAuthRoute) {
+                return null;
+            }
+            
+            // API 路由一律返回 JSON，認證路由需要是 JSON 請求
+            if (!$isApiRoute && !$request->expectsJson() && !$request->isJson()) {
                 return null;
             }
 
@@ -35,7 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
                 ],
                 $e instanceof \Illuminate\Auth\AuthenticationException => [
                     Response::HTTP_UNAUTHORIZED,
-                    '未授權，請先登入',
+                    // 如果是預設訊息或空訊息，使用中文訊息；否則使用自定義訊息
+                    in_array($e->getMessage(), ['Unauthenticated.', '']) ? '未授權，請先登入' : $e->getMessage(),
                     null,
                 ],
                 $e instanceof \Illuminate\Auth\Access\AuthorizationException => [
@@ -49,12 +59,19 @@ return Application::configure(basePath: dirname(__DIR__))
                     '找不到指定的資源',
                     null,
                 ],
+                $e instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException => [
+                    Response::HTTP_TOO_MANY_REQUESTS,
+                    $e->getMessage() ?: '嘗試次數過多，請稍後再試',
+                    null,
+                ],
                 $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException => [
                     $e->getStatusCode(),
-                    match ($e->getStatusCode()) {
+                    // 優先使用異常的訊息，如果沒有則使用預設訊息
+                    $e->getMessage() ?: match ($e->getStatusCode()) {
                         Response::HTTP_NOT_FOUND => '找不到指定的資源',
                         Response::HTTP_FORBIDDEN => '沒有權限執行此操作',
                         Response::HTTP_METHOD_NOT_ALLOWED => '不允許的請求方法',
+                        Response::HTTP_TOO_MANY_REQUESTS => '嘗試次數過多，請稍後再試',
                         default => '發生錯誤，請稍後再試',
                     },
                     null,

@@ -6,6 +6,8 @@ use App\Events\UserLoggedIn;
 use App\Events\UserLoginFailed;
 use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,9 +52,9 @@ class AuthController extends Controller
 
         if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
             $seconds = RateLimiter::availableIn($key);
-            return response()->json([
-                'message' => "嘗試次數過多，請 $seconds 秒後再試"
-            ], 429);
+            throw new ThrottleRequestsException(
+                "嘗試次數過多，請 $seconds 秒後再試"
+            );
         }
 
         if (!Auth::attempt($credentials)) {
@@ -68,7 +70,7 @@ class AuthController extends Controller
                 $request->userAgent()
             ));
             
-            return response()->json(['message' => '帳號或密碼錯誤'], 401);
+            throw new AuthenticationException('帳號或密碼錯誤');
         }
 
         RateLimiter::clear($key);
@@ -81,7 +83,10 @@ class AuthController extends Controller
             $request->userAgent()
         ));
 
-        return response()->json(['message' => '登入成功']);
+        return response()->json([
+            'success' => true,
+            'message' => '登入成功'
+        ]);
     }
 
     public function me(Request $request): JsonResponse
