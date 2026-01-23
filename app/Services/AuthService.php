@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Events\UserLoggedIn;
 use App\Events\UserLoginFailed;
+use App\Models\User;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
@@ -14,13 +16,18 @@ use Illuminate\Support\Str;
 /**
  * 認證服務
  *
- * 負責登入的 Rate limiting、認證、以及成功/失敗時的處理與事件
+ * 負責登入的 Rate limiting、認證、以及成功/失敗時的處理與事件；
+ * 負責註冊（透過 UserRepository 建立使用者並登入）。
  */
 class AuthService
 {
     private const MAX_ATTEMPTS = 5;
 
     private const COOLDOWN_SECONDS = 60;
+
+    public function __construct(private readonly UserRepositoryInterface $userRepository)
+    {
+    }
 
     /**
      * 嘗試登入
@@ -54,6 +61,27 @@ class AuthService
         if ($user === null) {
             throw new \RuntimeException('登入成功後無法取得使用者物件');
         }
+
+        return $user;
+    }
+
+    /**
+     * 處理註冊
+     *
+     * 透過 UserRepository 建立使用者（password 由 Model hashed cast 處理），
+     * 並以 Auth::login 登入後回傳。
+     *
+     * @param  array{name: string, email: string, password: string}  $validated  RegisterRequest 驗證後的資料
+     */
+    public function register(array $validated): User
+    {
+        $user = $this->userRepository->create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+        ]);
+
+        Auth::login($user);
 
         return $user;
     }

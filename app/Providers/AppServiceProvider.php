@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\Contracts\ItemRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\ItemImageRepository;
 use App\Repositories\ItemRepository;
+use App\Repositories\UserRepository;
 use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Support\ServiceProvider;
@@ -28,10 +30,15 @@ class AppServiceProvider extends ServiceProvider
             ItemRepository::class
         );
 
+        $this->app->bind(
+            UserRepositoryInterface::class,
+            UserRepository::class
+        );
+
         // 綁定 ItemService 時注入 config 值，避免 Service 直接依賴 config
         $this->app->when(ItemService::class)
             ->needs('$maxItemQuantity')
-            ->give(fn() => config('app.max_item_quantity', 100));
+            ->give(fn () => config('app.max_item_quantity', 100));
 
         // 註冊排序策略工廠
         $this->app->singleton(SortStrategyFactory::class);

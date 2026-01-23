@@ -5,6 +5,7 @@ namespace Tests\Unit\Services;
 use App\Events\UserLoggedIn;
 use App\Events\UserLoginFailed;
 use App\Models\User;
+use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Services\AuthService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
@@ -27,6 +28,11 @@ class AuthServiceTest extends TestCase
 {
     private AuthService $authService;
 
+    /**
+     * @var \Mockery\MockInterface&\App\Repositories\Contracts\UserRepositoryInterface
+     */
+    private $mockUserRepository;
+
     private array $credentials = [
         'email' => 'test@example.com',
         'password' => 'password',
@@ -39,7 +45,8 @@ class AuthServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authService = new AuthService();
+        $this->mockUserRepository = Mockery::mock(UserRepositoryInterface::class);
+        $this->authService = new AuthService($this->mockUserRepository);
     }
 
     protected function tearDown(): void
