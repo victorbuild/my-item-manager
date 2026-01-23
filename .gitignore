@@ -23,6 +23,9 @@ yarn-error.log
 /.zed
 .env.docker
 
+# Code coverage reports
+/coverage
+
 # Scribe
 /public/vendor/scribe/
 /resources/views/scribe/
