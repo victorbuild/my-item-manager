@@ -57,11 +57,6 @@ readonly class CategoryService
         ];
     }
 
-    public function create(array $data, int $userId): Category
-    {
-        return $this->categoryRepository->create($data, $userId);
-    }
-
     public function findOrFail(int $id, int $userId): Category
     {
         return $this->categoryRepository->findOrFail($id, $userId);

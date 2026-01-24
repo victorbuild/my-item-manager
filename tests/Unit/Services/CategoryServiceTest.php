@@ -37,27 +37,6 @@ class CategoryServiceTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_create_should_return_category_when_valid_data_provided(): void
-    {
-        $expectedCategory = new Category();
-        $expectedCategory->id = 1;
-        $expectedCategory->name = $this->testCategoryData['name'];
-        $expectedCategory->user_id = $this->testUserId;
-
-        $this->mockRepository
-            ->shouldReceive('create')
-            ->once()
-            ->with($this->testCategoryData, $this->testUserId)
-            ->andReturn($expectedCategory);
-
-        $result = $this->service->create($this->testCategoryData, $this->testUserId);
-
-        $this->assertInstanceOf(Category::class, $result);
-        $this->assertEquals($this->testCategoryData['name'], $result->name);
-        $this->assertEquals($this->testUserId, $result->user_id);
-    }
-
-
     public function test_delete_should_return_true_when_category_has_no_products(): void
     {
         $category = Mockery::mock(Category::class)->makePartial();

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
+use App\Repositories\CategoryRepository;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,8 +19,10 @@ use RuntimeException;
  */
 readonly class CategoryController
 {
-    public function __construct(private CategoryService $categoryService)
-    {
+    public function __construct(
+        private CategoryService $categoryService,
+        private CategoryRepository $categoryRepository
+    ) {
     }
 
     /**
@@ -129,7 +132,7 @@ readonly class CategoryController
     public function store(StoreCategoryRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $category = $this->categoryService->create($validated, $request->user()->id);
+        $category = $this->categoryRepository->create($validated, $request->user()->id);
 
         return response()->json([
             'success' => true,
