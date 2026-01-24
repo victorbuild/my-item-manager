@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
 use App\Strategies\Sort\SortStrategyFactory;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -202,6 +203,7 @@ class ItemService
      */
     public function getStatisticsForUser(int $userId, string $period = 'all', ?int $year = null): array
     {
+        $asOf = now()->startOfDay();
         $baseQuery = Item::where('user_id', $userId);
 
         // 計算時間範圍
@@ -229,12 +231,13 @@ class ItemService
         $discardedCostData = $this->calculateDiscardedCostStatistics($baseQuery, $startDate, $endDate);
 
         // 計算使用中物品成本統計
-        $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter);
+        $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter, $asOf);
 
         // 計算時間範圍的開始和結束日期
         $dateRange = $this->calculateDateRange($userId, $period, $year, $startDate);
 
         return [
+            'as_of' => $asOf->toDateString(),
             'totals' => $totals,
             'status' => $statusStats,
             'top_expensive' => $topExpensive,
@@ -257,7 +260,7 @@ class ItemService
      *
      * @param string $period
      * @param int|null $year
-     * @return array [\Carbon\Carbon|null, \Carbon\Carbon|null]
+     * @return array [Carbon|null, Carbon|null]
      */
     private function buildDateRange(string $period, ?int $year): array
     {
@@ -266,12 +269,12 @@ class ItemService
 
         if ($period === 'year') {
             if ($year) {
-                $startDate = \Carbon\Carbon::create($year, 1, 1)->startOfDay();
+                $startDate = Carbon::create($year, 1, 1)->startOfDay();
                 $today = now();
                 if ($year === $today->year) {
                     $endDate = $today;
                 } else {
-                    $endDate = \Carbon\Carbon::create($year, 12, 31)->endOfDay();
+                    $endDate = Carbon::create($year, 12, 31)->endOfDay();
                 }
             } else {
                 $startDate = now()->startOfYear();
@@ -291,14 +294,14 @@ class ItemService
      * 建立時間範圍過濾函數（用於新增物品的判斷）
      *
      * @param string $period
-     * @param \Carbon\Carbon|null $startDate
-     * @param \Carbon\Carbon|null $endDate
+     * @param Carbon|null $startDate
+     * @param Carbon|null $endDate
      * @return \Closure
      */
     private function buildCreatedDateFilter(
         string $period,
-        ?\Carbon\Carbon $startDate,
-        ?\Carbon\Carbon $endDate
+        ?Carbon $startDate,
+        ?Carbon $endDate
     ): \Closure {
         return function ($query) use ($period, $startDate, $endDate) {
             if ($period === 'all') {
@@ -338,15 +341,15 @@ class ItemService
      *
      * @param \Illuminate\Database\Eloquent\Builder $baseQuery
      * @param \Closure $applyCreatedDateFilter
-     * @param \Carbon\Carbon|null $startDate
-     * @param \Carbon\Carbon|null $endDate
+     * @param Carbon|null $startDate
+     * @param Carbon|null $endDate
      * @return array
      */
     private function calculateTotalsStatistics(
         $baseQuery,
         \Closure $applyCreatedDateFilter,
-        ?\Carbon\Carbon $startDate,
-        ?\Carbon\Carbon $endDate
+        ?Carbon $startDate,
+        ?Carbon $endDate
     ): array {
         $totalCreated = $applyCreatedDateFilter((clone $baseQuery))->count();
 
@@ -422,17 +425,17 @@ class ItemService
             $usageDays = 0;
 
             if ($item->used_at && $item->discarded_at) {
-                $usageDays = \Carbon\Carbon::parse($item->used_at)
-                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                $usageDays = Carbon::parse($item->used_at)
+                    ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
             } elseif ($item->purchased_at && $item->discarded_at) {
-                $usageDays = \Carbon\Carbon::parse($item->purchased_at)
-                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                $usageDays = Carbon::parse($item->purchased_at)
+                    ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
             } elseif ($item->received_at && $item->discarded_at) {
-                $usageDays = \Carbon\Carbon::parse($item->received_at)
-                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                $usageDays = Carbon::parse($item->received_at)
+                    ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
             } elseif ($item->created_at && $item->discarded_at) {
-                $usageDays = \Carbon\Carbon::parse($item->created_at)
-                    ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                $usageDays = Carbon::parse($item->created_at)
+                    ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
             }
 
             if ($usageDays > 0) {
@@ -509,15 +512,20 @@ class ItemService
      */
     private function getUnusedItems($baseQuery, \Closure $applyCreatedDateFilter): array
     {
-        $unusedItems = $applyCreatedDateFilter((clone $baseQuery))
+        $unusedItemsQuery = $applyCreatedDateFilter((clone $baseQuery))
             ->whereNull('discarded_at')
             ->whereNull('used_at')
-            ->whereNotNull('price')
+            ->whereNotNull('price');
+
+        $unusedCount = (clone $unusedItemsQuery)->count();
+
+        $unusedTopFive = (clone $unusedItemsQuery)
             ->orderByDesc('price')
+            ->limit(5)
             ->with(['images', 'product'])
             ->get();
 
-        $unusedItemsWithDays = $unusedItems->map(function ($item) {
+        $unusedItemsWithDays = $unusedTopFive->map(function ($item) {
             $daysUnused = 0;
             $today = now();
 
@@ -533,13 +541,11 @@ class ItemService
                 'item' => $item,
                 'days_unused' => $daysUnused,
             ];
-        })->sortByDesc(function ($data) {
-            return $data['item']->price;
         })->values();
 
         return [
-            'count' => $unusedItems->count(),
-            'top_five' => $unusedItemsWithDays->take(5),
+            'count' => $unusedCount,
+            'top_five' => $unusedItemsWithDays,
         ];
     }
 
@@ -547,14 +553,14 @@ class ItemService
      * 計算已結案物品成本統計
      *
      * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Carbon\Carbon|null $startDate
-     * @param \Carbon\Carbon|null $endDate
+     * @param Carbon|null $startDate
+     * @param Carbon|null $endDate
      * @return array
      */
     private function calculateDiscardedCostStatistics(
         $baseQuery,
-        ?\Carbon\Carbon $startDate,
-        ?\Carbon\Carbon $endDate
+        ?Carbon $startDate,
+        ?Carbon $endDate
     ): array {
         $discardedItemsForCost = (clone $baseQuery)
             ->whereNotNull('discarded_at')
@@ -580,8 +586,11 @@ class ItemService
      * @param \Closure $applyCreatedDateFilter
      * @return array
      */
-    private function calculateInUseCostStatistics($baseQuery, \Closure $applyCreatedDateFilter): array
-    {
+    private function calculateInUseCostStatistics(
+        $baseQuery,
+        \Closure $applyCreatedDateFilter,
+        Carbon $asOf
+    ): array {
         $inUseItemsForCost = (clone $baseQuery)
             ->whereNotNull('used_at')
             ->whereNull('discarded_at')
@@ -591,7 +600,7 @@ class ItemService
         $inUseItemsForCost = $applyCreatedDateFilter($inUseItemsForCost);
         /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $inUseItemsList */
         $inUseItemsList = $inUseItemsForCost->get();
-        return $this->calculateItemCosts($inUseItemsList, false);
+        return $this->calculateItemCosts($inUseItemsList, false, $asOf);
     }
 
     /**
@@ -599,9 +608,10 @@ class ItemService
      *
      * @param \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $items
      * @param bool $isDiscarded 是否為已棄用物品
+     * @param Carbon|null $asOf 統計基準日（使用中物品用：以 asOf 00:00 到 asOf+1 00:00 計算）
      * @return array
      */
-    private function calculateItemCosts($items, bool $isDiscarded): array
+    private function calculateItemCosts($items, bool $isDiscarded, ?Carbon $asOf = null): array
     {
         $totalCost = 0;
         $totalDays = 0;
@@ -615,23 +625,25 @@ class ItemService
             if ($isDiscarded) {
                 // 已棄用：計算從開始使用（或到貨）到棄用的天數
                 if ($item->used_at && $item->discarded_at) {
-                    $usageDays = \Carbon\Carbon::parse($item->used_at)
-                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                    $usageDays = Carbon::parse($item->used_at)
+                        ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
                 } elseif ($item->received_at && $item->discarded_at) {
-                    $usageDays = \Carbon\Carbon::parse($item->received_at)
-                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                    $usageDays = Carbon::parse($item->received_at)
+                        ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
                 } elseif ($item->purchased_at && $item->discarded_at) {
-                    $usageDays = \Carbon\Carbon::parse($item->purchased_at)
-                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                    $usageDays = Carbon::parse($item->purchased_at)
+                        ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
                 } elseif ($item->created_at && $item->discarded_at) {
-                    $usageDays = \Carbon\Carbon::parse($item->created_at)
-                        ->diffInDays(\Carbon\Carbon::parse($item->discarded_at)) + 1;
+                    $usageDays = Carbon::parse($item->created_at)
+                        ->diffInDays(Carbon::parse($item->discarded_at)) + 1;
                 }
             } else {
-                // 使用中：計算從開始使用到查詢當天的天數
-                if ($item->used_at) {
-                    $usageDays = \Carbon\Carbon::parse($item->used_at)
-                        ->diffInDays(now()) + 1;
+                // 使用中：以「使用日 00:00 → asOf+1 00:00」計算（同一天內穩定，便於比對）
+                $endAt = ($asOf ?? now()->startOfDay())->copy()->addDay();
+                $startAtValue = $item->used_at ?? $item->received_at ?? $item->purchased_at ?? $item->created_at;
+                if ($startAtValue) {
+                    $startAt = Carbon::parse($startAtValue)->startOfDay();
+                    $usageDays = $startAt->diffInDays($endAt);
                 }
             }
 
@@ -679,10 +691,10 @@ class ItemService
      * @param int $userId
      * @param string $period
      * @param int|null $year
-     * @param \Carbon\Carbon|null $startDate
+     * @param Carbon|null $startDate
      * @return array
      */
-    private function calculateDateRange(int $userId, string $period, ?int $year, ?\Carbon\Carbon $startDate): array
+    private function calculateDateRange(int $userId, string $period, ?int $year, ?Carbon $startDate): array
     {
         $today = now();
         $start = $today->copy()->startOfDay(); // 預設值
@@ -715,7 +727,7 @@ class ItemService
                 ->orderBy('created_at', 'asc')
                 ->first();
             if ($firstItem && $firstItem->created_at) {
-                $start = \Carbon\Carbon::parse($firstItem->created_at)->startOfDay();
+                $start = Carbon::parse($firstItem->created_at)->startOfDay();
             } else {
                 $start = $today->copy()->startOfDay();
             }
