@@ -210,14 +210,12 @@ class ItemService
      * 查詢所有有過期日期的商品（尚未棄用且有過期日期，不限制日期範圍）
      * 用於調試和確認資料
      *
+     * @param int $userId 使用者 ID
      * @return int
      */
-    public function countItemsWithExpirationDate(): int
+    public function countItemsWithExpirationDate(int $userId): int
     {
-        return Item::where('user_id', auth()->id())
-            ->whereNull('discarded_at')
-            ->whereNotNull('expiration_date')
-            ->count();
+        return $this->itemRepository->countItemsWithExpirationDate($userId);
     }
 
     /**

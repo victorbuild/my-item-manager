@@ -147,4 +147,18 @@ class ItemRepository implements ItemRepositoryInterface
 
         return $stats;
     }
+
+    /**
+     * 查詢所有有過期日期的商品（尚未棄用且有過期日期，不限制日期範圍）
+     *
+     * @param int $userId 使用者 ID
+     * @return int
+     */
+    public function countItemsWithExpirationDate(int $userId): int
+    {
+        return Item::where('user_id', $userId)
+            ->whereNull('discarded_at')
+            ->whereNotNull('expiration_date')
+            ->count();
+    }
 }

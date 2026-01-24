@@ -70,4 +70,12 @@ interface ItemRepositoryInterface
      * @return array
      */
     public function getRangeStatistics(array $ranges, int $userId): array;
+
+    /**
+     * 查詢所有有過期日期的商品（尚未棄用且有過期日期，不限制日期範圍）
+     *
+     * @param int $userId 使用者 ID
+     * @return int
+     */
+    public function countItemsWithExpirationDate(int $userId): int;
 }

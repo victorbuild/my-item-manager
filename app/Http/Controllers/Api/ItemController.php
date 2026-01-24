@@ -180,7 +180,7 @@ class ItemController extends Controller
 
         // 計算所有範圍的統計（一次查詢，高效能）
         $rangeStats = $this->itemService->getRangeStatistics([7, 30, 90, 180, 365, 1095], auth()->id());
-        $totalAll = $this->itemService->countItemsWithExpirationDate();
+        $totalAll = $this->itemService->countItemsWithExpirationDate(auth()->id());
 
         return response()->json([
             'success' => true,

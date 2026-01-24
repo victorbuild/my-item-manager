@@ -636,4 +636,53 @@ class ItemServiceTest extends TestCase
         $this->assertSame($expectedStats, $result);
         // 驗證 Repository 被呼叫時使用的是傳入的 userId
     }
+
+    /**
+     * 測試：計算有過期日期的商品總數 - 應該呼叫 Repository 並傳入正確的參數
+     */
+    #[Test]
+    public function it_should_call_repository_with_correct_parameters_for_count_items_with_expiration_date(): void
+    {
+        // Arrange
+        $userId = self::TEST_USER_ID;
+        $expectedCount = 25;
+
+        $this->mockItemRepository
+            ->shouldReceive('countItemsWithExpirationDate')
+            ->once()
+            ->with($userId)
+            ->andReturn($expectedCount);
+
+        // Act
+        $result = $this->itemService->countItemsWithExpirationDate($userId);
+
+        // Assert
+        $this->assertIsInt($result);
+        $this->assertEquals($expectedCount, $result);
+    }
+
+    /**
+     * 測試：計算有過期日期的商品總數 - 應該使用傳入的 userId 而非 auth()->id()
+     */
+    #[Test]
+    public function it_should_use_provided_user_id_for_count_items_with_expiration_date(): void
+    {
+        // Arrange
+        $userId = 999; // 不同的 userId
+        $expectedCount = 10;
+
+        $this->mockItemRepository
+            ->shouldReceive('countItemsWithExpirationDate')
+            ->once()
+            ->with($userId)
+            ->andReturn($expectedCount);
+
+        // Act
+        $result = $this->itemService->countItemsWithExpirationDate($userId);
+
+        // Assert
+        $this->assertIsInt($result);
+        $this->assertEquals($expectedCount, $result);
+        // 驗證 Repository 被呼叫時使用的是傳入的 userId
+    }
 }
