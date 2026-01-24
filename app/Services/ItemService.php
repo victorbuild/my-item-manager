@@ -20,18 +20,6 @@ class ItemService
     }
 
     /**
-     * 建立物品
-     *
-     * @param array $data 物品資料
-     * @param int $userId 用戶 ID
-     * @return Item
-     */
-    public function create(array $data, int $userId): Item
-    {
-        return $this->itemRepository->create($data, $userId);
-    }
-
-    /**
      * 更新物品
      *
      * @param Item $item 物品實例
@@ -164,18 +152,6 @@ class ItemService
         return $query->paginate($perPage);
     }
 
-    /**
-     * 根據 short_id 查詢物品（找不到時拋出異常）
-     *
-     * @param string $shortId 物品 short_id
-     * @return Item
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
-     */
-    public function findByShortIdOrFail(string $shortId): Item
-    {
-        return $this->itemRepository->findByShortIdOrFail($shortId);
-    }
-
     public function delete(Item $item): void
     {
         DB::transaction(function () use ($item) {
@@ -191,19 +167,6 @@ class ItemService
 
             $item->delete();
         });
-    }
-
-    /**
-     * 查詢近期過期的商品（尚未棄用且有過期日期）
-     *
-     * @param int $userId 使用者 ID
-     * @param int $days 未來幾天內要過期（預設 30 天）
-     * @param int $perPage 每頁筆數（預設 20）
-     * @return LengthAwarePaginator
-     */
-    public function getExpiringSoonItems(int $userId, int $days = 30, int $perPage = 20): LengthAwarePaginator
-    {
-        return $this->itemRepository->getExpiringSoonItems($days, $perPage, $userId);
     }
 
     /**

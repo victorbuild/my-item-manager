@@ -12,15 +12,6 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface ItemRepositoryInterface
 {
     /**
-     * 建立物品
-     *
-     * @param array $data 物品資料
-     * @param int $userId 用戶 ID
-     * @return Item
-     */
-    public function create(array $data, int $userId): Item;
-
-    /**
      * 更新物品
      *
      * @param Item $item 物品實例

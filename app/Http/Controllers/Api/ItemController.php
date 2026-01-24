@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
 use App\Models\Item;
+use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
 use App\Services\ItemService;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,8 @@ class ItemController extends Controller
 {
     public function __construct(
         private readonly ItemService $itemService,
-        private readonly ItemImageService $itemImageService
+        private readonly ItemImageService $itemImageService,
+        private readonly ItemRepositoryInterface $itemRepository
     ) {
     }
 
@@ -84,7 +86,7 @@ class ItemController extends Controller
      */
     public function show(string $shortId): JsonResponse
     {
-        $item = $this->itemService->findByShortIdOrFail($shortId);
+        $item = $this->itemRepository->findByShortIdOrFail($shortId);
         $this->authorize('view', $item);
 
         return response()->json([
@@ -159,7 +161,7 @@ class ItemController extends Controller
         $days = $validated['days'];
         $perPage = $validated['per_page'];
 
-        $items = $this->itemService->getExpiringSoonItems(auth()->id(), $days, $perPage);
+        $items = $this->itemRepository->getExpiringSoonItems($days, $perPage, auth()->id());
         $collection = new ItemCollection($items);
         $data = $collection->toArray($request);
 

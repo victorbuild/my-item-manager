@@ -13,13 +13,13 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class ItemRepository implements ItemRepositoryInterface
 {
     /**
-     * 建立物品
+     * 建立物品（內部使用，目前僅供 createBatch 呼叫）
      *
      * @param array $data 物品資料
      * @param int $userId 用戶 ID
      * @return Item
      */
-    public function create(array $data, int $userId): Item
+    private function create(array $data, int $userId): Item
     {
         $item = Item::create($data);
         $item->user_id = $userId;
