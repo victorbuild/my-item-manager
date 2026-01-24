@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ItemStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ItemResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
@@ -93,27 +94,20 @@ class ProductController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    public function update(Request $request, string $shortId): JsonResponse
+    public function update(UpdateProductRequest $request, string $shortId): JsonResponse
     {
-        $product = Product::where('short_id', $shortId)->firstOrFail();
+        $product = $this->productRepository->findByShortIdOrFail($shortId);
 
         $this->authorize('update', $product);
 
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'model' => 'nullable|string|max:255',
-            'spec' => 'nullable|string|max:255',
-            'barcode' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
-        $product->update($validated);
+        $product = $this->productRepository->update($product, $validated);
 
         return response()->json([
             'success' => true,
             'message' => '更新成功',
-            'item' => $product,
+            'data' => new ProductResource($product),
         ]);
     }
 

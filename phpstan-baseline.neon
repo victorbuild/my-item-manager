@@ -31,12 +31,6 @@ parameters:
 			path: app/Http/Controllers/Api/ProductController.php
 
 		-
-			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:update\(\) \(as App\\Models\\Product\:\:update\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 update\(\)。\.$#'
-			identifier: disallowed.method
-			count: 1
-			path: app/Http/Controllers/Api/ProductController.php
-
-		-
 			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:currentPage\(\)\.$#'
 			identifier: method.notFound
 			count: 1

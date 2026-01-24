@@ -18,6 +18,18 @@ class ProductRepository implements ProductRepositoryInterface
         ]);
     }
 
+    public function findByShortIdOrFail(string $shortId): Product
+    {
+        return Product::where('short_id', $shortId)->firstOrFail();
+    }
+
+    public function update(Product $product, array $validated): Product
+    {
+        $product->update($validated);
+
+        return $product;
+    }
+
     public function deleteIfNoItems(Product $product): bool
     {
         if ($product->items()->exists()) {
