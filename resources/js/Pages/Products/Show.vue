@@ -133,6 +133,34 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Pagination -->
+                <div
+                    v-if="currentMeta && currentMeta.last_page > 1"
+                    class="flex items-center justify-between gap-2 pt-3 text-sm"
+                >
+                    <button
+                        class="px-3 py-1.5 rounded border"
+                        :class="(currentMeta.current_page ?? 1) <= 1 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                        :disabled="(currentMeta.current_page ?? 1) <= 1 || loading"
+                        @click="goToPage((currentMeta.current_page ?? 1) - 1)"
+                    >
+                        上一頁
+                    </button>
+
+                    <div class="text-gray-600">
+                        第 {{ currentMeta.current_page }} / {{ currentMeta.last_page }} 頁（共 {{ currentMeta.total }} 筆）
+                    </div>
+
+                    <button
+                        class="px-3 py-1.5 rounded border"
+                        :class="(currentMeta.current_page ?? 1) >= (currentMeta.last_page ?? 1) ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                        :disabled="(currentMeta.current_page ?? 1) >= (currentMeta.last_page ?? 1) || loading"
+                        @click="goToPage((currentMeta.current_page ?? 1) + 1)"
+                    >
+                        下一頁
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -147,6 +175,7 @@ import dayjs from 'dayjs'
 const route = useRoute()
 const product = ref(null)
 const stats = computed(() => product.value?.stats ?? {})
+const PER_PAGE = 10
 
 const TABS = [
     { key: 'pre_arrival', label: '📭 未到貨' },
@@ -165,15 +194,20 @@ const discardedTotal = computed(() => {
 const selectedTab = ref(null) // 'pre_arrival' | 'unused' | 'in_use' | 'discarded' | null
 const loading = ref(false)
 const itemsCache = ref({
-    pre_arrival: null,
-    unused: null,
-    in_use: null,
-    discarded: null,
+    pre_arrival: { items: [], meta: null },
+    unused: { items: [], meta: null },
+    in_use: { items: [], meta: null },
+    discarded: { items: [], meta: null },
 })
 
 const currentItems = computed(() => {
     if (!selectedTab.value) return []
-    return itemsCache.value[selectedTab.value] || []
+    return itemsCache.value[selectedTab.value]?.items || []
+})
+
+const currentMeta = computed(() => {
+    if (!selectedTab.value) return null
+    return itemsCache.value[selectedTab.value]?.meta || null
 })
 
 const activeTip = ref(null)
@@ -210,8 +244,9 @@ const buildStatusesParam = (tabKey) => {
     return tabKey
 }
 
-const fetchItemsForTab = async (tabKey) => {
-    if (itemsCache.value[tabKey]) return
+const fetchItemsForTab = async (tabKey, page = 1) => {
+    const state = itemsCache.value[tabKey]
+    if (!state) return
 
     loading.value = true
     try {
@@ -219,10 +254,12 @@ const fetchItemsForTab = async (tabKey) => {
             params: {
                 product_short_id: route.params.id,
                 statuses: buildStatusesParam(tabKey),
-                per_page: 50,
+                per_page: PER_PAGE,
+                page,
             }
         })
-        itemsCache.value[tabKey] = res.data.data || []
+        state.items = res.data.data || []
+        state.meta = res.data.meta || null
     } finally {
         loading.value = false
     }
@@ -230,7 +267,13 @@ const fetchItemsForTab = async (tabKey) => {
 
 const selectTab = async (tabKey) => {
     selectedTab.value = tabKey
-    await fetchItemsForTab(tabKey)
+    if (itemsCache.value[tabKey]?.meta) return
+    await fetchItemsForTab(tabKey, 1)
+}
+
+const goToPage = async (page) => {
+    if (!selectedTab.value) return
+    await fetchItemsForTab(selectedTab.value, page)
 }
 
 onMounted(async () => {
@@ -241,7 +284,7 @@ onMounted(async () => {
         selectedTab.value = getDefaultTab()
 
         if (selectedTab.value) {
-            await fetchItemsForTab(selectedTab.value)
+            await fetchItemsForTab(selectedTab.value, 1)
         }
     } catch (e) {
         if (e.response?.status !== 401) {
