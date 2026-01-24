@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ItemResource;
+use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Repositories\Contracts\ProductRepositoryInterface;
@@ -25,61 +26,13 @@ class ProductController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with(
-            [
-                'category',
-                'latestOwnedItem.images'
-            ]
-        )
-            ->withCount([
-                'items',
-                'items as discarded_items_count' => function ($query) {
-                    $query->whereNotNull('discarded_at');
-                },
-                'items as owned_items_count' => function ($query) {
-                    $query->whereNull('discarded_at');
-                },
-            ])
-            ->where('user_id', $request->user()->id);
+        $search = $request->query('q');
+        $perPage = (int) ($request->query('per_page') ?? 10);
+        $perPage = min(max($perPage, 1), 100);
 
-        if ($search = $request->query('q')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'ILIKE', "%$search%")
-                    ->orWhere('brand', 'ILIKE', "%$search%")
-                    ->orWhere('model', 'ILIKE', "%$search%")
-                    ->orWhere('spec', 'ILIKE', "%$search%");
-            });
-        }
+        $products = $this->productRepository->paginateForUser($request->user()->id, $search, $perPage);
 
-        $products = $query
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        // 格式化 products，確保 latest_owned_item 使用 ItemResource
-        $formattedProducts = $products->getCollection()->map(function ($product) {
-            $productArr = $product->toArray();
-            // 確保 latest_owned_item 使用 ItemResource，包含 main_image
-            if ($product->latestOwnedItem) {
-                // 確保 images 關聯已載入
-                if (!$product->latestOwnedItem->relationLoaded('images')) {
-                    $product->latestOwnedItem->load('images');
-                }
-                $productArr['latest_owned_item'] = (new ItemResource($product->latestOwnedItem))->toArray(request());
-            }
-            return $productArr;
-        })->values();
-
-        return response()->json([
-            'success' => true,
-            'message' => '取得成功',
-            'meta' => [
-                'current_page' => $products->currentPage(),
-                'last_page' => $products->lastPage(),
-                'per_page' => $products->perPage(),
-                'total' => $products->total(),
-            ],
-            'items' => $formattedProducts,
-        ]);
+        return response()->json((new ProductCollection($products))->toArray($request));
     }
 
     public function store(StoreProductRequest $request): JsonResponse

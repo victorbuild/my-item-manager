@@ -546,7 +546,7 @@ const _searchProduct = async (query) => {
     
     try {
         const res = await axios.get('/api/products', { params: { q: query } })
-        products.value = res.data.items || res.data // 視 API 結構調整
+        products.value = res.data.data
 
         if (!products.value.find(p => p.name === query)) {
             products.value.unshift({

@@ -41,7 +41,7 @@ const fetchProducts = async (page = 1) => {
                 q: search.value
             }
         })
-        products.value = res.data.items
+        products.value = res.data.data
         pagination.value = res.data.meta
     } catch (e) {
         console.error('無法取得產品資料', e)

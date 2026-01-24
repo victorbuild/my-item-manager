@@ -128,6 +128,86 @@ class ProductControllerTest extends TestCase
     }
 
     /**
+     * 測試：未登入取得產品列表 - 401
+     */
+    #[Test]
+    public function it_should_return_401_when_listing_products_unauthenticated(): void
+    {
+        $response = $this->getJson('/api/products');
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * 測試：取得產品列表 - 成功（含 meta / data）
+     */
+    #[Test]
+    public function it_should_list_products_successfully(): void
+    {
+        // Arrange
+        Product::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => '我的產品 A',
+            'short_id' => 'prd-list-a',
+        ]);
+        Product::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => '我的產品 B',
+            'short_id' => 'prd-list-b',
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)->getJson('/api/products');
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '取得成功',
+            ])
+            ->assertJsonStructure([
+                'meta' => ['current_page', 'last_page', 'per_page', 'total'],
+                'data' => [
+                    '*' => [
+                        'id',
+                        'short_id',
+                        'name',
+                        'brand',
+                        'category',
+                        'owned_items_count',
+                        'latest_owned_item',
+                    ],
+                ],
+            ]);
+    }
+
+    /**
+     * 測試：產品列表 q 搜尋可過濾結果
+     */
+    #[Test]
+    public function it_should_filter_products_by_search_query(): void
+    {
+        // Arrange
+        Product::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => 'iPhone 15',
+            'short_id' => 'prd-search-1',
+        ]);
+        Product::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => '其他產品',
+            'short_id' => 'prd-search-2',
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)->getJson('/api/products?q=iPhone');
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJsonPath('data.0.name', 'iPhone 15');
+    }
+
+    /**
      * 測試：更新產品 - 成功
      */
     #[Test]

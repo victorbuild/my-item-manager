@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Product;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * 產品資料存取介面
@@ -18,6 +19,16 @@ interface ProductRepositoryInterface
      * @return Product 建立後的產品
      */
     public function create(array $validated, int $userId): Product;
+
+    /**
+     * 取得使用者的產品列表（可搜尋、分頁）
+     *
+     * @param int $userId 使用者 ID
+     * @param string|null $search 搜尋字串（q）
+     * @param int $perPage 每頁筆數
+     * @return LengthAwarePaginator
+     */
+    public function paginateForUser(int $userId, ?string $search, int $perPage = 10): LengthAwarePaginator;
 
     /**
      * 依 short_id 取得產品，找不到則拋出例外

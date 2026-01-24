@@ -25,12 +25,6 @@ parameters:
 			path: app/Http/Controllers/Api/ItemUnitController.php
 
 		-
-			message: '#^Calling Illuminate\\Database\\Eloquent\\Builder\:\:where\(\) is forbidden, ❌ 禁止在 Controller 內直接使用 where\(\)。\.$#'
-			identifier: disallowed.method
-			count: 3
-			path: app/Http/Controllers/Api/ProductController.php
-
-		-
 			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:currentPage\(\)\.$#'
 			identifier: method.notFound
 			count: 1
