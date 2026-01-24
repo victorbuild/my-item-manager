@@ -183,6 +183,25 @@ class ItemService
     public function getStatistics(string $period = 'all', ?int $year = null): array
     {
         $userId = auth()->id();
+        if ($userId === null) {
+            return [];
+        }
+
+        return $this->getStatisticsForUser($userId, $period, $year);
+    }
+
+    /**
+     * 取得指定使用者的物品統計資料
+     *
+     * 用於將統計計算邏輯從 auth() 解耦，方便單元測試與重用。
+     *
+     * @param int $userId 使用者 ID
+     * @param string $period 時間範圍：all, year, month, week, three_months
+     * @param int|null $year 年份（當 period 為 year 時使用）
+     * @return array
+     */
+    public function getStatisticsForUser(int $userId, string $period = 'all', ?int $year = null): array
+    {
         $baseQuery = Item::where('user_id', $userId);
 
         // 計算時間範圍
@@ -213,7 +232,7 @@ class ItemService
         $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter);
 
         // 計算時間範圍的開始和結束日期
-        $dateRange = $this->calculateDateRange($period, $year, $startDate);
+        $dateRange = $this->calculateDateRange($userId, $period, $year, $startDate);
 
         return [
             'totals' => $totals,
@@ -657,12 +676,13 @@ class ItemService
     /**
      * 計算時間範圍的開始和結束日期
      *
+     * @param int $userId
      * @param string $period
      * @param int|null $year
      * @param \Carbon\Carbon|null $startDate
      * @return array
      */
-    private function calculateDateRange(string $period, ?int $year, ?\Carbon\Carbon $startDate): array
+    private function calculateDateRange(int $userId, string $period, ?int $year, ?\Carbon\Carbon $startDate): array
     {
         $today = now();
         $start = $today->copy()->startOfDay(); // 預設值
@@ -691,7 +711,7 @@ class ItemService
             $end = $today;
         } else {
             // 全部時間範圍，使用第一個物品的創建日期
-            $firstItem = Item::where('user_id', auth()->id())
+            $firstItem = Item::where('user_id', $userId)
                 ->orderBy('created_at', 'asc')
                 ->first();
             if ($firstItem && $firstItem->created_at) {
