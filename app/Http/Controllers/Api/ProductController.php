@@ -107,10 +107,7 @@ class ProductController extends Controller
     {
         $product = Product::where('short_id', $shortId)->firstOrFail();
 
-        // 確保使用者只能編輯自己的產品
-        if ($product->user_id !== $request->user()->id) {
-            return response()->json(['message' => '無權限修改此產品'], 403);
-        }
+        $this->authorize('update', $product);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -134,9 +131,7 @@ class ProductController extends Controller
     {
         $product = Product::where('short_id', $shortId)->firstOrFail();
 
-        if ($product->user_id !== $request->user()->id) {
-            return response()->json(['message' => '無權限檢視此產品'], 403);
-        }
+        $this->authorize('view', $product);
 
         // 使用 load 同時載入 category 和 items（包含 user_id 過濾和 images eager load）
         // 這樣可以減少查詢次數，避免 N+1 問題
@@ -191,10 +186,7 @@ class ProductController extends Controller
     {
         $product = Product::where('short_id', $shortId)->firstOrFail();
 
-        // 確保使用者只能刪除自己的產品
-        if ($product->user_id !== $request->user()->id) {
-            return response()->json(['message' => '無權限刪除此產品'], 403);
-        }
+        $this->authorize('delete', $product);
 
         if (!$this->productService->deleteIfNoItems($product)) {
             return response()->json([
