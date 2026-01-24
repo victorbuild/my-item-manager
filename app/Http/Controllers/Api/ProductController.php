@@ -4,17 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\ItemStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProductRequest;
 use App\Http\Resources\ItemResource;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Http\Response;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly ProductService $productService)
-    {
+    public function __construct(
+        private readonly ProductService $productService,
+        private readonly ProductRepositoryInterface $productRepository
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -76,31 +81,16 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'brand' => 'nullable|string|max:255',
-            'category_id' => 'nullable|exists:categories,id',
-            'model' => 'nullable|string|max:255',
-            'spec' => 'nullable|string|max:255',
-            'barcode' => 'nullable|string|max:255',
-        ]);
-
-        $product = Product::create([
-            ...$validated,
-            'user_id' => $request->user()->id, // 如果有 user 綁定
-            'uuid' => (string)Str::uuid(),
-            'short_id' => Str::random(8),
-        ]);
+        $validated = $request->validated();
+        $product = $this->productRepository->create($validated, $request->user()->id);
 
         return response()->json([
             'success' => true,
-            'message' => '建立成功',
-            'items' => [
-                $product
-            ],
-        ]);
+            'message' => '成功建立產品',
+            'data' => new ProductResource($product),
+        ], Response::HTTP_CREATED);
     }
 
     public function update(Request $request, string $shortId): JsonResponse

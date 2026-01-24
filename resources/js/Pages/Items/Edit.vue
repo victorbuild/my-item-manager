@@ -278,8 +278,7 @@ const confirmCreateProduct = async () => {
             barcode: newProduct.value.barcode,
         })
         
-        // 處理 API 返回的數據結構
-        selectedProduct.value = res.data.items?.[0] || res.data.item || res.data
+        selectedProduct.value = res.data.data
         creatingProduct.value = false
         newProduct.value = {
             name: '',
