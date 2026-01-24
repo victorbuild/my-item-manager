@@ -61,4 +61,13 @@ interface ItemRepositoryInterface
         int $perPage,
         int $userId
     ): LengthAwarePaginator;
+
+    /**
+     * 計算所有日期範圍的統計
+     *
+     * @param array $ranges 日期範圍陣列，例如 [7, 30, 90, 180, 365, 1095]
+     * @param int $userId 使用者 ID
+     * @return array
+     */
+    public function getRangeStatistics(array $ranges, int $userId): array;
 }

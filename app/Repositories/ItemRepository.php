@@ -120,4 +120,31 @@ class ItemRepository implements ItemRepositoryInterface
 
         return $query->paginate($perPage);
     }
+
+    /**
+     * 計算所有日期範圍的統計
+     *
+     * @param array $ranges 日期範圍陣列，例如 [7, 30, 90, 180, 365, 1095]
+     * @param int $userId 使用者 ID
+     * @return array
+     */
+    public function getRangeStatistics(array $ranges, int $userId): array
+    {
+        $today = now()->startOfDay();
+        $stats = [];
+
+        foreach ($ranges as $days) {
+            $endDate = $today->copy()->addDays($days)->endOfDay()->format('Y-m-d');
+
+            $count = Item::where('user_id', $userId)
+                ->whereNull('discarded_at')
+                ->whereNotNull('expiration_date')
+                ->whereDate('expiration_date', '<=', $endDate)
+                ->count();
+
+            $stats[$days] = $count;
+        }
+
+        return $stats;
+    }
 }

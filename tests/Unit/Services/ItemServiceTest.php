@@ -572,4 +572,68 @@ class ItemServiceTest extends TestCase
         $this->assertSame($expectedPaginator, $result);
         // 驗證 Repository 被呼叫時使用的是傳入的 userId（透過 shouldReceive 的 with 驗證）
     }
+
+    /**
+     * 測試：計算日期範圍統計 - 應該呼叫 Repository 並傳入正確的參數
+     */
+    #[Test]
+    public function it_should_call_repository_with_correct_parameters_for_range_statistics(): void
+    {
+        // Arrange
+        $ranges = [7, 30, 90, 180, 365, 1095];
+        $userId = self::TEST_USER_ID;
+        $expectedStats = [
+            7 => 5,
+            30 => 10,
+            90 => 15,
+            180 => 20,
+            365 => 25,
+            1095 => 30,
+        ];
+
+        $this->mockItemRepository
+            ->shouldReceive('getRangeStatistics')
+            ->once()
+            ->with($ranges, $userId)
+            ->andReturn($expectedStats);
+
+        // Act
+        $result = $this->itemService->getRangeStatistics($ranges, $userId);
+
+        // Assert
+        $this->assertIsArray($result);
+        $this->assertSame($expectedStats, $result);
+        $this->assertArrayHasKey(7, $result);
+        $this->assertArrayHasKey(30, $result);
+        $this->assertArrayHasKey(1095, $result);
+    }
+
+    /**
+     * 測試：計算日期範圍統計 - 應該使用傳入的 userId 而非 auth()->id()
+     */
+    #[Test]
+    public function it_should_use_provided_user_id_for_range_statistics(): void
+    {
+        // Arrange
+        $ranges = [7, 30];
+        $userId = 999; // 不同的 userId
+        $expectedStats = [
+            7 => 2,
+            30 => 5,
+        ];
+
+        $this->mockItemRepository
+            ->shouldReceive('getRangeStatistics')
+            ->once()
+            ->with($ranges, $userId)
+            ->andReturn($expectedStats);
+
+        // Act
+        $result = $this->itemService->getRangeStatistics($ranges, $userId);
+
+        // Assert
+        $this->assertIsArray($result);
+        $this->assertSame($expectedStats, $result);
+        // 驗證 Repository 被呼叫時使用的是傳入的 userId
+    }
 }
