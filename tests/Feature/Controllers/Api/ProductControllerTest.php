@@ -3,6 +3,7 @@
 namespace Tests\Feature\Controllers\Api;
 
 use App\Models\Category;
+use App\Models\Item;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -368,5 +369,89 @@ class ProductControllerTest extends TestCase
                 'success' => false,
             ])
             ->assertJsonValidationErrors(['name']);
+    }
+
+    /**
+     * 測試：未登入刪除產品 - 401
+     */
+    #[Test]
+    public function it_should_return_401_when_deleting_product_unauthenticated(): void
+    {
+        $product = Product::factory()->create([
+            'short_id' => 'prd-del-unauth-001',
+        ]);
+
+        $response = $this->deleteJson("/api/products/{$product->short_id}");
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * 測試：刪除他人的產品 - 403（ProductPolicy delete）
+     */
+    #[Test]
+    public function it_should_return_403_when_deleting_other_users_product(): void
+    {
+        $userB = User::factory()->create();
+        $productB = Product::factory()->create([
+            'user_id' => $userB->id,
+            'short_id' => 'prd-del-b-001',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/products/{$productB->short_id}");
+
+        $response->assertStatus(403);
+    }
+
+    /**
+     * 測試：刪除自己的產品 - 成功（204）
+     */
+    #[Test]
+    public function it_should_delete_product_successfully(): void
+    {
+        $product = Product::factory()->create([
+            'user_id' => $this->user->id,
+            'short_id' => 'prd-del-001',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/products/{$product->short_id}");
+
+        $response->assertStatus(204);
+
+        $this->assertDatabaseMissing('products', [
+            'id' => $product->id,
+        ]);
+    }
+
+    /**
+     * 測試：產品仍有關聯物品時不可刪除 - 422
+     */
+    #[Test]
+    public function it_should_return_422_when_deleting_product_with_items(): void
+    {
+        $product = Product::factory()->create([
+            'user_id' => $this->user->id,
+            'short_id' => 'prd-del-002',
+        ]);
+
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/products/{$product->short_id}");
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+                'message' => '此產品仍有關聯物品，無法刪除',
+            ]);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+        ]);
     }
 }

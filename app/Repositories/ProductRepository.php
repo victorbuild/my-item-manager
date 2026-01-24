@@ -50,6 +50,13 @@ class ProductRepository implements ProductRepositoryInterface
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
+    /**
+     * 依 short_id 取得產品，找不到則拋出例外
+     *
+     * @param string $shortId 產品短 ID
+     * @return Product 產品
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 找不到產品時拋出
+     */
     public function findByShortIdOrFail(string $shortId): Product
     {
         return Product::where('short_id', $shortId)->firstOrFail();
@@ -62,6 +69,12 @@ class ProductRepository implements ProductRepositoryInterface
         return $product;
     }
 
+    /**
+     * 若產品沒有關聯的物品，則刪除產品
+     *
+     * @param Product $product 產品
+     * @return bool 若產品有關聯物品返回 false（不刪除），否則返回刪除結果
+     */
     public function deleteIfNoItems(Product $product): bool
     {
         if ($product->items()->exists()) {

@@ -119,22 +119,22 @@ class ProductController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, string $shortId): JsonResponse
+    /**
+     * 刪除產品
+     *
+     * @param string $shortId
+     * @return Response
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 找不到產品時拋出
+     * @throws \Illuminate\Auth\Access\AuthorizationException 非擁有者時拋出（403）
+     */
+    public function destroy(string $shortId): Response
     {
-        $product = Product::where('short_id', $shortId)->firstOrFail();
+        $product = $this->productRepository->findByShortIdOrFail($shortId);
 
         $this->authorize('delete', $product);
 
-        if (!$this->productService->deleteIfNoItems($product)) {
-            return response()->json([
-                'success' => false,
-                'message' => '此產品仍有關聯物品，無法刪除'
-            ], 400);
-        }
+        $this->productService->deleteOrFailIfNoItems($product);
 
-        return response()->json([
-            'success' => true,
-            'message' => '產品已刪除'
-        ]);
+        return response()->noContent();
     }
 }

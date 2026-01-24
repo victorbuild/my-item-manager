@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Exceptions\UnprocessableEntityException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -41,6 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
                     Response::HTTP_UNPROCESSABLE_ENTITY,
                     '驗證失敗',
                     $e->errors(),
+                ],
+                $e instanceof UnprocessableEntityException => [
+                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                    $e->getMessage(),
+                    null,
                 ],
                 $e instanceof \Illuminate\Auth\AuthenticationException => [
                     Response::HTTP_UNAUTHORIZED,
