@@ -207,30 +207,6 @@ class ItemService
     }
 
     /**
-     * 查詢所有有過期日期的商品（尚未棄用且有過期日期，不限制日期範圍）
-     * 用於調試和確認資料
-     *
-     * @param int $userId 使用者 ID
-     * @return int
-     */
-    public function countItemsWithExpirationDate(int $userId): int
-    {
-        return $this->itemRepository->countItemsWithExpirationDate($userId);
-    }
-
-    /**
-     * 計算所有日期範圍的統計
-     *
-     * @param array $ranges 日期範圍陣列，例如 [7, 14, 30, 60, 90, 180, 365, 730, 1095]
-     * @param int $userId 使用者 ID
-     * @return array
-     */
-    public function getRangeStatistics(array $ranges, int $userId): array
-    {
-        return $this->itemRepository->getRangeStatistics($ranges, $userId);
-    }
-
-    /**
      * 取得 expiringSoon 端點的統計資料
      *
      * @param int $days 查詢天數（用於計算範圍統計，但不影響結果）

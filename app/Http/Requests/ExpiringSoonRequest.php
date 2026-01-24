@@ -27,13 +27,16 @@ class ExpiringSoonRequest extends FormRequest
      *
      * 如果請求中沒有提供 `days` 或 `per_page`，則設定預設值。
      * 這樣驗證時會包含這些欄位，`validated()` 方法也會包含預設值。
+     * 注意：只有在值不存在時才設定預設值，避免覆蓋傳入的值。
      */
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'days' => $this->input('days', 30),
-            'per_page' => $this->input('per_page', 20),
-        ]);
+        if (!$this->has('days')) {
+            $this->merge(['days' => 30]);
+        }
+        if (!$this->has('per_page')) {
+            $this->merge(['per_page' => 20]);
+        }
     }
 
     /**

@@ -139,7 +139,7 @@ const fetchItems = async (page = 1) => {
                 per_page: 20,
             },
         })
-        items.value = res.data.items
+        items.value = res.data.data
         pagination.value = res.data.meta
         
         // 更新範圍統計

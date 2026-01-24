@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ExpiringSoonRequest;
 use App\Http\Requests\StoreItemRequest;
 use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
@@ -149,46 +150,29 @@ class ItemController extends Controller
     /**
      * 取得近期過期的商品列表
      *
-     * @param Request $request
+     * @param ExpiringSoonRequest $request
      * @return JsonResponse
      */
-    public function expiringSoon(Request $request): JsonResponse
+    public function expiringSoon(ExpiringSoonRequest $request): JsonResponse
     {
-        $days = (int) $request->input('days', 30);
-
-        // 限制最多只能查詢 3 年（1095 天）
-        if ($days < 1) {
-            return response()->json([
-                'success' => false,
-                'message' => '查詢天數必須大於 0',
-            ], 400);
-        }
-
-        if ($days > 1095) {
-            return response()->json([
-                'success' => false,
-                'message' => '查詢天數最多為 1095 天（3 年）',
-            ], 400);
-        }
-
-        $perPage = $request->input('per_page', 20);
-        $perPage = min(max($perPage, 1), 100); // 限制在 1-100 之間
+        $validated = $request->validated();
+        $days = $validated['days'];
+        $perPage = $validated['per_page'];
 
         $items = $this->itemService->getExpiringSoonItems(auth()->id(), $days, $perPage);
         $collection = new ItemCollection($items);
         $data = $collection->toArray($request);
 
-        // 計算所有範圍的統計（一次查詢，高效能）
-        $rangeStats = $this->itemService->getRangeStatistics([7, 30, 90, 180, 365, 1095], auth()->id());
-        $totalAll = $this->itemService->countItemsWithExpirationDate(auth()->id());
+        // 取得統計資料（整合方法）
+        $statistics = $this->itemService->getExpiringSoonStatistics($days, auth()->id());
 
         return response()->json([
             'success' => true,
             'message' => '取得成功',
             'meta' => $data['meta'],
-            'items' => $data['items'],
-            'range_statistics' => $rangeStats,
-            'total_all_with_expiration_date' => $totalAll,
+            'data' => $data['items'],
+            'range_statistics' => $statistics['range_statistics'],
+            'total_all_with_expiration_date' => $statistics['total_all_with_expiration_date'],
         ]);
     }
 

@@ -257,7 +257,7 @@ const fetchExpiringItems = async () => {
                 per_page: 5, // 只顯示前 5 個
             },
         })
-        expiringItems.value = res.data.items || []
+        expiringItems.value = res.data.data || []
     } catch (error) {
         console.error('載入過期商品失敗:', error)
         expiringItems.value = []

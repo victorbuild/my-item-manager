@@ -356,4 +356,122 @@ class ItemControllerTest extends TestCase
         $response->assertStatus(403);
         $this->assertDatabaseHas('items', ['id' => $itemB->id]);
     }
+
+    /**
+     * 測試：expiringSoon 端點 - 成功回傳資料
+     */
+    #[Test]
+    public function it_should_return_expiring_soon_items_successfully(): void
+    {
+        // Arrange
+        $item1 = Item::factory()->create([
+            'user_id' => $this->user->id,
+            'expiration_date' => now()->addDays(5)->format('Y-m-d'),
+        ]);
+        $item2 = Item::factory()->create([
+            'user_id' => $this->user->id,
+            'expiration_date' => now()->addDays(10)->format('Y-m-d'),
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)->getJson('/api/items/expiring-soon', [
+            'days' => 30,
+            'per_page' => 20,
+        ]);
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '取得成功',
+            ])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'meta' => [
+                    'current_page',
+                    'per_page',
+                    'total',
+                ],
+                'data',
+                'range_statistics',
+                'total_all_with_expiration_date',
+            ]);
+
+        // 驗證使用 data 而非 items
+        $this->assertArrayHasKey('data', $response->json());
+        $this->assertArrayNotHasKey('items', $response->json());
+    }
+
+    /**
+     * 測試：expiringSoon 端點 - Form Request 驗證失敗（days 超出範圍）
+     */
+    #[Test]
+    public function it_should_return_422_when_days_exceeds_maximum(): void
+    {
+        // Act
+        $response = $this->actingAs($this->user)->getJson('/api/items/expiring-soon?days=2000&per_page=20');
+
+        // Assert
+        $response->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors' => [
+                    'days',
+                ],
+            ]);
+    }
+
+    /**
+     * 測試：expiringSoon 端點 - Form Request 驗證失敗（per_page 超出範圍）
+     */
+    #[Test]
+    public function it_should_return_422_when_per_page_exceeds_maximum(): void
+    {
+        // Act
+        $response = $this->actingAs($this->user)->getJson('/api/items/expiring-soon?days=30&per_page=200');
+
+        // Assert
+        $response->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors' => [
+                    'per_page',
+                ],
+            ]);
+    }
+
+    /**
+     * 測試：expiringSoon 端點 - 使用預設值
+     */
+    #[Test]
+    public function it_should_use_default_values_when_params_not_provided(): void
+    {
+        // Act
+        $response = $this->actingAs($this->user)->getJson('/api/items/expiring-soon');
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '取得成功',
+            ]);
+
+        // 驗證預設值（days=30, per_page=20）
+        $meta = $response->json('meta');
+        $this->assertEquals(20, $meta['per_page']);
+    }
+
+    /**
+     * 測試：expiringSoon 端點 - 未認證
+     */
+    #[Test]
+    public function it_should_return_401_when_unauthenticated_for_expiring_soon(): void
+    {
+        // Act
+        $response = $this->getJson('/api/items/expiring-soon');
+
+        // Assert
+        $response->assertStatus(401);
+    }
 }
