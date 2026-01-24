@@ -3,16 +3,10 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">📊 統計分析</h1>
+            <div v-if="loadingLight" class="text-xs text-gray-500">更新資料中...</div>
         </div>
-
-        <!-- Loading State -->
-        <div v-if="loading" class="text-center py-8">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p class="mt-4 text-gray-600">載入統計資料中...</p>
-        </div>
-
-        <!-- Content -->
-        <div v-else class="space-y-4">
+        
+        <div class="space-y-4">
             <!-- Period Selector -->
             <div class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-center justify-between mb-4">
@@ -25,11 +19,13 @@
                         v-for="period in allPeriods"
                         :key="period.value"
                         @click="handlePeriodClick(period.value)"
+                        :disabled="isLoading"
                         :class="[
                             'px-4 py-2 rounded-lg text-sm font-medium transition-all',
                             selectedPeriod === period.value
                                 ? 'bg-blue-600 text-white shadow-md'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                            isLoading ? 'opacity-60 cursor-not-allowed' : ''
                         ]"
                     >
                         {{ period.label }}
@@ -42,6 +38,7 @@
                     <select
                         v-model="selectedYear"
                         @change="fetchStatistics"
+                        :disabled="isLoading"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                     >
                         <option v-for="year in availableYears" :key="year" :value="year">
@@ -52,12 +49,25 @@
             </div>
 
             <!-- 統計時間區間卡片 -->
-            <div v-if="statistics.date_range" class="bg-white rounded-lg shadow p-4">
+            <div v-if="loadingLight && !statistics.date_range" class="bg-white rounded-lg shadow p-4">
+                <div class="text-sm text-gray-600 mb-1">📅 統計時間區間</div>
+                <div class="h-6 w-64 bg-gray-200 rounded animate-pulse"></div>
+                <div class="h-4 w-40 bg-gray-100 rounded animate-pulse mt-2"></div>
+            </div>
+            <div v-else-if="statistics.date_range" class="bg-white rounded-lg shadow p-4">
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-sm text-gray-600 mb-1">📅 統計時間區間</div>
                         <div class="text-lg font-semibold text-gray-800">
                             {{ formatDateRange(statistics.date_range) }}
+                        </div>
+                        <div v-if="statistics.as_of" class="text-xs text-gray-400 mt-1">
+                            統計基準日（as_of）：{{ statistics.as_of }}
+                            <span v-if="loadingHeavy" class="inline-flex items-center gap-1">
+                                （載入完整統計中
+                                <span class="inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
+                                ）
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -359,12 +369,24 @@
             </div>
 
             <!-- 尚未使用的物品 -->
-            <div v-if="statistics.unused_items && statistics.unused_items.count > 0" class="bg-white rounded-lg shadow p-4">
+            <div v-if="loadingHeavy && !statistics.unused_items" class="bg-white rounded-lg shadow p-4">
+                <h2 class="text-lg font-semibold mb-4 text-gray-800 inline-flex items-center gap-2">
+                    📚 尚未使用的物品
+                    <span class="inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
+                </h2>
+                <div class="space-y-3">
+                    <div class="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+            </div>
+            <div v-else-if="statistics.unused_items && statistics.unused_items.count > 0" class="bg-white rounded-lg shadow p-4">
                 <h2 class="text-lg font-semibold mb-4 text-gray-800">
                     📚 尚未使用的物品
                     <span class="text-sm font-normal text-gray-500">
                         ({{ getPeriodLabel() }}新增的物品)
                     </span>
+                    <span v-if="loadingHeavy" class="ml-2 inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
                 </h2>
                 <div class="space-y-3">
                     <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg mb-4">
@@ -421,12 +443,24 @@
             </div>
 
             <!-- Top 5 Most Expensive Items -->
-            <div v-if="statistics.top_expensive && statistics.top_expensive.length > 0" class="bg-white rounded-lg shadow p-4">
+            <div v-if="loadingHeavy && !statistics.top_expensive" class="bg-white rounded-lg shadow p-4">
+                <h2 class="text-lg font-semibold mb-4 text-gray-800 inline-flex items-center gap-2">
+                    💎 價格最昂貴的前五名
+                    <span class="inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
+                </h2>
+                <div class="space-y-3">
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+            </div>
+            <div v-else-if="statistics.top_expensive && statistics.top_expensive.length > 0" class="bg-white rounded-lg shadow p-4">
                 <h2 class="text-lg font-semibold mb-4 text-gray-800">
                     💎 價格最昂貴的前五名
                     <span class="text-sm font-normal text-gray-500">
                         ({{ getPeriodLabel() }}新增的物品)
                     </span>
+                    <span v-if="loadingHeavy" class="ml-2 inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
                 </h2>
                 <div class="space-y-3">
                     <div
@@ -478,12 +512,24 @@
             </div>
 
             <!-- 已結案物品成本統計 -->
-            <div v-if="statistics.discarded_cost_stats" class="bg-white rounded-lg shadow p-4">
+            <div v-if="loadingHeavy && !statistics.discarded_cost_stats" class="bg-white rounded-lg shadow p-4">
+                <h2 class="text-lg font-semibold mb-4 text-gray-800 inline-flex items-center gap-2">
+                    📊 已結案物品成本統計
+                    <span class="inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
+                </h2>
+                <div class="space-y-3">
+                    <div class="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+            </div>
+            <div v-else-if="statistics.discarded_cost_stats" class="bg-white rounded-lg shadow p-4">
                 <h2 class="text-lg font-semibold mb-4 text-gray-800">
                     📊 已結案物品成本統計
                     <span class="text-sm font-normal text-gray-500">
                         ({{ getPeriodLabel() }}未使用棄用、已使用棄用的物品，平均每日成本)
                     </span>
+                    <span v-if="loadingHeavy" class="ml-2 inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
                 </h2>
                 
                 <!-- 平均每日成本 -->
@@ -551,16 +597,25 @@
             </div>
 
             <!-- 使用中物品成本統計 -->
-            <div v-if="statistics.in_use_cost_stats" class="bg-white rounded-lg shadow p-4">
+            <div v-if="loadingHeavy && !statistics.in_use_cost_stats" class="bg-white rounded-lg shadow p-4">
+                <h2 class="text-lg font-semibold mb-4 text-gray-800 inline-flex items-center gap-2">
+                    📊 使用中物品成本統計
+                    <span class="inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
+                </h2>
+                <div class="space-y-3">
+                    <div class="h-10 bg-gray-200 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                    <div class="h-24 bg-gray-100 rounded animate-pulse"></div>
+                </div>
+            </div>
+            <div v-else-if="statistics.in_use_cost_stats" class="bg-white rounded-lg shadow p-4">
                 <h2 class="text-lg font-semibold mb-4 text-gray-800">
                     📊 使用中物品成本統計
                     <span class="text-sm font-normal text-gray-500">
-                        ({{ getPeriodLabel() }}使用中的物品，計算至查詢當天)
+                        ({{ getPeriodLabel() }}使用中的物品，計算至 {{ statistics.as_of || '查詢當天' }} + 1 00:00)
                     </span>
+                    <span v-if="loadingHeavy" class="ml-2 inline-block w-3 h-3 border-b-2 border-gray-400 rounded-full animate-spin"></span>
                 </h2>
-                <div class="text-xs text-gray-400 mb-4">
-                    查詢時間：{{ new Date().toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) }}
-                </div>
                 
                 <!-- 平均每日成本 -->
                 <div v-if="statistics.in_use_cost_stats.average_cost_per_day > 0" class="mb-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
@@ -636,10 +691,13 @@ import { useRouter } from 'vue-router'
 import axios from '../axios'
 
 const router = useRouter()
-const loading = ref(true)
+const loadingLight = ref(true)
+const loadingHeavy = ref(false)
 const statistics = ref({})
 const selectedPeriod = ref('week') // 預設為本週
 const selectedYear = ref(new Date().getFullYear()) // 預設為今年
+
+const isLoading = computed(() => loadingLight.value || loadingHeavy.value)
 
 // 生成可選年份列表（過去 5 年到未來 1 年）
 const availableYears = computed(() => {
@@ -781,28 +839,67 @@ const balanceMessage = computed(() => {
 
 // 處理時間範圍點擊
 const handlePeriodClick = (periodValue) => {
+    if (isLoading.value) return
     selectedPeriod.value = periodValue
     fetchStatistics()
 }
 
 const fetchStatistics = async () => {
     try {
-        loading.value = true
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms))
+        const minIndicatorMs = 250
+
+        const lightStartedAt = Date.now()
+        loadingLight.value = true
         const params = { period: selectedPeriod.value }
         
         // 如果選擇了年份，傳遞年份參數
         if (selectedPeriod.value === 'year') {
             params.year = selectedYear.value
         }
-        
-        const res = await axios.get('/api/items/statistics/overview', { params })
-        if (res.data.success) {
-            statistics.value = res.data.data
+
+        // Step 4：先載入輕量（不含重區塊），再背景載入重區塊
+        // include=light 只是佔位字串：後端會忽略未知 section，因此能回「輕量」資料
+        const resLight = await axios.get('/api/items/statistics/overview', {
+            params: {
+                ...params,
+                include: 'light',
+            }
+        })
+        if (resLight.data.success) {
+            statistics.value = resLight.data.data
+        }
+
+        const lightElapsed = Date.now() - lightStartedAt
+        if (lightElapsed < minIndicatorMs) {
+            await sleep(minIndicatorMs - lightElapsed)
+        }
+        loadingLight.value = false
+
+        const heavyStartedAt = Date.now()
+        loadingHeavy.value = true
+        const resHeavy = await axios.get('/api/items/statistics/overview', {
+            params: {
+                ...params,
+                include: 'top_expensive,unused_items,discarded_cost_stats,in_use_cost_stats',
+            }
+        })
+        if (resHeavy.data.success) {
+            statistics.value = {
+                ...statistics.value,
+                ...resHeavy.data.data,
+            }
+        }
+
+        const heavyElapsed = Date.now() - heavyStartedAt
+        if (heavyElapsed < minIndicatorMs) {
+            await sleep(minIndicatorMs - heavyElapsed)
         }
     } catch (error) {
         console.error('載入統計資料失敗:', error)
     } finally {
-        loading.value = false
+        loadingHeavy.value = false
+        loadingLight.value = false
     }
 }
 

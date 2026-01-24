@@ -513,4 +513,73 @@ class ItemControllerTest extends TestCase
         // Assert
         $response->assertStatus(401);
     }
+
+    /**
+     * 測試：statistics 預設回傳整包統計（向後相容）
+     */
+    #[Test]
+    public function it_should_return_statistics_overview_successfully_with_default_payload(): void
+    {
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'used_at' => now()->toDateString(),
+            'discarded_at' => null,
+            'price' => 100,
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson('/api/items/statistics/overview?period=month');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'message' => '取得成功'])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'as_of',
+                    'totals',
+                    'status',
+                    'value_stats',
+                    'top_expensive',
+                    'unused_items',
+                    'discarded_cost_stats',
+                    'in_use_cost_stats',
+                    'date_range',
+                ],
+            ]);
+    }
+
+    /**
+     * 測試：statistics 支援 include 分段載入（只回指定重區塊）
+     */
+    #[Test]
+    public function it_should_only_include_requested_sections_when_include_provided(): void
+    {
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'used_at' => now()->toDateString(),
+            'discarded_at' => null,
+            'price' => 100,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/items/statistics/overview?period=month&include=unused_items');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'message' => '取得成功'])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'as_of',
+                    'totals',
+                    'status',
+                    'value_stats',
+                    'unused_items',
+                    'date_range',
+                ],
+            ])
+            ->assertJsonMissingPath('data.top_expensive')
+            ->assertJsonMissingPath('data.discarded_cost_stats')
+            ->assertJsonMissingPath('data.in_use_cost_stats');
+    }
 }

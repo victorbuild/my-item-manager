@@ -189,6 +189,9 @@ class ItemController extends Controller
     {
         $period = $request->input('period', 'all');
         $year = $request->input('year') ? (int) $request->input('year') : null;
+        $include = $request->filled('include')
+            ? array_values(array_filter(array_map('trim', explode(',', (string) $request->input('include')))))
+            : null;
 
         // 驗證時間範圍參數（all 已經包含在內）
         if (!in_array($period, ['all', 'year', 'month', 'week', 'three_months'])) {
@@ -198,10 +201,20 @@ class ItemController extends Controller
             ], 400);
         }
 
-        $statistics = $this->itemService->getStatistics($period, $year);
+        $userId = $request->user()?->id;
+        if ($userId === null) {
+            return response()->json([
+                'success' => false,
+                'message' => '未授權',
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        $statistics = $this->itemService->getStatisticsForUser($userId, $period, $year, $include);
 
         // 將最貴前五名轉換為 Resource
-        $statistics['top_expensive'] = ItemResource::collection($statistics['top_expensive']);
+        if (isset($statistics['top_expensive'])) {
+            $statistics['top_expensive'] = ItemResource::collection($statistics['top_expensive']);
+        }
 
         // 將尚未使用的物品前五名轉換為 Resource
         if (isset($statistics['unused_items']['top_five'])) {

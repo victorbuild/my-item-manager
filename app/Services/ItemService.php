@@ -179,16 +179,17 @@ class ItemService
      *
      * @param string $period 時間範圍：all, year, month, week, three_months
      * @param int|null $year 年份（當 period 為 year 時使用）
+     * @param array<int, string>|null $include 需要額外計算的區塊（可選，逗號分隔後解析而來）
      * @return array
      */
-    public function getStatistics(string $period = 'all', ?int $year = null): array
+    public function getStatistics(string $period = 'all', ?int $year = null, ?array $include = null): array
     {
         $userId = auth()->id();
         if ($userId === null) {
             return [];
         }
 
-        return $this->getStatisticsForUser($userId, $period, $year);
+        return $this->getStatisticsForUser($userId, $period, $year, $include);
     }
 
     /**
@@ -199,10 +200,15 @@ class ItemService
      * @param int $userId 使用者 ID
      * @param string $period 時間範圍：all, year, month, week, three_months
      * @param int|null $year 年份（當 period 為 year 時使用）
+     * @param array<int, string>|null $include 需要額外計算的區塊（可選，null 代表維持既有整包輸出）
      * @return array
      */
-    public function getStatisticsForUser(int $userId, string $period = 'all', ?int $year = null): array
-    {
+    public function getStatisticsForUser(
+        int $userId,
+        string $period = 'all',
+        ?int $year = null,
+        ?array $include = null
+    ): array {
         $asOf = now()->startOfDay();
         $baseQuery = Item::where('user_id', $userId);
 
@@ -221,38 +227,54 @@ class ItemService
         // 計算狀態統計
         $statusStats = $this->calculateStatusStatistics($baseQuery, $applyCreatedDateFilter);
 
-        // 取得最貴前五名
-        $topExpensive = $this->getTopExpensiveItems($baseQuery, $applyCreatedDateFilter);
-
-        // 取得尚未使用的物品
-        $unusedItems = $this->getUnusedItems($baseQuery, $applyCreatedDateFilter);
-
-        // 計算已結案物品成本統計
-        $discardedCostData = $this->calculateDiscardedCostStatistics($baseQuery, $startDate, $endDate);
-
-        // 計算使用中物品成本統計
-        $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter, $asOf);
-
         // 計算時間範圍的開始和結束日期
         $dateRange = $this->calculateDateRange($userId, $period, $year, $startDate);
 
-        return [
+        $statistics = [
             'as_of' => $asOf->toDateString(),
             'totals' => $totals,
             'status' => $statusStats,
-            'top_expensive' => $topExpensive,
             'value_stats' => $valueStats,
-            'unused_items' => $unusedItems,
-            'discarded_cost_stats' => [
-                'average_cost_per_day' => $discardedCostData['average_cost_per_day'],
-                'top_five' => $discardedCostData['top_five'],
-            ],
-            'in_use_cost_stats' => [
-                'average_cost_per_day' => $inUseCostData['average_cost_per_day'],
-                'top_five' => $inUseCostData['top_five'],
-            ],
             'date_range' => $dateRange,
         ];
+
+        $allowedHeavySections = [
+            'top_expensive',
+            'unused_items',
+            'discarded_cost_stats',
+            'in_use_cost_stats',
+        ];
+
+        // null 代表維持既有行為：整包輸出（避免前端連動）
+        $includeSections = $include === null
+            ? $allowedHeavySections
+            : array_values(array_intersect($allowedHeavySections, $include));
+
+        if (in_array('top_expensive', $includeSections, true)) {
+            $statistics['top_expensive'] = $this->getTopExpensiveItems($baseQuery, $applyCreatedDateFilter);
+        }
+
+        if (in_array('unused_items', $includeSections, true)) {
+            $statistics['unused_items'] = $this->getUnusedItems($baseQuery, $applyCreatedDateFilter);
+        }
+
+        if (in_array('discarded_cost_stats', $includeSections, true)) {
+            $discardedCostData = $this->calculateDiscardedCostStatistics($baseQuery, $startDate, $endDate);
+            $statistics['discarded_cost_stats'] = [
+                'average_cost_per_day' => $discardedCostData['average_cost_per_day'],
+                'top_five' => $discardedCostData['top_five'],
+            ];
+        }
+
+        if (in_array('in_use_cost_stats', $includeSections, true)) {
+            $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter, $asOf);
+            $statistics['in_use_cost_stats'] = [
+                'average_cost_per_day' => $inUseCostData['average_cost_per_day'],
+                'top_five' => $inUseCostData['top_five'],
+            ];
+        }
+
+        return $statistics;
     }
 
     /**
