@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -22,9 +23,8 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：登入成功時應該觸發 UserLoggedIn 事件
-     *
-     * @test
      */
+    #[Test]
     public function it_should_dispatch_user_logged_in_event_on_successful_login(): void
     {
         // Arrange
@@ -55,8 +55,8 @@ class AuthControllerTest extends TestCase
     /**
      * 測試：登入成功時應該建立登入紀錄
      *
-     * @test
      */
+    #[Test]
     public function it_should_create_login_log_on_successful_login(): void
     {
         // Arrange
@@ -92,8 +92,8 @@ class AuthControllerTest extends TestCase
     /**
      * 測試：登入成功時應該更新使用者的最後登入時間
      *
-     * @test
      */
+    #[Test]
     public function it_should_update_user_last_login_at_on_successful_login(): void
     {
         // Arrange
@@ -121,8 +121,8 @@ class AuthControllerTest extends TestCase
     /**
      * 測試：登入失敗時應該建立失敗登入紀錄
      *
-     * @test
      */
+    #[Test]
     public function it_should_create_failed_login_log_on_failed_login(): void
     {
         // Arrange
@@ -163,8 +163,8 @@ class AuthControllerTest extends TestCase
     /**
      * 測試：登入失敗時應該觸發 UserLoginFailed 事件
      *
-     * @test
      */
+    #[Test]
     public function it_should_dispatch_user_login_failed_event_on_failed_login(): void
     {
         // Arrange
@@ -195,8 +195,8 @@ class AuthControllerTest extends TestCase
     /**
      * 測試：Email 不存在時也應該記錄失敗登入
      *
-     * @test
      */
+    #[Test]
     public function it_should_create_failed_login_log_when_email_not_exists(): void
     {
         // Arrange - 不建立任何使用者
@@ -233,8 +233,8 @@ class AuthControllerTest extends TestCase
     /**
      * 測試：多次登入應該建立多筆登入紀錄
      *
-     * @test
      */
+    #[Test]
     public function it_should_create_multiple_login_logs_for_multiple_logins(): void
     {
         // Arrange
