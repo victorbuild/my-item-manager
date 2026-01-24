@@ -92,7 +92,7 @@ class ItemController extends Controller
         return response()->json([
             'success' => true,
             'message' => '資料載入成功',
-            'data' => new ItemResource($item->load(['images', 'units', 'category', 'product.category'])),
+            'data' => new ItemResource($item->load(['images', 'category', 'product.category'])),
         ]);
     }
 

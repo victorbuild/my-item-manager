@@ -54,7 +54,6 @@ class ItemResource extends JsonResource
                 ];
             }),
             'category' => $this->category,
-            'units' => $this->units,
 
             // 主圖（第一張圖片）
             'main_image' => $this->when($this->images->isNotEmpty(), function () {

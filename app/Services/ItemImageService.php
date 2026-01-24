@@ -62,7 +62,7 @@ class ItemImageService
     public function syncItemImages(Item $item, array $images): Item
     {
         if (empty($images)) {
-            return $item->fresh(['images', 'units', 'category', 'product.category']);
+            return $item->fresh(['images', 'category', 'product.category']);
         }
 
         // 處理移除的圖片
@@ -105,7 +105,7 @@ class ItemImageService
         // 原始圖片（status === 'original'）不異動
 
         // 重新載入關聯資料以反映最新的圖片狀態
-        return $item->fresh(['images', 'units', 'category', 'product.category']);
+        return $item->fresh(['images', 'category', 'product.category']);
     }
 
     /**

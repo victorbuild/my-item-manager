@@ -95,7 +95,7 @@ class ItemService
      */
     public function paginateWithFilters(array $filters, int $userId, int $perPage = 10): LengthAwarePaginator
     {
-        $query = Item::with(['images', 'units', 'product.category'])
+        $query = Item::with(['images', 'product.category'])
             ->where('user_id', $userId);
 
         // 搜尋關鍵字

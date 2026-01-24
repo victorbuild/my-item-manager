@@ -38,7 +38,7 @@ class ItemRepository implements ItemRepositoryInterface
     public function update(Item $item, array $data): Item
     {
         $item->update($data);
-        return $item->fresh(['images', 'units', 'category', 'product.category']);
+        return $item->fresh(['images', 'category', 'product.category']);
     }
 
     /**
@@ -85,7 +85,7 @@ class ItemRepository implements ItemRepositoryInterface
      */
     public function findByShortIdOrFail(string $shortId): Item
     {
-        return Item::with(['images', 'units', 'category'])
+        return Item::with(['images', 'category'])
             ->where('short_id', $shortId)
             ->firstOrFail();
     }
@@ -106,7 +106,7 @@ class ItemRepository implements ItemRepositoryInterface
         // 使用日期格式，確保比較正確
         $endDate = now()->addDays($days)->format('Y-m-d');
 
-        $query = Item::with(['images', 'units', 'product.category'])
+        $query = Item::with(['images', 'product.category'])
             ->where('user_id', $userId)
             // 尚未棄用
             ->whereNull('discarded_at')

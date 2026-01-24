@@ -13,18 +13,6 @@ parameters:
 			path: app/Http/Controllers/Api/ItemImageController.php
 
 		-
-			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:save\(\) \(as App\\Models\\Item\:\:save\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 save\(\)。\.$#'
-			identifier: disallowed.method
-			count: 2
-			path: app/Http/Controllers/Api/ItemUnitController.php
-
-		-
-			message: '#^Calling Illuminate\\Database\\Eloquent\\Model\:\:save\(\) \(as App\\Models\\ItemUnit\:\:save\(\)\) is forbidden, ❌ 禁止在 Controller 內直接使用 save\(\)。\.$#'
-			identifier: disallowed.method
-			count: 1
-			path: app/Http/Controllers/Api/ItemUnitController.php
-
-		-
 			message: '#^Call to an undefined method App\\Http\\Resources\\ItemCollection\:\:currentPage\(\)\.$#'
 			identifier: method.notFound
 			count: 1

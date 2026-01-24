@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -34,8 +33,6 @@ use Illuminate\Support\Str;
  * @property-read Category|null $category
  * @property-read Collection<int, ItemImage> $images
  * @property-read int|null $images_count
- * @property-read Collection<int, ItemUnit> $units
- * @property-read int|null $units_count
  * @method static Builder<static>|Item newModelQuery()
  * @method static Builder<static>|Item newQuery()
  * @method static Builder<static>|Item query()
@@ -50,7 +47,6 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Item whereName($value)
  * @method static Builder<static>|Item wherePrice($value)
  * @method static Builder<static>|Item wherePurchasedAt($value)
- * @method static Builder<static>|Item whereQuantity($value)
  * @method static Builder<static>|Item whereShortId($value)
  * @method static Builder<static>|Item whereUpdatedAt($value)
  * @method static Builder<static>|Item whereUuid($value)
@@ -150,11 +146,6 @@ class Item extends Model
             'id',              // 本 model 主鍵
             'uuid'             // 關聯 model 主鍵
         )->withPivot(['sort_order'])->withTimestamps()->orderBy('sort_order');
-    }
-
-    public function units(): HasMany
-    {
-        return $this->hasMany(ItemUnit::class)->orderBy('id');
     }
 
     public function getRouteKeyName(): string
