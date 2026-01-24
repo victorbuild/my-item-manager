@@ -231,6 +231,23 @@ class ItemService
     }
 
     /**
+     * 取得 expiringSoon 端點的統計資料
+     *
+     * @param int $days 查詢天數（用於計算範圍統計，但不影響結果）
+     * @param int $userId 使用者 ID
+     * @return array{range_statistics: array, total_all_with_expiration_date: int}
+     */
+    public function getExpiringSoonStatistics(int $days, int $userId): array
+    {
+        $ranges = [7, 30, 90, 180, 365, 1095];
+
+        return [
+            'range_statistics' => $this->itemRepository->getRangeStatistics($ranges, $userId),
+            'total_all_with_expiration_date' => $this->itemRepository->countItemsWithExpirationDate($userId),
+        ];
+    }
+
+    /**
      * 取得物品統計資料
      *
      * @param string $period 時間範圍：all, year, month, week, three_months

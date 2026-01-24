@@ -685,4 +685,89 @@ class ItemServiceTest extends TestCase
         $this->assertEquals($expectedCount, $result);
         // 驗證 Repository 被呼叫時使用的是傳入的 userId
     }
+
+    /**
+     * 測試：取得 expiringSoon 統計資料 - 應該呼叫 Repository 方法並回傳正確結構
+     */
+    #[Test]
+    public function it_should_call_repository_methods_for_expiring_soon_statistics(): void
+    {
+        // Arrange
+        $days = 30;
+        $userId = self::TEST_USER_ID;
+        $ranges = [7, 30, 90, 180, 365, 1095];
+        $expectedRangeStats = [
+            7 => 5,
+            30 => 10,
+            90 => 15,
+            180 => 20,
+            365 => 25,
+            1095 => 30,
+        ];
+        $expectedTotalCount = 50;
+
+        $this->mockItemRepository
+            ->shouldReceive('getRangeStatistics')
+            ->once()
+            ->with($ranges, $userId)
+            ->andReturn($expectedRangeStats);
+
+        $this->mockItemRepository
+            ->shouldReceive('countItemsWithExpirationDate')
+            ->once()
+            ->with($userId)
+            ->andReturn($expectedTotalCount);
+
+        // Act
+        $result = $this->itemService->getExpiringSoonStatistics($days, $userId);
+
+        // Assert
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('range_statistics', $result);
+        $this->assertArrayHasKey('total_all_with_expiration_date', $result);
+        $this->assertSame($expectedRangeStats, $result['range_statistics']);
+        $this->assertEquals($expectedTotalCount, $result['total_all_with_expiration_date']);
+    }
+
+    /**
+     * 測試：取得 expiringSoon 統計資料 - 應該使用傳入的 userId 而非 auth()->id()
+     */
+    #[Test]
+    public function it_should_use_provided_user_id_for_expiring_soon_statistics(): void
+    {
+        // Arrange
+        $days = 30;
+        $userId = 999; // 不同的 userId
+        $ranges = [7, 30, 90, 180, 365, 1095];
+        $expectedRangeStats = [
+            7 => 2,
+            30 => 5,
+            90 => 8,
+            180 => 12,
+            365 => 15,
+            1095 => 20,
+        ];
+        $expectedTotalCount = 25;
+
+        $this->mockItemRepository
+            ->shouldReceive('getRangeStatistics')
+            ->once()
+            ->with($ranges, $userId)
+            ->andReturn($expectedRangeStats);
+
+        $this->mockItemRepository
+            ->shouldReceive('countItemsWithExpirationDate')
+            ->once()
+            ->with($userId)
+            ->andReturn($expectedTotalCount);
+
+        // Act
+        $result = $this->itemService->getExpiringSoonStatistics($days, $userId);
+
+        // Assert
+        $this->assertIsArray($result);
+        $this->assertSame($expectedRangeStats, $result['range_statistics']);
+        $this->assertEquals($expectedTotalCount, $result['total_all_with_expiration_date']);
+        // 驗證 Repository 被呼叫時使用的是傳入的 userId
+    }
 }
