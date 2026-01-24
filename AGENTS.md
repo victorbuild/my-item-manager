@@ -65,6 +65,9 @@ app/
 - 使用 **型別提示**和 **返回型別**
 - 使用 **Constructor Property Promotion**（PHP 8.0+）
 - **不要在註解中任意使用 icon（表情符號）**，保持程式碼專業和簡潔
+- **必須使用 `use` 語句導入類別**：在檔案開頭使用 `use` 語句導入所有使用的類別，避免在程式碼中使用完整命名空間（如 `\Illuminate\Pagination\LengthAwarePaginator`）
+  - 例外：只在 PHPDoc 註解中可以使用完整命名空間（如 `@return \Illuminate\Pagination\LengthAwarePaginator`）
+  - 例外：避免命名衝突時可以使用完整命名空間
 
 ### JavaScript/Vue.js 前端
 
@@ -260,6 +263,7 @@ app/
 - [ ] 優先使用 Model 方法，複雜查詢才用 Query Builder
 - [ ] 有 PHPDoc 註解（中文）
 - [ ] 註解中不使用 icon（表情符號）
+- [ ] 使用 `use` 語句導入類別（避免在程式碼中使用完整命名空間）
 - [ ] 避免 N+1 查詢
 - [ ] 使用 Form Request 驗證
 - [ ] 使用 Resource 轉換回應
@@ -282,5 +286,5 @@ app/
 
 ---
 
-**最後更新**: 2026-01-23  
-**版本**: 1.1.1
+**最後更新**: 2026-01-24  
+**版本**: 1.1.2
