@@ -4,6 +4,7 @@ namespace Tests\Feature\Controllers\Api;
 
 use App\Models\Item;
 use App\Models\ItemImage;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -47,7 +48,7 @@ class ItemControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['success' => true, 'message' => '取得成功']);
 
-        $items = $response->json('items');
+        $items = $response->json('data');
         $this->assertCount(2, $items);
 
         $actualShortIds = collect($items)->pluck('short_id')->sort()->values()->toArray();
@@ -60,6 +61,44 @@ class ItemControllerTest extends TestCase
             array_intersect($actualShortIds, $shortIdsB),
             'index 回應不應包含他人（userB）的物品'
         );
+    }
+
+    /**
+     * 測試：index 可使用 product_short_id 篩選
+     */
+    #[Test]
+    public function it_should_filter_items_by_product_short_id(): void
+    {
+        $productA = Product::factory()->create([
+            'user_id' => $this->user->id,
+            'short_id' => 'prd-filter-a',
+        ]);
+        $productB = Product::factory()->create([
+            'user_id' => $this->user->id,
+            'short_id' => 'prd-filter-b',
+        ]);
+
+        $itemsA = Item::factory()->count(2)->create([
+            'user_id' => $this->user->id,
+            'product_id' => $productA->id,
+        ]);
+        Item::factory()->count(3)->create([
+            'user_id' => $this->user->id,
+            'product_id' => $productB->id,
+        ]);
+
+        $expectedShortIds = $itemsA->pluck('short_id')->sort()->values()->toArray();
+
+        $response = $this->actingAs($this->user)->getJson('/api/items?product_short_id=prd-filter-a');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'message' => '取得成功']);
+
+        $items = $response->json('data');
+        $this->assertCount(2, $items);
+
+        $actualShortIds = collect($items)->pluck('short_id')->sort()->values()->toArray();
+        $this->assertEquals($expectedShortIds, $actualShortIds);
     }
 
     /**

@@ -29,6 +29,12 @@ class ProductResource extends JsonResource
             'model' => $this->model,
             'spec' => $this->spec,
             'barcode' => $this->barcode,
+            'category' => $this->whenLoaded('category', function () {
+                return [
+                    'id' => $this->category?->id,
+                    'name' => $this->category?->name,
+                ];
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

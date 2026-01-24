@@ -49,6 +49,15 @@ interface ProductRepositoryInterface
     public function update(Product $product, array $validated): Product;
 
     /**
+     * 取得指定產品的物品狀態統計（僅限指定使用者）
+     *
+     * @param int $userId 使用者 ID
+     * @param int $productId 產品 ID
+     * @return array<string, int> 狀態統計
+     */
+    public function getItemStatusCounts(int $userId, int $productId): array;
+
+    /**
      * 若產品沒有關聯的物品，則刪除產品
      *
      * @param Product $product 產品實例

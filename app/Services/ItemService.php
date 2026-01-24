@@ -98,6 +98,14 @@ class ItemService
         $query = Item::with(['images', 'product.category'])
             ->where('user_id', $userId);
 
+        // 產品篩選（以 product short_id）
+        if (!empty($filters['product_short_id'])) {
+            $productShortId = $filters['product_short_id'];
+            $query->whereHas('product', function ($q) use ($productShortId) {
+                $q->where('short_id', $productShortId);
+            });
+        }
+
         // 搜尋關鍵字
         if (!empty($filters['search'])) {
             $query->where('name', 'ILIKE', '%' . $filters['search'] . '%');

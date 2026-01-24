@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Models\Item;
 use App\Models\Product;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -67,6 +68,55 @@ class ProductRepository implements ProductRepositoryInterface
         $product->update($validated);
 
         return $product;
+    }
+
+    /**
+     * 取得指定產品的物品狀態統計（僅限指定使用者）
+     *
+     * @param int $userId 使用者 ID
+     * @param int $productId 產品 ID
+     * @return array<string, int> 狀態統計
+     */
+    public function getItemStatusCounts(int $userId, int $productId): array
+    {
+        $baseQuery = Item::query()
+            ->where('user_id', $userId)
+            ->where('product_id', $productId);
+
+        $preArrival = (clone $baseQuery)
+            ->whereNull('received_at')
+            ->whereNull('used_at')
+            ->whereNull('discarded_at')
+            ->count();
+
+        $unused = (clone $baseQuery)
+            ->whereNotNull('received_at')
+            ->whereNull('used_at')
+            ->whereNull('discarded_at')
+            ->count();
+
+        $inUse = (clone $baseQuery)
+            ->whereNotNull('used_at')
+            ->whereNull('discarded_at')
+            ->count();
+
+        $unusedDiscarded = (clone $baseQuery)
+            ->whereNotNull('discarded_at')
+            ->whereNull('used_at')
+            ->count();
+
+        $usedDiscarded = (clone $baseQuery)
+            ->whereNotNull('discarded_at')
+            ->whereNotNull('used_at')
+            ->count();
+
+        return [
+            'pre_arrival' => $preArrival,
+            'unused' => $unused,
+            'in_use' => $inUse,
+            'unused_discarded' => $unusedDiscarded,
+            'used_discarded' => $usedDiscarded,
+        ];
     }
 
     /**

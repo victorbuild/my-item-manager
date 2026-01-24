@@ -40,7 +40,7 @@ const fetchItems = async (page = 1) => {
       per_page: perPage.value,
     },
   })
-  items.value = res.data.items
+  items.value = res.data.data
   pagination.value = res.data.meta
 }
 

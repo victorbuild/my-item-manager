@@ -209,6 +209,118 @@ class ProductControllerTest extends TestCase
     }
 
     /**
+     * 測試：未登入取得產品詳情 - 401
+     */
+    #[Test]
+    public function it_should_return_401_when_viewing_product_unauthenticated(): void
+    {
+        $product = Product::factory()->create([
+            'short_id' => 'prd-show-unauth-001',
+        ]);
+
+        $response = $this->getJson("/api/products/{$product->short_id}");
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * 測試：取得產品詳情 - 成功（含 stats）
+     */
+    #[Test]
+    public function it_should_show_product_successfully_with_stats(): void
+    {
+        $product = Product::factory()->create([
+            'user_id' => $this->user->id,
+            'short_id' => 'prd-show-001',
+            'name' => '測試產品詳情',
+        ]);
+
+        // pre_arrival（未到貨）
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'received_at' => null,
+            'used_at' => null,
+            'discarded_at' => null,
+        ]);
+
+        // unused（已到貨未使用）
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'received_at' => now()->subDays(3),
+            'used_at' => null,
+            'discarded_at' => null,
+        ]);
+
+        // in_use（使用中）
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'received_at' => now()->subDays(10),
+            'used_at' => now()->subDays(2),
+            'discarded_at' => null,
+        ]);
+
+        // unused_discarded（未使用就棄用）
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'received_at' => now()->subDays(10),
+            'used_at' => null,
+            'discarded_at' => now()->subDays(1),
+        ]);
+
+        // used_discarded（使用後棄用）
+        Item::factory()->create([
+            'user_id' => $this->user->id,
+            'product_id' => $product->id,
+            'received_at' => now()->subDays(20),
+            'used_at' => now()->subDays(15),
+            'discarded_at' => now()->subDays(1),
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson("/api/products/{$product->short_id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '取得成功',
+            ])
+            ->assertJsonPath('data.short_id', $product->short_id)
+            ->assertJsonPath('data.name', '測試產品詳情')
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'uuid',
+                    'short_id',
+                    'user_id',
+                    'category_id',
+                    'name',
+                    'brand',
+                    'model',
+                    'spec',
+                    'barcode',
+                    'category',
+                    'created_at',
+                    'updated_at',
+                    'stats' => [
+                        'pre_arrival',
+                        'unused',
+                        'in_use',
+                        'unused_discarded',
+                        'used_discarded',
+                    ],
+                ],
+            ])
+            ->assertJsonPath('data.stats.pre_arrival', 1)
+            ->assertJsonPath('data.stats.unused', 1)
+            ->assertJsonPath('data.stats.in_use', 1)
+            ->assertJsonPath('data.stats.unused_discarded', 1)
+            ->assertJsonPath('data.stats.used_discarded', 1);
+    }
+
+    /**
      * 測試：更新產品 - 成功
      */
     #[Test]

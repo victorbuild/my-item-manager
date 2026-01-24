@@ -8,6 +8,7 @@ use App\Http\Requests\StoreItemRequest;
 use App\Http\Requests\UpdateItemRequest;
 use App\Http\Resources\ItemCollection;
 use App\Http\Resources\ItemResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\Item;
 use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
@@ -34,6 +35,7 @@ class ItemController extends Controller
         $filters = [
             'search' => $request->input('search'),
             'category_id' => $request->input('category_id'),
+            'product_short_id' => $request->input('product_short_id'),
             'statuses' => $request->filled('statuses') ? explode(',', $request->input('statuses')) : [],
             'sort' => $request->input('sort', 'default'),
         ];
@@ -44,12 +46,11 @@ class ItemController extends Controller
         $collection = new ItemCollection($items);
         $data = $collection->toArray($request);
 
-        return response()->json([
-            'success' => true,
-            'message' => '取得成功',
-            'meta' => $data['meta'],
-            'items' => $data['items'],
-        ]);
+        return ApiResponse::success(
+            data: $data['items'],
+            message: '取得成功',
+            meta: $data['meta']
+        );
     }
 
     /**
