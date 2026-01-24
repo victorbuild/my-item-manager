@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
@@ -31,8 +32,8 @@ class ApiExceptionHandlingTest extends TestCase
     /**
      * 測試：404 錯誤 - 統一格式
      *
-     * @test
      */
+    #[Test]
     public function it_should_return_unified_format_for_404_error(): void
     {
         // Arrange
@@ -56,8 +57,8 @@ class ApiExceptionHandlingTest extends TestCase
     /**
      * 測試：401 錯誤 - 統一格式（未認證）
      *
-     * @test
      */
+    #[Test]
     public function it_should_return_unified_format_for_401_error(): void
     {
         // Arrange - 不登入
@@ -80,8 +81,8 @@ class ApiExceptionHandlingTest extends TestCase
     /**
      * 測試：422 錯誤 - 統一格式（驗證失敗）
      *
-     * @test
      */
+    #[Test]
     public function it_should_return_unified_format_for_422_error(): void
     {
         // Arrange
@@ -108,8 +109,8 @@ class ApiExceptionHandlingTest extends TestCase
     /**
      * 測試：沒有 Accept header 時，預設返回 JSON
      *
-     * @test
      */
+    #[Test]
     public function it_should_return_json_when_no_accept_header(): void
     {
         // Arrange
@@ -132,8 +133,8 @@ class ApiExceptionHandlingTest extends TestCase
     /**
      * 測試：Accept header 是 JSON 時，返回 JSON
      *
-     * @test
      */
+    #[Test]
     public function it_should_return_json_when_accept_header_is_json(): void
     {
         // Arrange
@@ -156,8 +157,8 @@ class ApiExceptionHandlingTest extends TestCase
     /**
      * 測試：Accept header 是 XML 時，目前返回 JSON（預留未來擴展）
      *
-     * @test
      */
+    #[Test]
     public function it_should_return_json_when_accept_header_is_xml(): void
     {
         // Arrange
