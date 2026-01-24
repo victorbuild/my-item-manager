@@ -9,6 +9,7 @@ use App\Strategies\Sort\PriceAscSortStrategy;
 use App\Strategies\Sort\PriceDescSortStrategy;
 use Illuminate\Database\Eloquent\Builder;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,8 +28,8 @@ class SortStrategyTest extends TestCase
     /**
      * 測試：預設排序策略
      *
-     * @test
      */
+    #[Test]
     public function it_should_apply_default_sort_strategy(): void
     {
         $strategy = new DefaultSortStrategy();
@@ -47,8 +48,8 @@ class SortStrategyTest extends TestCase
     /**
      * 測試：棄用時間排序策略
      *
-     * @test
      */
+    #[Test]
     public function it_should_apply_discarded_sort_strategy(): void
     {
         $strategy = new DiscardedSortStrategy();
@@ -67,8 +68,8 @@ class SortStrategyTest extends TestCase
     /**
      * 測試：價格升序排序策略
      *
-     * @test
      */
+    #[Test]
     public function it_should_apply_price_asc_sort_strategy(): void
     {
         $strategy = new PriceAscSortStrategy();
@@ -87,8 +88,8 @@ class SortStrategyTest extends TestCase
     /**
      * 測試：價格降序排序策略
      *
-     * @test
      */
+    #[Test]
     public function it_should_apply_price_desc_sort_strategy(): void
     {
         $strategy = new PriceDescSortStrategy();
@@ -107,8 +108,8 @@ class SortStrategyTest extends TestCase
     /**
      * 測試：名稱升序排序策略
      *
-     * @test
      */
+    #[Test]
     public function it_should_apply_name_asc_sort_strategy(): void
     {
         $strategy = new NameAscSortStrategy();
