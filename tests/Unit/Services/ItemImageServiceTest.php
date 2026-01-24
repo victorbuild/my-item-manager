@@ -8,6 +8,7 @@ use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Services\ItemImageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ItemImageServiceTest extends TestCase
@@ -36,8 +37,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：空陣列時不處理
-     * @test
      */
+    #[Test]
     public function it_should_do_nothing_when_images_array_is_empty(): void
     {
         // Arrange
@@ -53,8 +54,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：成功附加圖片並更新使用次數
-     * @test
      */
+    #[Test]
     public function it_should_attach_images_and_increment_usage_when_valid_images_provided(): void
     {
         // Arrange
@@ -106,8 +107,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：只處理 status='new' 的圖片
-     * @test
      */
+    #[Test]
     public function it_should_only_process_images_with_status_new(): void
     {
         // Arrange
@@ -146,8 +147,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：跳過無 UUID 的圖片
-     * @test
      */
+    #[Test]
     public function it_should_skip_images_without_uuid(): void
     {
         // Arrange
@@ -183,8 +184,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：圖片狀態從 draft 變為 used
-     * @test
      */
+    #[Test]
     public function it_should_update_status_from_draft_to_used(): void
     {
         // Arrange
@@ -224,8 +225,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：圖片狀態為 used 時不更新狀態
-     * @test
      */
+    #[Test]
     public function it_should_not_update_status_when_image_is_already_used(): void
     {
         // Arrange
@@ -261,8 +262,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：sort_order 正確遞增
-     * @test
      */
+    #[Test]
     public function it_should_set_correct_sort_order(): void
     {
         // Arrange
@@ -313,8 +314,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：圖片不存在時不更新使用次數
-     * @test
      */
+    #[Test]
     public function it_should_not_update_usage_when_image_not_found(): void
     {
         // Arrange
@@ -352,8 +353,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：驗證圖片數量 - 符合規範
-     * @test
      */
+    #[Test]
     public function it_should_validate_image_count_correctly(): void
     {
         // Arrange
@@ -372,8 +373,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：驗證圖片數量 - 超過限制
-     * @test
      */
+    #[Test]
     public function it_should_return_false_when_image_count_exceeds_limit(): void
     {
         // Arrange
@@ -391,8 +392,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：驗證圖片數量 - 空陣列
-     * @test
      */
+    #[Test]
     public function it_should_return_true_when_images_array_is_empty(): void
     {
         // Act
@@ -404,8 +405,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：同步圖片 - 空陣列時不處理
-     * @test
      */
+    #[Test]
     public function it_should_do_nothing_when_sync_images_array_is_empty(): void
     {
         // Arrange
@@ -421,8 +422,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：同步圖片 - 移除圖片
-     * @test
      */
+    #[Test]
     public function it_should_remove_images_when_status_is_removed(): void
     {
         // Arrange
@@ -470,8 +471,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：同步圖片 - 新增圖片
-     * @test
      */
+    #[Test]
     public function it_should_add_images_when_status_is_new(): void
     {
         // Arrange
@@ -523,8 +524,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：同步圖片 - 原始圖片不異動
-     * @test
      */
+    #[Test]
     public function it_should_not_modify_images_with_status_original(): void
     {
         // Arrange
@@ -567,8 +568,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：同步圖片 - 同時新增和移除
-     * @test
      */
+    #[Test]
     public function it_should_handle_both_add_and_remove_in_same_sync(): void
     {
         // Arrange
@@ -632,8 +633,8 @@ class ItemImageServiceTest extends TestCase
 
     /**
      * 測試：同步圖片 - 避免重複 attach
-     * @test
      */
+    #[Test]
     public function it_should_not_attach_duplicate_images(): void
     {
         // Arrange
