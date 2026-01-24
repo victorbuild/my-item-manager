@@ -1,7 +1,7 @@
 export const ITEM_STATUS_LABEL_MAP = {
   pre_arrival: '尚未到貨',
-  stored: '已到貨未使用',
+  unused: '未使用',
   in_use: '使用中',
-  unused_but_gone: '未使用即報廢',
-  used_and_gone: '已使用且報廢',
+  unused_discarded: '未使用就棄用',
+  used_discarded: '使用後棄用',
 }

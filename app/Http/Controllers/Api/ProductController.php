@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ItemStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ItemResource;
 use App\Models\Product;
@@ -137,33 +138,42 @@ class ProductController extends Controller
             return response()->json(['message' => '無權限檢視此產品'], 403);
         }
 
+        // 使用 load 同時載入 category 和 items（包含 user_id 過濾和 images eager load）
+        // 這樣可以減少查詢次數，避免 N+1 問題
         $product->load([
             'category',
-            'items.images',
+            'items' => function ($query) use ($request) {
+                $query->where('user_id', $request->user()->id)
+                    ->with('images');
+            },
         ]);
 
-        // 依照 status 欄位排序 items（順序：未到貨、未使用、使用中、已棄用）
+        $items = $product->items;
+
+        // 狀態數量統計（直接從 Collection 計算，使用 Item 的 status 屬性）
+        $statuses = ItemStatus::values();
+        $statusCounts = collect($statuses)->mapWithKeys(function ($status) use ($items) {
+            return [$status => $items->filter(function ($item) use ($status) {
+                return $item->status === $status;
+            })->count()];
+        });
+
+        // 依照 status 欄位排序 items（順序：未到貨、未使用、使用中、未使用就棄用、使用後棄用）
         $statusOrder = [
-            'pre_arrival' => 0,
-            'stored' => 1,
-            'in_use' => 2,
-            'used_and_gone' => 3,
-            'unused_but_gone' => 3,
+            ItemStatus::PRE_ARRIVAL->value => 0,
+            ItemStatus::UNUSED->value => 1,
+            ItemStatus::IN_USE->value => 2,
+            ItemStatus::UNUSED_DISCARDED->value => 3,
+            ItemStatus::USED_DISCARDED->value => 4,
         ];
-        $sortedItems = $product->items->sortBy(function ($item) use ($statusOrder) {
-            return $statusOrder[$item->status] ?? 4;
+        $sortedItems = $items->sortBy(function ($item) use ($statusOrder) {
+            return $statusOrder[$item->status] ?? 5;
         })->values();
 
         // 使用 ItemResource 格式化 items，確保包含 main_image 等欄位
-        $formattedItems = $product->items->map(function ($item) {
+        $formattedItems = $items->map(function ($item) {
             return (new ItemResource($item))->toArray(request());
         })->values()->all();
-
-        // 狀態數量統計（順序：未到貨、未使用、使用中、已棄用）
-        $statuses = ['pre_arrival', 'stored', 'in_use', 'used_and_gone', 'unused_but_gone'];
-        $statusCounts = collect($statuses)->mapWithKeys(function ($status) use ($formattedItems) {
-            return [$status => collect($formattedItems)->where('status', $status)->count()];
-        });
 
         // 回傳時直接覆蓋 items 並加上 items_count
         $productArr = $product->toArray();

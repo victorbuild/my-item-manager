@@ -77,25 +77,48 @@ readonly class CategoryService
         $products = $allProducts->slice(($page - 1) * $perPage, $perPage)->values();
 
         // 計算所有物品的統計
+        /** @var \Illuminate\Support\Collection<int, \App\Models\Item> $allItems */
         $allItems = collect();
         foreach ($allProducts as $product) {
             /** @var \App\Models\Product $product */
-            $allItems = $allItems->merge($product->items()->where('user_id', $userId)->get());
+            $productItems = $product->items()->where('user_id', $userId)->get();
+            /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $productItems */
+            $allItems = $allItems->concat($productItems);
         }
 
-        // 計算統計
+        // 計算統計（使用 Collection 的 filter 方法配合 Item 的狀態判斷）
         $stats = [
             'products_count' => $allProducts->count(),
             'items_count' => $allItems->count(),
-            'items_in_use' => $allItems->whereNotNull('used_at')
-                ->whereNull('discarded_at')->count(),
-            'items_unused' => $allItems->whereNotNull('received_at')
-                ->whereNull('used_at')
-                ->whereNull('discarded_at')->count(),
-            'items_pre_arrival' => $allItems->whereNull('discarded_at')
-                ->whereNull('used_at')
-                ->whereNull('received_at')->count(),
-            'items_discarded' => $allItems->whereNotNull('discarded_at')->count(),
+            'items_in_use' => $allItems->filter(function ($item) {
+                return Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                ) === 'in_use';
+            })->count(),
+            'items_unused' => $allItems->filter(function ($item) {
+                return Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                ) === 'unused';
+            })->count(),
+            'items_pre_arrival' => $allItems->filter(function ($item) {
+                return Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                ) === 'pre_arrival';
+            })->count(),
+            'items_discarded' => $allItems->filter(function ($item) {
+                $status = Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                );
+                return in_array($status, ['unused_discarded', 'used_discarded']);
+            })->count(),
         ];
 
         $lastPage = (int)ceil($totalProducts / $perPage);
@@ -103,18 +126,39 @@ readonly class CategoryService
         // 格式化產品數據
         $formattedProducts = $products->map(function ($product) use ($userId) {
             /** @var \App\Models\Product $product */
+            /** @var \Illuminate\Support\Collection<int, \App\Models\Item> $items */
             $items = $product->items()->where('user_id', $userId)->get();
 
-            // 計算每個產品的狀態統計
-            $itemsInUse = $items->whereNotNull('used_at')
-                ->whereNull('discarded_at')->count();
-            $itemsUnused = $items->whereNotNull('received_at')
-                ->whereNull('used_at')
-                ->whereNull('discarded_at')->count();
-            $itemsPreArrival = $items->whereNull('discarded_at')
-                ->whereNull('used_at')
-                ->whereNull('received_at')->count();
-            $itemsDiscarded = $items->whereNotNull('discarded_at')->count();
+            // 計算每個產品的狀態統計（使用 Collection 的 filter 方法配合 Item 的狀態判斷）
+            $itemsInUse = $items->filter(function ($item) {
+                return Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                ) === 'in_use';
+            })->count();
+            $itemsUnused = $items->filter(function ($item) {
+                return Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                ) === 'unused';
+            })->count();
+            $itemsPreArrival = $items->filter(function ($item) {
+                return Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                ) === 'pre_arrival';
+            })->count();
+            $itemsDiscarded = $items->filter(function ($item) {
+                $status = Item::getStatusFromDates(
+                    $item->discarded_at,
+                    $item->used_at,
+                    $item->received_at
+                );
+                return in_array($status, ['unused_discarded', 'used_discarded']);
+            })->count();
 
             return [
                 'id' => $product->id,

@@ -14,8 +14,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $item_id
  * @property int $unit_number 同一 item 中第幾件（1, 2, 3...）
- * @property string|null $used_at 開始使用時間
- * @property string|null $discarded_at 丟棄時間
+ * @property Carbon|null $used_at 開始使用時間
+ * @property Carbon|null $discarded_at 丟棄時間
  * @property string|null $notes 備註
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at

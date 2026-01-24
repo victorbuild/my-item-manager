@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ItemStatus;
 use Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,9 +25,9 @@ use Illuminate\Support\Str;
  * @property string|null $description 物品描述
  * @property string|null $location 存放位置
  * @property string|null $price 總金額
- * @property string|null $purchased_at 購買日期
+ * @property Carbon|null $purchased_at 購買日期
  * @property bool $is_discarded 是否報廢
- * @property string|null $discarded_at 報廢時間
+ * @property Carbon|null $discarded_at 報廢時間
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property int|null $category_id
@@ -55,8 +56,8 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Item whereUuid($value)
  * @property int|null $product_id 對應的產品
  * @method static Builder<static>|Item whereProductId($value)
- * @property string|null $received_at
- * @property string|null $used_at
+ * @property Carbon|null $received_at 到貨日期
+ * @property Carbon|null $used_at 使用日期
  * @property string|null $notes
  * @property string|null $serial_number 實體序號
  * @method static Builder<static>|Item whereNotes($value)
@@ -72,6 +73,7 @@ use Illuminate\Support\Str;
  * @method static \Database\Factories\ItemFactory factory($count = null, $state = [])
  * @method static Builder<static>|Item whereDiscardNote($value)
  * @method static Builder<static>|Item whereExpirationDate($value)
+ * @method static Builder<static>|Item status(\App\Enums\ItemStatus|array|string $statuses)
  * @mixin Eloquent
  */
 class Item extends Model
@@ -172,6 +174,39 @@ class Item extends Model
 
 
     /**
+     * 根據日期欄位計算物品狀態
+     * 統一的狀態計算邏輯，所有狀態判斷都應該使用此方法
+     *
+     * @param \Illuminate\Support\Carbon|string|null $discardedAt
+     * @param \Illuminate\Support\Carbon|string|null $usedAt
+     * @param \Illuminate\Support\Carbon|string|null $receivedAt
+     * @return string 狀態值（ItemStatus enum value）
+     */
+    public static function getStatusFromDates(
+        $discardedAt = null,
+        $usedAt = null,
+        $receivedAt = null
+    ): string {
+        // 第一優先：檢查是否已棄用
+        if ($discardedAt) {
+            return $usedAt ? ItemStatus::USED_DISCARDED->value : ItemStatus::UNUSED_DISCARDED->value;
+        }
+
+        // 第二優先：檢查是否正在使用
+        if ($usedAt) {
+            return ItemStatus::IN_USE->value;
+        }
+
+        // 第三優先：檢查是否已到貨
+        if ($receivedAt) {
+            return ItemStatus::UNUSED->value;
+        }
+
+        // 第四優先：其他情況（尚未到貨）
+        return ItemStatus::PRE_ARRIVAL->value;
+    }
+
+    /**
      * 動態屬性：取得物品狀態
      * 基於文件定義的5個主要狀態
      *
@@ -179,22 +214,57 @@ class Item extends Model
      */
     public function getStatusAttribute(): string
     {
-        // 第一優先：檢查是否已棄用
-        if ($this->discarded_at) {
-            return $this->used_at ? 'used_discarded' : 'unused_discarded';
+        return self::getStatusFromDates(
+            $this->discarded_at,
+            $this->used_at,
+            $this->received_at
+        );
+    }
+
+    /**
+     * Scope：篩選特定狀態的物品
+     *
+     * @param Builder $query
+     * @param string|ItemStatus|array<string|ItemStatus> $statuses 狀態值或狀態陣列
+     * @return Builder
+     */
+    public function scopeStatus(Builder $query, string|ItemStatus|array $statuses): Builder
+    {
+        // 將單一狀態轉為陣列
+        if (!is_array($statuses)) {
+            $statuses = [$statuses];
         }
 
-        // 第二優先：檢查是否正在使用
-        if ($this->used_at) {
-            return 'in_use';
-        }
+        // 將 ItemStatus enum 轉為字串值
+        $statuses = array_map(function ($status) {
+            return $status instanceof ItemStatus ? $status->value : $status;
+        }, $statuses);
 
-        // 第三優先：檢查是否已到貨
-        if ($this->received_at) {
-            return 'unused';
-        }
-
-        // 第四優先：其他情況（有購買時間但未到貨）
-        return 'pre_arrival';
+        return $query->where(function ($q) use ($statuses) {
+            foreach ($statuses as $status) {
+                $q->orWhere(function ($sub) use ($status) {
+                    match ($status) {
+                        ItemStatus::PRE_ARRIVAL->value => $sub
+                            ->whereNull('discarded_at')
+                            ->whereNull('used_at')
+                            ->whereNull('received_at'),
+                        ItemStatus::UNUSED->value => $sub
+                            ->whereNotNull('received_at')
+                            ->whereNull('used_at')
+                            ->whereNull('discarded_at'),
+                        ItemStatus::IN_USE->value => $sub
+                            ->whereNotNull('used_at')
+                            ->whereNull('discarded_at'),
+                        ItemStatus::UNUSED_DISCARDED->value => $sub
+                            ->whereNotNull('discarded_at')
+                            ->whereNull('used_at'),
+                        ItemStatus::USED_DISCARDED->value => $sub
+                            ->whereNotNull('discarded_at')
+                            ->whereNotNull('used_at'),
+                        default => null,
+                    };
+                });
+            }
+        });
     }
 }

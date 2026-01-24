@@ -38,11 +38,11 @@
                      class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">{{ statusTips.pre_arrival }}
                 </div>
             </div>
-            <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('stored')">
+            <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('unused')">
                 <div class="text-gray-500 whitespace-nowrap">📦 未使用</div>
-                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.stored || 0 }}</div>
-                <div v-if="activeTip === 'stored'" class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">
-                    {{ statusTips.stored }}
+                <div class="text-xl min-h-[32px] whitespace-nowrap">{{ product.status_counts.unused || 0 }}</div>
+                <div v-if="activeTip === 'unused'" class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">
+                    {{ statusTips.unused }}
                 </div>
             </div>
             <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('in_use')">
@@ -55,10 +55,10 @@
             <div class="flex flex-col items-center cursor-pointer space-y-1" @click="toggleTip('discarded')">
                 <div class="text-gray-500 whitespace-nowrap">🗑️ 報廢</div>
                 <div class="text-xl flex flex-wrap justify-center min-h-[32px]">
-                    <span>{{ product.status_counts.used_and_gone || 0 }}</span>
+                    <span>{{ product.status_counts.used_discarded || 0 }}</span>
                     <span class="text-red-500 cursor-pointer whitespace-nowrap"
                           @click.stop="toggleTip('discarded_unused')">({{
-                            product.status_counts.unused_but_gone || 0
+                            product.status_counts.unused_discarded || 0
                         }})</span>
                 </div>
                 <div v-if="activeTip === 'discarded'" class="text-xs text-gray-500 mt-1 bg-gray-100 rounded px-2 py-1">
@@ -129,7 +129,7 @@ const toggleTip = (key) => {
 }
 const statusTips = {
     pre_arrival: '尚未收到貨，未開始使用',
-    stored: '貨已到但尚未開始使用',
+    unused: '貨已到但尚未開始使用',
     in_use: '目前正在使用中',
     discarded: '已使用後報廢的項目，括號內為未使用直接報廢的數量'
 }

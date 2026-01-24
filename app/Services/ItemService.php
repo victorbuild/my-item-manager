@@ -120,28 +120,7 @@ class ItemService
 
         // 狀態多選篩選
         if (!empty($filters['statuses']) && is_array($filters['statuses'])) {
-            $query->where(function ($q) use ($filters) {
-                foreach ($filters['statuses'] as $status) {
-                    $q->orWhere(function ($sub) use ($status) {
-                        if ($status === 'pre_arrival') {
-                            // 未到貨：discarded_at 為空 且 used_at 為空 且 received_at 為空
-                            $sub->whereNull('discarded_at')->whereNull('used_at')->whereNull('received_at');
-                        } elseif ($status === 'unused') {
-                            // 未使用：received_at 有值 且 used_at 為空 且 discarded_at 為空
-                            $sub->whereNotNull('received_at')->whereNull('used_at')->whereNull('discarded_at');
-                        } elseif ($status === 'in_use') {
-                            // 使用中：used_at 有值 且 discarded_at 為空
-                            $sub->whereNotNull('used_at')->whereNull('discarded_at');
-                        } elseif ($status === 'unused_discarded') {
-                            // 未使用就棄用：discarded_at 有值 且 used_at 為空
-                            $sub->whereNotNull('discarded_at')->whereNull('used_at');
-                        } elseif ($status === 'used_discarded') {
-                            // 使用後棄用：discarded_at 有值 且 used_at 有值
-                            $sub->whereNotNull('discarded_at')->whereNotNull('used_at');
-                        }
-                    });
-                }
-            });
+            $query->status($filters['statuses']);
         }
 
         // 使用策略模式處理排序
@@ -460,26 +439,19 @@ class ItemService
 
         return [
             'in_use' => (clone $statusFilteredQuery)
-                ->whereNotNull('used_at')
-                ->whereNull('discarded_at')
+                ->status('in_use')
                 ->count(),
             'unused' => (clone $statusFilteredQuery)
-                ->whereNotNull('received_at')
-                ->whereNull('used_at')
-                ->whereNull('discarded_at')
+                ->status('unused')
                 ->count(),
             'pre_arrival' => (clone $statusFilteredQuery)
-                ->whereNull('discarded_at')
-                ->whereNull('used_at')
-                ->whereNull('received_at')
+                ->status('pre_arrival')
                 ->count(),
             'used_discarded' => (clone $statusFilteredQuery)
-                ->whereNotNull('discarded_at')
-                ->whereNotNull('used_at')
+                ->status('used_discarded')
                 ->count(),
             'unused_discarded' => (clone $statusFilteredQuery)
-                ->whereNotNull('discarded_at')
-                ->whereNull('used_at')
+                ->status('unused_discarded')
                 ->count(),
         ];
     }
