@@ -9,6 +9,7 @@ use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -63,10 +64,9 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：計算建立數量
-     *
-     * @test
-     * @dataProvider quantityDataProvider
      */
+    #[Test]
+    #[DataProvider('quantityDataProvider')]
     public function it_should_calculate_quantity_correctly(int $maxQuantity, array $data, int $expected): void
     {
         $mockItemImageService = Mockery::mock(ItemImageService::class);
@@ -161,9 +161,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：批次建立物品（不含圖片）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_create_batch_items_without_images(): void
     {
         $data = [
@@ -204,9 +203,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：批次建立物品（含圖片）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_create_batch_items_with_images(): void
     {
         $data = [
@@ -264,9 +262,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：批次建立失敗時應該 rollback
-     *
-     * @test
      */
+    #[Test]
     public function it_should_rollback_when_batch_creation_fails(): void
     {
         $data = [
@@ -315,9 +312,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：更新物品基本資料
-     *
-     * @test
      */
+    #[Test]
     public function it_should_update_item_basic_data(): void
     {
         // Arrange
@@ -350,9 +346,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：更新物品並同步圖片
-     *
-     * @test
      */
+    #[Test]
     public function it_should_update_item_and_sync_images(): void
     {
         // Arrange
@@ -393,9 +388,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：更新物品但不提供圖片（images 為空陣列）
-     *
-     * @test
      */
+    #[Test]
     public function it_should_update_item_without_images_when_images_is_empty(): void
     {
         // Arrange
@@ -427,9 +421,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：更新物品後載入關聯資料
-     *
-     * @test
      */
+    #[Test]
     public function it_should_load_relationships_after_update(): void
     {
         // Arrange
@@ -462,9 +455,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：根據 short_id 查詢物品 - 成功
-     *
-     * @test
      */
+    #[Test]
     public function it_should_find_item_by_short_id_successfully(): void
     {
         // Arrange
@@ -490,9 +482,8 @@ class ItemServiceTest extends TestCase
 
     /**
      * 測試：根據 short_id 查詢物品 - 找不到時拋出異常
-     *
-     * @test
      */
+    #[Test]
     public function it_should_throw_exception_when_item_not_found_by_short_id(): void
     {
         // Arrange
