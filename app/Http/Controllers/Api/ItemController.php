@@ -174,7 +174,7 @@ class ItemController extends Controller
         $perPage = $request->input('per_page', 20);
         $perPage = min(max($perPage, 1), 100); // 限制在 1-100 之間
 
-        $items = $this->itemService->getExpiringSoonItems($days, $perPage);
+        $items = $this->itemService->getExpiringSoonItems(auth()->id(), $days, $perPage);
         $collection = new ItemCollection($items);
         $data = $collection->toArray($request);
 

@@ -196,28 +196,14 @@ class ItemService
     /**
      * 查詢近期過期的商品（尚未棄用且有過期日期）
      *
+     * @param int $userId 使用者 ID
      * @param int $days 未來幾天內要過期（預設 30 天）
-     * @param int $perPage 每頁筆數
+     * @param int $perPage 每頁筆數（預設 20）
      * @return LengthAwarePaginator
      */
-    public function getExpiringSoonItems(int $days = 30, int $perPage = 20): LengthAwarePaginator
+    public function getExpiringSoonItems(int $userId, int $days = 30, int $perPage = 20): LengthAwarePaginator
     {
-        // 使用日期格式，確保比較正確
-        $endDate = now()->addDays($days)->format('Y-m-d');
-
-        $query = Item::with(['images', 'units', 'product.category'])
-            ->where('user_id', auth()->id())
-            // 尚未棄用
-            ->whereNull('discarded_at')
-            // 有過期日期
-            ->whereNotNull('expiration_date')
-            // 過期日期在指定範圍內（包含已過期的，到未來指定天數）
-            // 使用 whereDate 確保日期比較正確
-            ->whereDate('expiration_date', '<=', $endDate)
-            // 按過期日期升序排列（即將過期的在前，已過期的也會顯示）
-            ->orderBy('expiration_date', 'asc');
-
-        return $query->paginate($perPage);
+        return $this->itemRepository->getExpiringSoonItems($days, $perPage, $userId);
     }
 
     /**

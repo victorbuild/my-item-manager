@@ -7,7 +7,9 @@ use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
 use App\Services\ItemService;
 use App\Strategies\Sort\SortStrategyFactory;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ItemServiceTest extends TestCase
@@ -506,5 +508,68 @@ class ItemServiceTest extends TestCase
         // Act & Assert
         $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
         $this->itemService->findByShortIdOrFail($shortId);
+    }
+
+    /**
+     * 測試：查詢近期過期的商品 - 應該呼叫 Repository 並傳入正確的參數
+     */
+    #[Test]
+    public function it_should_call_repository_with_correct_parameters_for_expiring_soon_items(): void
+    {
+        // Arrange
+        $days = 30;
+        $perPage = 20;
+        $userId = self::TEST_USER_ID;
+        $expectedPaginator = new LengthAwarePaginator(
+            [],
+            0,
+            $perPage,
+            1
+        );
+
+        $this->mockItemRepository
+            ->shouldReceive('getExpiringSoonItems')
+            ->once()
+            ->with($days, $perPage, $userId)
+            ->andReturn($expectedPaginator);
+
+        // Act
+        $result = $this->itemService->getExpiringSoonItems($userId, $days, $perPage);
+
+        // Assert
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
+        $this->assertSame($expectedPaginator, $result);
+    }
+
+    /**
+     * 測試：查詢近期過期的商品 - 應該使用傳入的 userId 而非 auth()->id()
+     */
+    #[Test]
+    public function it_should_use_provided_user_id_instead_of_auth_id(): void
+    {
+        // Arrange
+        $days = 30;
+        $perPage = 20;
+        $userId = 999; // 不同的 userId
+        $expectedPaginator = new LengthAwarePaginator(
+            [],
+            0,
+            $perPage,
+            1
+        );
+
+        $this->mockItemRepository
+            ->shouldReceive('getExpiringSoonItems')
+            ->once()
+            ->with($days, $perPage, $userId)
+            ->andReturn($expectedPaginator);
+
+        // Act
+        $result = $this->itemService->getExpiringSoonItems($userId, $days, $perPage);
+
+        // Assert
+        $this->assertInstanceOf(LengthAwarePaginator::class, $result);
+        $this->assertSame($expectedPaginator, $result);
+        // 驗證 Repository 被呼叫時使用的是傳入的 userId（透過 shouldReceive 的 with 驗證）
     }
 }

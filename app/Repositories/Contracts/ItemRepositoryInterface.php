@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Item;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * 物品資料存取介面
@@ -46,4 +47,18 @@ interface ItemRepositoryInterface
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function findByShortIdOrFail(string $shortId): Item;
+
+    /**
+     * 查詢近期過期的商品（尚未棄用且有過期日期）
+     *
+     * @param int $days 未來幾天內要過期
+     * @param int $perPage 每頁筆數
+     * @param int $userId 使用者 ID
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function getExpiringSoonItems(
+        int $days,
+        int $perPage,
+        int $userId
+    ): LengthAwarePaginator;
 }
