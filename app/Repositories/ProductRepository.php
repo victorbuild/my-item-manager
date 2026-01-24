@@ -83,32 +83,12 @@ class ProductRepository implements ProductRepositoryInterface
             ->where('user_id', $userId)
             ->where('product_id', $productId);
 
-        $preArrival = (clone $baseQuery)
-            ->whereNull('received_at')
-            ->whereNull('used_at')
-            ->whereNull('discarded_at')
-            ->count();
-
-        $unused = (clone $baseQuery)
-            ->whereNotNull('received_at')
-            ->whereNull('used_at')
-            ->whereNull('discarded_at')
-            ->count();
-
-        $inUse = (clone $baseQuery)
-            ->whereNotNull('used_at')
-            ->whereNull('discarded_at')
-            ->count();
-
-        $unusedDiscarded = (clone $baseQuery)
-            ->whereNotNull('discarded_at')
-            ->whereNull('used_at')
-            ->count();
-
-        $usedDiscarded = (clone $baseQuery)
-            ->whereNotNull('discarded_at')
-            ->whereNotNull('used_at')
-            ->count();
+        $item = new Item();
+        $preArrival = $item->scopePreArrival(clone $baseQuery)->count();
+        $unused = $item->scopeUnused(clone $baseQuery)->count();
+        $inUse = $item->scopeInUse(clone $baseQuery)->count();
+        $unusedDiscarded = $item->scopeUnusedDiscarded(clone $baseQuery)->count();
+        $usedDiscarded = $item->scopeUsedDiscarded(clone $baseQuery)->count();
 
         return [
             'pre_arrival' => $preArrival,

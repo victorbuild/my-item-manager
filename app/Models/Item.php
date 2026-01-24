@@ -15,7 +15,6 @@ use Illuminate\Support\Str;
 
 /**
  *
- *
  * @property int $id
  * @property string $uuid UUID
  * @property string $short_id 網址id
@@ -29,47 +28,50 @@ use Illuminate\Support\Str;
  * @property Carbon|null $discarded_at 報廢時間
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property int|null $category_id
- * @property-read Category|null $category
- * @property-read Collection<int, ItemImage> $images
+ * @property int|null $product_id 對應的產品
+ * @property Carbon|null $received_at
+ * @property Carbon|null $used_at
+ * @property string|null $notes
+ * @property string|null $serial_number 實體序號
+ * @property int|null $user_id
+ * @property string|null $discard_note 棄用反思或情緒想法
+ * @property Carbon|null $expiration_date 物品有效期限
+ * @property-read \App\Models\Category|null $category
+ * @property-read string $status
+ * @property-read Collection<int, \App\Models\ItemImage> $images
  * @property-read int|null $images_count
+ * @property-read \App\Models\Product|null $product
+ * @method static \Database\Factories\ItemFactory factory($count = null, $state = [])
+ * @method static Builder<static>|Item inUse()
  * @method static Builder<static>|Item newModelQuery()
  * @method static Builder<static>|Item newQuery()
+ * @method static Builder<static>|Item preArrival()
  * @method static Builder<static>|Item query()
+ * @method static Builder<static>|Item status(\App\Enums\ItemStatus|array|string $statuses)
+ * @method static Builder<static>|Item unused()
+ * @method static Builder<static>|Item unusedDiscarded()
+ * @method static Builder<static>|Item usedDiscarded()
  * @method static Builder<static>|Item whereBarcode($value)
- * @method static Builder<static>|Item whereCategoryId($value)
  * @method static Builder<static>|Item whereCreatedAt($value)
  * @method static Builder<static>|Item whereDescription($value)
+ * @method static Builder<static>|Item whereDiscardNote($value)
  * @method static Builder<static>|Item whereDiscardedAt($value)
+ * @method static Builder<static>|Item whereExpirationDate($value)
  * @method static Builder<static>|Item whereId($value)
  * @method static Builder<static>|Item whereIsDiscarded($value)
  * @method static Builder<static>|Item whereLocation($value)
  * @method static Builder<static>|Item whereName($value)
- * @method static Builder<static>|Item wherePrice($value)
- * @method static Builder<static>|Item wherePurchasedAt($value)
- * @method static Builder<static>|Item whereShortId($value)
- * @method static Builder<static>|Item whereUpdatedAt($value)
- * @method static Builder<static>|Item whereUuid($value)
- * @property int|null $product_id 對應的產品
- * @method static Builder<static>|Item whereProductId($value)
- * @property Carbon|null $received_at 到貨日期
- * @property Carbon|null $used_at 使用日期
- * @property string|null $notes
- * @property string|null $serial_number 實體序號
  * @method static Builder<static>|Item whereNotes($value)
+ * @method static Builder<static>|Item wherePrice($value)
+ * @method static Builder<static>|Item whereProductId($value)
+ * @method static Builder<static>|Item wherePurchasedAt($value)
  * @method static Builder<static>|Item whereReceivedAt($value)
  * @method static Builder<static>|Item whereSerialNumber($value)
+ * @method static Builder<static>|Item whereShortId($value)
+ * @method static Builder<static>|Item whereUpdatedAt($value)
  * @method static Builder<static>|Item whereUsedAt($value)
- * @property int|null $user_id
  * @method static Builder<static>|Item whereUserId($value)
- * @property string|null $discard_note 棄用反思或情緒想法
- * @property Carbon|null $expiration_date 物品有效期限
- * @property-read string $status
- * @property-read \App\Models\Product|null $product
- * @method static \Database\Factories\ItemFactory factory($count = null, $state = [])
- * @method static Builder<static>|Item whereDiscardNote($value)
- * @method static Builder<static>|Item whereExpirationDate($value)
- * @method static Builder<static>|Item status(\App\Enums\ItemStatus|array|string $statuses)
+ * @method static Builder<static>|Item whereUuid($value)
  * @mixin Eloquent
  */
 class Item extends Model
@@ -213,6 +215,73 @@ class Item extends Model
     }
 
     /**
+     * Scope：未到貨（未到貨、未使用、未棄用）
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopePreArrival(Builder $query): Builder
+    {
+        return $query
+            ->whereNull('discarded_at')
+            ->whereNull('used_at')
+            ->whereNull('received_at');
+    }
+
+    /**
+     * Scope：未使用（已到貨、未使用、未棄用）
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeUnused(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('received_at')
+            ->whereNull('used_at')
+            ->whereNull('discarded_at');
+    }
+
+    /**
+     * Scope：使用中（已使用、未棄用）
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeInUse(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('used_at')
+            ->whereNull('discarded_at');
+    }
+
+    /**
+     * Scope：未使用就棄用（已棄用、未使用）
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeUnusedDiscarded(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('discarded_at')
+            ->whereNull('used_at');
+    }
+
+    /**
+     * Scope：使用後棄用（已棄用、已使用）
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeUsedDiscarded(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('discarded_at')
+            ->whereNotNull('used_at');
+    }
+
+    /**
      * Scope：篩選特定狀態的物品
      *
      * @param Builder $query
@@ -235,23 +304,11 @@ class Item extends Model
             foreach ($statuses as $status) {
                 $q->orWhere(function ($sub) use ($status) {
                     match ($status) {
-                        ItemStatus::PRE_ARRIVAL->value => $sub
-                            ->whereNull('discarded_at')
-                            ->whereNull('used_at')
-                            ->whereNull('received_at'),
-                        ItemStatus::UNUSED->value => $sub
-                            ->whereNotNull('received_at')
-                            ->whereNull('used_at')
-                            ->whereNull('discarded_at'),
-                        ItemStatus::IN_USE->value => $sub
-                            ->whereNotNull('used_at')
-                            ->whereNull('discarded_at'),
-                        ItemStatus::UNUSED_DISCARDED->value => $sub
-                            ->whereNotNull('discarded_at')
-                            ->whereNull('used_at'),
-                        ItemStatus::USED_DISCARDED->value => $sub
-                            ->whereNotNull('discarded_at')
-                            ->whereNotNull('used_at'),
+                        ItemStatus::PRE_ARRIVAL->value => $this->scopePreArrival($sub),
+                        ItemStatus::UNUSED->value => $this->scopeUnused($sub),
+                        ItemStatus::IN_USE->value => $this->scopeInUse($sub),
+                        ItemStatus::UNUSED_DISCARDED->value => $this->scopeUnusedDiscarded($sub),
+                        ItemStatus::USED_DISCARDED->value => $this->scopeUsedDiscarded($sub),
                         default => null,
                     };
                 });
