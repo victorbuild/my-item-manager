@@ -5,20 +5,23 @@ namespace Tests\Unit\Services;
 use App\Models\Item;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
+use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ItemImageServiceTest extends TestCase
 {
-    use RefreshDatabase;
-
     /**
      * @var \Mockery\MockInterface&ItemImageRepositoryInterface
      */
     private $mockRepository;
+
+    /**
+     * @var \Mockery\MockInterface&ItemRepositoryInterface
+     */
+    private $mockItemRepository;
 
     private ItemImageService $service;
 
@@ -26,10 +29,11 @@ class ItemImageServiceTest extends TestCase
     {
         parent::setUp();
         $this->mockRepository = Mockery::mock(ItemImageRepositoryInterface::class);
-        // 階段 1：使用真實的 ItemRepository（透過 Laravel DI）
+        $this->mockItemRepository = Mockery::mock(ItemRepositoryInterface::class);
+        // 階段 2：使用 Mock ItemRepository（真正的 Unit 測試）
         $this->service = new ItemImageService(
             $this->mockRepository,
-            app(\App\Repositories\Contracts\ItemRepositoryInterface::class)
+            $this->mockItemRepository
         );
     }
 
@@ -46,14 +50,18 @@ class ItemImageServiceTest extends TestCase
     public function it_should_do_nothing_when_images_array_is_empty(): void
     {
         // Arrange
-        $item = Item::factory()->create();
+        $item = new Item();
+        $item->id = 1;
 
         // Act
         $this->service->attachImagesToItem($item, []);
 
-        // Assert
-        $this->assertEquals(0, $item->images()->count());
+        // Assert - 驗證行為：空陣列時不應該調用任何方法
         $this->mockRepository->shouldNotHaveReceived('findByUuid');
+        $this->mockItemRepository->shouldNotHaveReceived('attachImage');
+
+        // 明確的 assertion：驗證方法正常執行（沒有拋出異常）
+        $this->assertTrue(true, '空陣列時方法應該正常返回，不拋出異常');
     }
 
     /**
@@ -63,50 +71,69 @@ class ItemImageServiceTest extends TestCase
     public function it_should_attach_images_and_increment_usage_when_valid_images_provided(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
-        $image2 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->status = ItemImage::STATUS_DRAFT;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'new'],
-            ['uuid' => $image2->uuid, 'status' => 'new'],
+            ['uuid' => 'uuid-1', 'status' => 'new'],
+            ['uuid' => 'uuid-2', 'status' => 'new'],
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image1->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image1);
 
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image2->uuid)
+            ->with('uuid-2')
             ->once()
             ->andReturn($image2);
 
         $this->mockRepository
             ->shouldReceive('incrementUsageCount')
-            ->with(Mockery::on(function ($img) use ($image1, $image2) {
-                return $img->uuid === $image1->uuid || $img->uuid === $image2->uuid;
+            ->with(Mockery::on(function ($img) {
+                return $img->uuid === 'uuid-1' || $img->uuid === 'uuid-2';
             }))
             ->twice();
 
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) use ($image1, $image2) {
-                return ($img->uuid === $image1->uuid || $img->uuid === $image2->uuid)
+            ->with(Mockery::on(function ($img) {
+                return ($img->uuid === 'uuid-1' || $img->uuid === 'uuid-2')
                     && $img->status === ItemImage::STATUS_DRAFT;
             }), ItemImage::STATUS_USED)
+            ->twice();
+
+        // Mock ItemRepository attachImage - 驗證 sort_order 正確遞增
+        $sortOrderCallCount = 0;
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, Mockery::on(function ($uuid) {
+                return $uuid === 'uuid-1' || $uuid === 'uuid-2';
+            }), Mockery::on(function ($pivotData) use (&$sortOrderCallCount) {
+                $sortOrderCallCount++;
+
+                return isset($pivotData['sort_order'])
+                    && $pivotData['sort_order'] === $sortOrderCallCount
+                    && isset($pivotData['created_at'])
+                    && isset($pivotData['updated_at']);
+            }))
             ->twice();
 
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        $this->assertEquals(2, $item->images()->count());
-        $this->assertTrue($item->images->contains('uuid', $image1->uuid));
-        $this->assertTrue($item->images->contains('uuid', $image2->uuid));
+        // Assert - 驗證行為：attachImage 被調用 2 次，sort_order 正確遞增
+        $this->assertEquals(2, $sortOrderCallCount, 'attachImage 應該被調用 2 次');
     }
 
     /**
@@ -116,19 +143,24 @@ class ItemImageServiceTest extends TestCase
     public function it_should_only_process_images_with_status_new(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create();
-        $image2 = ItemImage::factory()->create();
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->status = ItemImage::STATUS_DRAFT;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'new'],      // 應該處理
-            ['uuid' => $image2->uuid, 'status' => 'original'], // 應該跳過
+            ['uuid' => 'uuid-1', 'status' => 'new'],      // 應該處理
+            ['uuid' => 'uuid-2', 'status' => 'original'], // 應該跳過
         ];
 
         // Mock Repository 行為（只應該被呼叫一次）
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image1->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image1);
 
@@ -140,13 +172,18 @@ class ItemImageServiceTest extends TestCase
             ->shouldReceive('updateStatus')
             ->once();
 
+        // Mock ItemRepository attachImage（只應該被呼叫一次）
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-1', Mockery::type('array'))
+            ->once();
+
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count());
-        $this->assertTrue($item->images->contains('uuid', $image1->uuid));
-        $this->assertFalse($item->images->contains('uuid', $image2->uuid));
+        // Assert - 只驗證 Mock 被正確調用，不檢查資料庫狀態
+        // Mockery 的驗證會在 tearDown() 中執行，這裡添加明確的 assertion 避免 PHPUnit 標記為 risky
+        $this->assertTrue(true);
     }
 
     /**
@@ -156,18 +193,21 @@ class ItemImageServiceTest extends TestCase
     public function it_should_skip_images_without_uuid(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create();
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'new'], // 應該處理
-            ['status' => 'new'],                          // 應該跳過（無 UUID）
+            ['uuid' => 'uuid-1', 'status' => 'new'], // 應該處理
+            ['status' => 'new'],                     // 應該跳過（無 UUID）
         ];
 
         // Mock Repository 行為（只應該被呼叫一次）
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image1->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image1);
 
@@ -179,11 +219,21 @@ class ItemImageServiceTest extends TestCase
             ->shouldReceive('updateStatus')
             ->once();
 
+        // Mock ItemRepository attachImage（只應該被呼叫一次，因為第二個圖片沒有 UUID）
+        $attachCallCount = 0;
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-1', Mockery::type('array'))
+            ->once()
+            ->andReturnUsing(function () use (&$attachCallCount) {
+                $attachCallCount++;
+            });
+
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count());
+        // Assert - 驗證行為：只處理有 UUID 的圖片，沒有 UUID 的圖片應該被跳過
+        $this->assertEquals(1, $attachCallCount, '只有有 UUID 的圖片應該被處理');
     }
 
     /**
@@ -193,17 +243,20 @@ class ItemImageServiceTest extends TestCase
     public function it_should_update_status_from_draft_to_used(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
+        $item = new Item();
+        $item->id = 1;
+        $image = new ItemImage();
+        $image->uuid = 'uuid-1';
+        $image->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image->uuid, 'status' => 'new'],
+            ['uuid' => 'uuid-1', 'status' => 'new'],
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image);
 
@@ -214,17 +267,26 @@ class ItemImageServiceTest extends TestCase
 
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) use ($image) {
-                return $img->uuid === $image->uuid && $img->status === ItemImage::STATUS_DRAFT;
+            ->with(Mockery::on(function ($img) {
+                return $img->uuid === 'uuid-1' && $img->status === ItemImage::STATUS_DRAFT;
             }), ItemImage::STATUS_USED)
             ->once();
+
+        // Mock ItemRepository attachImage
+        $attachCallCount = 0;
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-1', Mockery::type('array'))
+            ->once()
+            ->andReturnUsing(function () use (&$attachCallCount) {
+                $attachCallCount++;
+            });
 
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count());
-        $this->assertTrue($item->images->contains('uuid', $image->uuid));
+        // Assert - 驗證行為：attachImage 被調用，updateStatus 也被調用（因為狀態是 draft）
+        $this->assertEquals(1, $attachCallCount, 'attachImage 應該被調用 1 次');
     }
 
     /**
@@ -234,17 +296,20 @@ class ItemImageServiceTest extends TestCase
     public function it_should_not_update_status_when_image_is_already_used(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image = ItemImage::factory()->create(['status' => ItemImage::STATUS_USED]);
+        $item = new Item();
+        $item->id = 1;
+        $image = new ItemImage();
+        $image->uuid = 'uuid-1';
+        $image->status = ItemImage::STATUS_USED;
 
         $images = [
-            ['uuid' => $image->uuid, 'status' => 'new'],
+            ['uuid' => 'uuid-1', 'status' => 'new'],
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image);
 
@@ -257,11 +322,21 @@ class ItemImageServiceTest extends TestCase
         $this->mockRepository
             ->shouldNotReceive('updateStatus');
 
+        // Mock ItemRepository attachImage
+        $attachCallCount = 0;
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-1', Mockery::type('array'))
+            ->once()
+            ->andReturnUsing(function () use (&$attachCallCount) {
+                $attachCallCount++;
+            });
+
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count());
+        // Assert - 驗證行為：attachImage 被調用，但 updateStatus 不被調用（因為狀態已經是 used）
+        $this->assertEquals(1, $attachCallCount, 'attachImage 應該被調用 1 次');
     }
 
     /**
@@ -271,28 +346,35 @@ class ItemImageServiceTest extends TestCase
     public function it_should_set_correct_sort_order(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create();
-        $image2 = ItemImage::factory()->create();
-        $image3 = ItemImage::factory()->create();
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->status = ItemImage::STATUS_DRAFT;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->status = ItemImage::STATUS_DRAFT;
+        $image3 = new ItemImage();
+        $image3->uuid = 'uuid-3';
+        $image3->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'new'],
-            ['uuid' => $image2->uuid, 'status' => 'new'],
-            ['uuid' => $image3->uuid, 'status' => 'new'],
+            ['uuid' => 'uuid-1', 'status' => 'new'],
+            ['uuid' => 'uuid-2', 'status' => 'new'],
+            ['uuid' => 'uuid-3', 'status' => 'new'],
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
             ->andReturnUsing(function ($uuid) use ($image1, $image2, $image3) {
-                if ($uuid === $image1->uuid) {
+                if ($uuid === 'uuid-1') {
                     return $image1;
                 }
-                if ($uuid === $image2->uuid) {
+                if ($uuid === 'uuid-2') {
                     return $image2;
                 }
-                if ($uuid === $image3->uuid) {
+                if ($uuid === 'uuid-3') {
                     return $image3;
                 }
 
@@ -307,14 +389,30 @@ class ItemImageServiceTest extends TestCase
             ->shouldReceive('updateStatus')
             ->times(3);
 
+        // Mock ItemRepository attachImage - 驗證 sort_order 正確遞增（1, 2, 3）
+        $sortOrderCallCount = 0;
+        $sortOrders = [];
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, Mockery::on(function ($uuid) {
+                return $uuid === 'uuid-1' || $uuid === 'uuid-2' || $uuid === 'uuid-3';
+            }), Mockery::on(function ($pivotData) use (&$sortOrderCallCount, &$sortOrders) {
+                $sortOrderCallCount++;
+                $sortOrders[] = $pivotData['sort_order'];
+
+                return isset($pivotData['sort_order'])
+                    && $pivotData['sort_order'] === $sortOrderCallCount
+                    && isset($pivotData['created_at'])
+                    && isset($pivotData['updated_at']);
+            }))
+            ->times(3);
+
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        $attachedImages = $item->images()->orderBy('sort_order')->get();
-        $this->assertEquals(1, $attachedImages[0]->pivot->sort_order);
-        $this->assertEquals(2, $attachedImages[1]->pivot->sort_order);
-        $this->assertEquals(3, $attachedImages[2]->pivot->sort_order);
+        // Assert - 驗證行為：attachImage 被調用 3 次，sort_order 正確遞增為 1, 2, 3
+        $this->assertEquals(3, $sortOrderCallCount, 'attachImage 應該被調用 3 次');
+        $this->assertEquals([1, 2, 3], $sortOrders, 'sort_order 應該正確遞增為 1, 2, 3');
     }
 
     /**
@@ -324,18 +422,17 @@ class ItemImageServiceTest extends TestCase
     public function it_should_not_update_usage_when_image_not_found(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        // 使用真實存在的圖片，但 Mock Repository 返回 null（模擬查詢失敗的情況）
-        $image = ItemImage::factory()->create();
+        $item = new Item();
+        $item->id = 1;
 
         $images = [
-            ['uuid' => $image->uuid, 'status' => 'new'],
+            ['uuid' => 'uuid-1', 'status' => 'new'],
         ];
 
         // Mock Repository 行為（返回 null，模擬圖片不存在的情況）
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn(null);
 
@@ -346,14 +443,22 @@ class ItemImageServiceTest extends TestCase
         $this->mockRepository
             ->shouldNotReceive('updateStatus');
 
+        // Mock ItemRepository attachImage（即使圖片不存在，attach 仍會被調用）
+        $attachCallCount = 0;
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-1', Mockery::type('array'))
+            ->once()
+            ->andReturnUsing(function () use (&$attachCallCount) {
+                $attachCallCount++;
+            });
+
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert
-        // 圖片會被 attach（因為 attach 在檢查之前），但不會更新使用次數
-        $this->assertEquals(1, $item->images()->count());
-        // 驗證圖片確實被 attach
-        $this->assertTrue($item->images->contains('uuid', $image->uuid));
+        // Assert - 驗證行為：即使圖片不存在（findByUuid 返回 null），attachImage 仍會被調用
+        // 但 incrementUsageCount 和 updateStatus 不會被調用
+        $this->assertEquals(1, $attachCallCount, '即使圖片不存在，attachImage 仍應該被調用');
     }
 
     /**
@@ -415,13 +520,21 @@ class ItemImageServiceTest extends TestCase
     public function it_should_do_nothing_when_sync_images_array_is_empty(): void
     {
         // Arrange
-        $item = Item::factory()->create();
+        $item = new Item();
+        $item->id = 1;
+
+        // Mock ItemRepository refreshWithRelations
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
 
         // Act
-        $this->service->syncItemImages($item, []);
+        $result = $this->service->syncItemImages($item, []);
 
-        // Assert
-        $this->assertEquals(0, $item->images()->count());
+        // Assert - 驗證行為：空陣列時應該返回 refreshWithRelations 的結果，不應該調用 findByUuid
+        $this->assertSame($item, $result, '空陣列時應該返回 refreshWithRelations 的結果');
         $this->mockRepository->shouldNotHaveReceived('findByUuid');
     }
 
@@ -432,23 +545,24 @@ class ItemImageServiceTest extends TestCase
     public function it_should_remove_images_when_status_is_removed(): void
     {
         // Arrange
-        $item = Item::factory()->create();
+        $item = new Item();
+        $item->id = 1;
         // 建立 usage_count = 1 的圖片，decrement 後會變成 0
-        $image1 = ItemImage::factory()->create(['usage_count' => 1]);
-        $image2 = ItemImage::factory()->create(['usage_count' => 2]);
-
-        // 先附加圖片
-        $item->images()->attach($image1->uuid, ['sort_order' => 1]);
-        $item->images()->attach($image2->uuid, ['sort_order' => 2]);
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->usage_count = 1;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->usage_count = 2;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'removed'],
+            ['uuid' => 'uuid-1', 'status' => 'removed'],
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image1->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image1);
 
@@ -460,18 +574,28 @@ class ItemImageServiceTest extends TestCase
         // decrement 後，usage_count 會變成 0（1 - 1 = 0）
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) use ($image1) {
-                return $img->uuid === $image1->uuid && $img->usage_count <= 0;
+            ->with(Mockery::on(function ($img) {
+                return $img->uuid === 'uuid-1' && $img->usage_count <= 0;
             }), ItemImage::STATUS_DRAFT)
             ->once();
+
+        // Mock ItemRepository detachImage 和 refreshWithRelations
+        $this->mockItemRepository
+            ->shouldReceive('detachImage')
+            ->with($item, 'uuid-1')
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
 
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count()); // 只剩 image2
-        $this->assertFalse($item->images->contains('uuid', $image1->uuid));
-        $this->assertTrue($item->images->contains('uuid', $image2->uuid));
+        // Assert - 驗證行為：detachImage 和 refreshWithRelations 被正確調用
+        $this->assertTrue(true, 'syncItemImages 應該正常執行，移除圖片並重新載入關聯');
     }
 
     /**
@@ -481,50 +605,75 @@ class ItemImageServiceTest extends TestCase
     public function it_should_add_images_when_status_is_new(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
-        $image2 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->status = ItemImage::STATUS_DRAFT;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'new'],
-            ['uuid' => $image2->uuid, 'status' => 'new'],
+            ['uuid' => 'uuid-1', 'status' => 'new'],
+            ['uuid' => 'uuid-2', 'status' => 'new'],
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image1->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image1);
 
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image2->uuid)
+            ->with('uuid-2')
             ->once()
             ->andReturn($image2);
 
         $this->mockRepository
             ->shouldReceive('incrementUsageCount')
-            ->with(Mockery::on(function ($img) use ($image1, $image2) {
-                return $img->uuid === $image1->uuid || $img->uuid === $image2->uuid;
+            ->with(Mockery::on(function ($img) {
+                return $img->uuid === 'uuid-1' || $img->uuid === 'uuid-2';
             }))
             ->twice();
 
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) use ($image1, $image2) {
-                return ($img->uuid === $image1->uuid || $img->uuid === $image2->uuid)
+            ->with(Mockery::on(function ($img) {
+                return ($img->uuid === 'uuid-1' || $img->uuid === 'uuid-2')
                     && $img->status === ItemImage::STATUS_DRAFT;
             }), ItemImage::STATUS_USED)
             ->twice();
 
+        // Mock ItemRepository hasImage, attachImage, refreshWithRelations
+        $this->mockItemRepository
+            ->shouldReceive('hasImage')
+            ->with($item, Mockery::on(function ($uuid) {
+                return $uuid === 'uuid-1' || $uuid === 'uuid-2';
+            }))
+            ->twice()
+            ->andReturn(false);
+
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, Mockery::on(function ($uuid) {
+                return $uuid === 'uuid-1' || $uuid === 'uuid-2';
+            }), Mockery::type('array'))
+            ->twice();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
+
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert
-        $this->assertEquals(2, $item->images()->count());
-        $this->assertTrue($item->images->contains('uuid', $image1->uuid));
-        $this->assertTrue($item->images->contains('uuid', $image2->uuid));
+        // Assert - 驗證行為：hasImage, attachImage, refreshWithRelations 被正確調用
+        $this->assertTrue(true, 'syncItemImages 應該正常執行，新增圖片並重新載入關聯');
     }
 
     /**
@@ -534,22 +683,24 @@ class ItemImageServiceTest extends TestCase
     public function it_should_not_modify_images_with_status_original(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create();
-        $image2 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
-
-        // 先附加圖片
-        $item->images()->attach($image1->uuid, ['sort_order' => 1]);
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->status = ItemImage::STATUS_DRAFT;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'original'], // 不異動
-            ['uuid' => $image2->uuid, 'status' => 'new'],       // 新增
+            ['uuid' => 'uuid-1', 'status' => 'original'], // 不異動
+            ['uuid' => 'uuid-2', 'status' => 'new'],      // 新增
         ];
 
         // Mock Repository 行為（只處理 new 的圖片）
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image2->uuid)
+            ->with('uuid-2')
             ->once()
             ->andReturn($image2);
 
@@ -562,13 +713,29 @@ class ItemImageServiceTest extends TestCase
             ->shouldReceive('updateStatus')
             ->once();
 
+        // Mock ItemRepository hasImage, attachImage, refreshWithRelations
+        $this->mockItemRepository
+            ->shouldReceive('hasImage')
+            ->with($item, 'uuid-2')
+            ->once()
+            ->andReturn(false);
+
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-2', Mockery::type('array'))
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
+
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert
-        $this->assertEquals(2, $item->images()->count()); // image1 和 image2
-        $this->assertTrue($item->images->contains('uuid', $image1->uuid));
-        $this->assertTrue($item->images->contains('uuid', $image2->uuid));
+        // Assert - 驗證行為：只處理 status='new' 的圖片，status='original' 的圖片不異動
+        $this->assertTrue(true, 'syncItemImages 應該正常執行，只處理 status=new 的圖片');
     }
 
     /**
@@ -578,28 +745,30 @@ class ItemImageServiceTest extends TestCase
     public function it_should_handle_both_add_and_remove_in_same_sync(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image1 = ItemImage::factory()->create(['usage_count' => 1]);
-        $image2 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
-
-        // 先附加 image1
-        $item->images()->attach($image1->uuid, ['sort_order' => 1]);
+        $item = new Item();
+        $item->id = 1;
+        $image1 = new ItemImage();
+        $image1->uuid = 'uuid-1';
+        $image1->usage_count = 1;
+        $image2 = new ItemImage();
+        $image2->uuid = 'uuid-2';
+        $image2->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image1->uuid, 'status' => 'removed'], // 移除
-            ['uuid' => $image2->uuid, 'status' => 'new'],      // 新增
+            ['uuid' => 'uuid-1', 'status' => 'removed'], // 移除
+            ['uuid' => 'uuid-2', 'status' => 'new'],      // 新增
         ];
 
         // Mock Repository 行為
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image1->uuid)
+            ->with('uuid-1')
             ->once()
             ->andReturn($image1);
 
         $this->mockRepository
             ->shouldReceive('findByUuid')
-            ->with($image2->uuid)
+            ->with('uuid-2')
             ->once()
             ->andReturn($image2);
 
@@ -610,8 +779,8 @@ class ItemImageServiceTest extends TestCase
 
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) use ($image1) {
-                return $img->uuid === $image1->uuid && $img->usage_count <= 0;
+            ->with(Mockery::on(function ($img) {
+                return $img->uuid === 'uuid-1' && $img->usage_count <= 0;
             }), ItemImage::STATUS_DRAFT)
             ->once();
 
@@ -622,18 +791,39 @@ class ItemImageServiceTest extends TestCase
 
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) use ($image2) {
-                return $img->uuid === $image2->uuid && $img->status === ItemImage::STATUS_DRAFT;
+            ->with(Mockery::on(function ($img) {
+                return $img->uuid === 'uuid-2' && $img->status === ItemImage::STATUS_DRAFT;
             }), ItemImage::STATUS_USED)
             ->once();
+
+        // Mock ItemRepository detachImage, hasImage, attachImage, refreshWithRelations
+        $this->mockItemRepository
+            ->shouldReceive('detachImage')
+            ->with($item, 'uuid-1')
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('hasImage')
+            ->with($item, 'uuid-2')
+            ->once()
+            ->andReturn(false);
+
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-2', Mockery::type('array'))
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
 
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count()); // 只剩 image2
-        $this->assertFalse($item->images->contains('uuid', $image1->uuid));
-        $this->assertTrue($item->images->contains('uuid', $image2->uuid));
+        // Assert - 驗證行為：同時處理移除和新增，detachImage, hasImage, attachImage, refreshWithRelations 都被正確調用
+        $this->assertTrue(true, 'syncItemImages 應該正常執行，同時處理移除和新增');
     }
 
     /**
@@ -643,14 +833,14 @@ class ItemImageServiceTest extends TestCase
     public function it_should_not_attach_duplicate_images(): void
     {
         // Arrange
-        $item = Item::factory()->create();
-        $image = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
-
-        // 先附加圖片
-        $item->images()->attach($image->uuid, ['sort_order' => 1]);
+        $item = new Item();
+        $item->id = 1;
+        $image = new ItemImage();
+        $image->uuid = 'uuid-1';
+        $image->status = ItemImage::STATUS_DRAFT;
 
         $images = [
-            ['uuid' => $image->uuid, 'status' => 'new'], // 嘗試再次附加
+            ['uuid' => 'uuid-1', 'status' => 'new'], // 嘗試再次附加
         ];
 
         // Mock Repository 行為
@@ -664,11 +854,28 @@ class ItemImageServiceTest extends TestCase
         $this->mockRepository
             ->shouldNotReceive('updateStatus');
 
-        // Act
-        $this->service->syncItemImages($item, $images);
+        // Mock ItemRepository hasImage（返回 true，表示圖片已存在）
+        $this->mockItemRepository
+            ->shouldReceive('hasImage')
+            ->with($item, 'uuid-1')
+            ->once()
+            ->andReturn(true);
 
-        // Assert
-        $this->assertEquals(1, $item->images()->count()); // 仍然只有一張
+        // 不應該呼叫 attachImage（因為圖片已存在）
+        $this->mockItemRepository
+            ->shouldNotReceive('attachImage');
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
+
+        // Act
+        $result = $this->service->syncItemImages($item, $images);
+
+        // Assert - 驗證行為：hasImage 返回 true 時，不應該調用 attachImage（避免重複 attach）
+        $this->assertSame($item, $result, 'syncItemImages 應該返回 refreshWithRelations 的結果');
     }
 
     /**
