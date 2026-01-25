@@ -209,30 +209,7 @@ class ItemService
         }
 
         if (in_array('unused_items', $includeSections, true)) {
-            $unusedItemsData = $this->itemRepository->getUnusedItems($userId, $applyCreatedDateFilter);
-            // 計算 days_unused（這個計算邏輯留在 Service）
-            $unusedItemsWithDays = $unusedItemsData['top_five']->map(function (Item $item) {
-                $daysUnused = 0;
-                $today = now();
-
-                if ($item->received_at) {
-                    $daysUnused = round(Carbon::parse($item->received_at)->diffInDays($today), 1);
-                } elseif ($item->purchased_at) {
-                    $daysUnused = round(Carbon::parse($item->purchased_at)->diffInDays($today), 1);
-                } elseif ($item->created_at) {
-                    $daysUnused = round(Carbon::parse($item->created_at)->diffInDays($today), 1);
-                }
-
-                return [
-                    'item' => $item,
-                    'days_unused' => $daysUnused,
-                ];
-            })->values();
-
-            $statistics['unused_items'] = [
-                'count' => $unusedItemsData['count'],
-                'top_five' => $unusedItemsWithDays,
-            ];
+            $statistics['unused_items'] = $this->processUnusedItems($userId, $applyCreatedDateFilter);
         }
 
         if (in_array('discarded_cost_stats', $includeSections, true)) {
@@ -293,6 +270,42 @@ class ItemService
             'status' => $statusStats,
             'value_stats' => $valueStats,
             'date_range' => $dateRange,
+        ];
+    }
+
+    /**
+     * 處理未使用物品統計（計算 days_unused）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{count: int, top_five: \Illuminate\Support\Collection}
+     */
+    private function processUnusedItems(int $userId, \Closure $applyCreatedDateFilter): array
+    {
+        $unusedItemsData = $this->itemRepository->getUnusedItems($userId, $applyCreatedDateFilter);
+
+        // 計算 days_unused（這個計算邏輯留在 Service）
+        $unusedItemsWithDays = $unusedItemsData['top_five']->map(function (Item $item) {
+            $daysUnused = 0;
+            $today = now();
+
+            if ($item->received_at) {
+                $daysUnused = round(Carbon::parse($item->received_at)->diffInDays($today), 1);
+            } elseif ($item->purchased_at) {
+                $daysUnused = round(Carbon::parse($item->purchased_at)->diffInDays($today), 1);
+            } elseif ($item->created_at) {
+                $daysUnused = round(Carbon::parse($item->created_at)->diffInDays($today), 1);
+            }
+
+            return [
+                'item' => $item,
+                'days_unused' => $daysUnused,
+            ];
+        })->values();
+
+        return [
+            'count' => $unusedItemsData['count'],
+            'top_five' => $unusedItemsWithDays,
         ];
     }
 
