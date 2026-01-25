@@ -330,4 +330,32 @@ class ItemRepository implements ItemRepositoryInterface
             'discarded_items' => $discardedItemsInPeriod,
         ];
     }
+
+    /**
+     * 取得已棄用物品列表（用於成本統計）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Carbon\Carbon|null $startDate 開始日期
+     * @param \Carbon\Carbon|null $endDate 結束日期
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     */
+    public function getDiscardedItemsForCost(
+        int $userId,
+        ?Carbon $startDate,
+        ?Carbon $endDate
+    ): Collection {
+        $query = Item::where('user_id', $userId)
+            ->whereNotNull('discarded_at')
+            ->whereNotNull('price')
+            ->where('price', '>', 0);
+
+        if ($startDate) {
+            $query->where('discarded_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->where('discarded_at', '<=', $endDate);
+        }
+
+        return $query->get();
+    }
 }

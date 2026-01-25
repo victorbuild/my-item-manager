@@ -283,7 +283,7 @@ class ItemService
         }
 
         if (in_array('discarded_cost_stats', $includeSections, true)) {
-            $discardedCostData = $this->calculateDiscardedCostStatistics($baseQuery, $startDate, $endDate);
+            $discardedCostData = $this->calculateDiscardedCostStatistics($userId, $startDate, $endDate);
             $statistics['discarded_cost_stats'] = [
                 'average_cost_per_day' => $discardedCostData['average_cost_per_day'],
                 'top_five' => $discardedCostData['top_five'],
@@ -437,27 +437,17 @@ class ItemService
     /**
      * 計算已結案物品成本統計
      *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param int $userId 使用者 ID
+     * @param Carbon|null $startDate 開始日期
+     * @param Carbon|null $endDate 結束日期
      */
     private function calculateDiscardedCostStatistics(
-        $baseQuery,
+        int $userId,
         ?Carbon $startDate,
         ?Carbon $endDate
     ): array {
-        $discardedItemsForCost = (clone $baseQuery)
-            ->whereNotNull('discarded_at')
-            ->whereNotNull('price')
-            ->where('price', '>', 0);
-
-        if ($startDate) {
-            $discardedItemsForCost->where('discarded_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $discardedItemsForCost->where('discarded_at', '<=', $endDate);
-        }
-
-        /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $discardedItemsList */
-        $discardedItemsList = $discardedItemsForCost->get();
+        // 從 Repository 取得已棄用物品列表
+        $discardedItemsList = $this->itemRepository->getDiscardedItemsForCost($userId, $startDate, $endDate);
 
         return $this->calculateItemCosts($discardedItemsList, true);
     }

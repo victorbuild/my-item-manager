@@ -121,4 +121,18 @@ interface ItemRepositoryInterface
      * }
      */
     public function getValueStatisticsData(int $userId, Closure $applyCreatedDateFilter): array;
+
+    /**
+     * 取得已棄用物品列表（用於成本統計）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Carbon\Carbon|null $startDate 開始日期
+     * @param \Carbon\Carbon|null $endDate 結束日期
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     */
+    public function getDiscardedItemsForCost(
+        int $userId,
+        ?\Carbon\Carbon $startDate,
+        ?\Carbon\Carbon $endDate
+    ): Collection;
 }
