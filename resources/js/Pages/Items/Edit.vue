@@ -118,7 +118,8 @@ const startUploadQueue = async () => {
                 }
             })
             item.status = 'done'
-            item.uuid = res.data.uuid
+            // 根據 API 回傳格式：{ success: true, message: "...", data: { uuid: "...", ... } }
+            item.uuid = res.data.data.uuid
             item.statusForApi = 'new' // 統一用 statusForApi
             item.file = null
         } catch (err) {
