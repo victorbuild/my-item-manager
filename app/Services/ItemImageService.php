@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Models\Item;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
+use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * 物品圖片服務
@@ -165,11 +167,10 @@ class ItemImageService
      *
      * @param \Illuminate\Http\UploadedFile $file 上傳的檔案
      * @param int $userId 用戶 ID
-     * @return array{uuid: string, original_path: string, preview_path: string, thumb_path: string}
      *
-     * @throws \Exception
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      */
-    public function uploadImage(UploadedFile $file, int $userId): array
+    public function uploadImage(UploadedFile $file, int $userId): ItemImage
     {
         // 產生 UUID 和檔案名稱
         $uuid = (string) \Str::uuid();
@@ -189,14 +190,20 @@ class ItemImageService
         // 讀取檔案內容
         $fileContent = file_get_contents($file->getRealPath());
         if ($fileContent === false) {
-            throw new \Exception('無法讀取檔案內容');
+            throw new HttpException(
+                Response::HTTP_INTERNAL_SERVER_ERROR,
+                '無法讀取檔案內容'
+            );
         }
 
         try {
             // 上傳原圖
             $originalUploaded = Storage::disk('gcs')->put($originalPath, $fileContent);
             if (! $originalUploaded) {
-                throw new \Exception('原圖上傳失敗');
+                throw new HttpException(
+                    Response::HTTP_INTERNAL_SERVER_ERROR,
+                    '原圖上傳失敗'
+                );
             }
 
             // 產生縮圖與預覽圖
@@ -220,11 +227,14 @@ class ItemImageService
             if (! $previewUploaded || ! $thumbUploaded) {
                 // 清理已上傳的檔案
                 Storage::disk('gcs')->delete([$originalPath, $previewPath, $thumbPath]);
-                throw new \Exception('縮圖上傳失敗');
+                throw new HttpException(
+                    Response::HTTP_INTERNAL_SERVER_ERROR,
+                    '縮圖上傳失敗'
+                );
             }
 
             // 儲存資料至資料庫
-            $this->itemImageRepository->create([
+            $itemImage = $this->itemImageRepository->create([
                 'uuid' => $uuid,
                 'image_path' => $basename,
                 'original_extension' => $extension,
@@ -233,12 +243,7 @@ class ItemImageService
                 'user_id' => $userId,
             ]);
 
-            return [
-                'uuid' => $uuid,
-                'original_path' => $originalPath,
-                'preview_path' => $previewPath,
-                'thumb_path' => $thumbPath,
-            ];
+            return $itemImage;
         } catch (\Exception $e) {
             // 確保清理已上傳的檔案
             Storage::disk('gcs')->delete([$originalPath, $previewPath, $thumbPath]);
