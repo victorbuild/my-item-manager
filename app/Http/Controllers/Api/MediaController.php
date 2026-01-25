@@ -15,6 +15,7 @@ class MediaController extends Controller
         private readonly MediaService $mediaService
     ) {
     }
+
     /**
      * 取得所有草稿圖片（用於媒體庫）
      */
@@ -67,7 +68,6 @@ class MediaController extends Controller
             'quota' => $quotaInfo,
         ]);
     }
-
 
     /**
      * 取得未使用的圖片列表（用於選擇）
