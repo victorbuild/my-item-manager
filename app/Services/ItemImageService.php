@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Models\Item;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
+use Exception;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -173,7 +175,7 @@ class ItemImageService
     public function uploadImage(UploadedFile $file, int $userId): ItemImage
     {
         // 產生 UUID 和檔案名稱
-        $uuid = (string) \Str::uuid();
+        $uuid = (string) Str::uuid();
         $basename = bin2hex(random_bytes(20)); // 產生 40 字元隨機檔名
         $extension = strtolower($file->getClientOriginalExtension());
 
@@ -188,7 +190,8 @@ class ItemImageService
         $thumbPath = $folderPath . $webpNameThumb;
 
         // 讀取檔案內容
-        $fileContent = file_get_contents($file->getRealPath());
+        // 注意：file_get_contents 在失敗時返回 false 並產生警告，不會拋出異常
+        $fileContent = @file_get_contents($file->getRealPath());
         if ($fileContent === false) {
             throw new HttpException(
                 Response::HTTP_INTERNAL_SERVER_ERROR,
@@ -244,7 +247,7 @@ class ItemImageService
             ]);
 
             return $itemImage;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // 確保清理已上傳的檔案
             Storage::disk('gcs')->delete([$originalPath, $previewPath, $thumbPath]);
             throw $e;

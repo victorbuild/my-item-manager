@@ -291,6 +291,7 @@ class ItemImageServiceTest extends TestCase
                 if ($uuid === $image3->uuid) {
                     return $image3;
                 }
+
                 return null;
             });
 
@@ -664,5 +665,225 @@ class ItemImageServiceTest extends TestCase
 
         // Assert
         $this->assertEquals(1, $item->images()->count()); // 仍然只有一張
+    }
+
+    /**
+     * 測試：成功上傳圖片
+     */
+    #[Test]
+    public function it_should_upload_image_successfully(): void
+    {
+        // Arrange
+        $userId = 1;
+        $file = \Illuminate\Http\UploadedFile::fake()->image('test.jpg', 800, 600);
+
+        // Mock Storage
+        \Illuminate\Support\Facades\Storage::fake('gcs');
+
+        // Mock Repository
+        $itemImage = ItemImage::factory()->make([
+            'uuid' => 'test-uuid',
+            'user_id' => $userId,
+            'status' => ItemImage::STATUS_DRAFT,
+        ]);
+        $itemImage->id = 1; // 設定 ID 以便後續使用
+
+        $this->mockRepository
+            ->shouldReceive('create')
+            ->once()
+            ->with(Mockery::on(function ($data) use ($userId) {
+                return isset($data['uuid'])
+                    && isset($data['image_path'])
+                    && isset($data['original_extension'])
+                    && $data['status'] === ItemImage::STATUS_DRAFT
+                    && $data['usage_count'] === 0
+                    && $data['user_id'] === $userId;
+            }))
+            ->andReturn($itemImage);
+
+        // Act
+        $result = $this->service->uploadImage($file, $userId);
+
+        // Assert
+        $this->assertInstanceOf(ItemImage::class, $result);
+        $this->assertEquals($userId, $result->user_id);
+        $this->assertEquals(ItemImage::STATUS_DRAFT, $result->status);
+
+        // 驗證檔案已上傳（檢查 Storage 中是否有檔案）
+        $files = \Illuminate\Support\Facades\Storage::disk('gcs')->allFiles('item-images');
+        $this->assertNotEmpty($files, '應該有檔案被上傳');
+        $this->assertCount(3, $files, '應該有 3 個檔案（原圖、預覽圖、縮圖）');
+
+        // 驗證檔案名稱格式
+        $hasOriginal = false;
+        $hasPreview = false;
+        $hasThumb = false;
+        foreach ($files as $filePath) {
+            if (str_contains($filePath, 'original_')) {
+                $hasOriginal = true;
+            }
+            if (str_contains($filePath, 'preview_')) {
+                $hasPreview = true;
+            }
+            if (str_contains($filePath, 'thumb_')) {
+                $hasThumb = true;
+            }
+        }
+        $this->assertTrue($hasOriginal, '應該有原圖檔案');
+        $this->assertTrue($hasPreview, '應該有預覽圖檔案');
+        $this->assertTrue($hasThumb, '應該有縮圖檔案');
+    }
+
+    /**
+     * 測試：檔案讀取失敗時拋出異常
+     */
+    #[Test]
+    public function it_should_throw_exception_when_file_read_fails(): void
+    {
+        // Arrange
+        $userId = 1;
+        // 建立一個不存在的檔案路徑
+        $file = Mockery::mock(\Illuminate\Http\UploadedFile::class);
+        $file->shouldReceive('getRealPath')
+            ->andReturn('/tmp/non-existent-file-' . uniqid() . '.jpg');
+        $file->shouldReceive('getClientOriginalExtension')
+            ->andReturn('jpg');
+
+        // Act & Assert
+        // Service 層會捕獲 file_get_contents 拋出的異常並轉換為 HttpException
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectExceptionMessage('無法讀取檔案內容');
+
+        $this->service->uploadImage($file, $userId);
+    }
+
+    /**
+     * 測試：原圖上傳失敗時拋出異常
+     */
+    #[Test]
+    public function it_should_throw_exception_when_original_upload_fails(): void
+    {
+        // Arrange
+        $userId = 1;
+        $file = \Illuminate\Http\UploadedFile::fake()->image('test.jpg', 800, 600);
+
+        // Mock Storage 讓 put 返回 false，並允許 delete 被呼叫（catch 區塊會清理）
+        $storageMock = Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $storageMock->shouldReceive('put')
+            ->andReturn(false); // 模擬上傳失敗
+        $storageMock->shouldReceive('delete')
+            ->andReturn(true); // catch 區塊會嘗試清理
+
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')
+            ->with('gcs')
+            ->andReturn($storageMock);
+
+        // Act & Assert
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectExceptionMessage('原圖上傳失敗');
+
+        $this->service->uploadImage($file, $userId);
+    }
+
+    /**
+     * 測試：縮圖上傳失敗時清理已上傳的檔案
+     */
+    #[Test]
+    public function it_should_cleanup_files_when_thumbnail_upload_fails(): void
+    {
+        // Arrange
+        $userId = 1;
+        $file = \Illuminate\Http\UploadedFile::fake()->image('test.jpg', 800, 600);
+
+        // Mock Storage：原圖上傳成功，預覽圖上傳成功，縮圖上傳失敗
+        $putCallCount = 0;
+        $deleteCalled = false;
+        $deletePaths = [];
+
+        $storageMock = Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $storageMock->shouldReceive('put')
+            ->andReturnUsing(function ($path, $content) use (&$putCallCount) {
+                $putCallCount++;
+
+                // 前兩次（原圖、預覽圖）成功，第三次（縮圖）失敗
+                return $putCallCount < 3;
+            });
+        $storageMock->shouldReceive('delete')
+            ->andReturnUsing(function ($paths) use (&$deleteCalled, &$deletePaths) {
+                $deleteCalled = true;
+                $deletePaths = is_array($paths) ? $paths : [$paths];
+
+                return true;
+            });
+
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')
+            ->with('gcs')
+            ->andReturn($storageMock);
+
+        // Act & Assert
+        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectExceptionMessage('縮圖上傳失敗');
+
+        try {
+            $this->service->uploadImage($file, $userId);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            // 驗證異常被拋出
+            $this->assertEquals('縮圖上傳失敗', $e->getMessage());
+            // 驗證清理被呼叫
+            $this->assertTrue($deleteCalled, '應該呼叫 delete 清理檔案');
+            $this->assertNotEmpty($deletePaths, '應該有檔案路徑被傳入 delete');
+            throw $e;
+        }
+    }
+
+    /**
+     * 測試：資料庫寫入失敗時清理已上傳的檔案
+     */
+    #[Test]
+    public function it_should_cleanup_files_when_database_write_fails(): void
+    {
+        // Arrange
+        $userId = 1;
+        $file = \Illuminate\Http\UploadedFile::fake()->image('test.jpg', 800, 600);
+
+        // Mock Storage：所有上傳都成功
+        $deleteCalled = false;
+        $deletePaths = [];
+
+        $storageMock = Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $storageMock->shouldReceive('put')
+            ->andReturn(true); // 所有上傳都成功
+        $storageMock->shouldReceive('delete')
+            ->andReturnUsing(function ($paths) use (&$deleteCalled, &$deletePaths) {
+                $deleteCalled = true;
+                $deletePaths = is_array($paths) ? $paths : [$paths];
+
+                return true;
+            });
+
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')
+            ->with('gcs')
+            ->andReturn($storageMock);
+
+        // Mock Repository 拋出異常（模擬資料庫寫入失敗）
+        $this->mockRepository
+            ->shouldReceive('create')
+            ->once()
+            ->andThrow(new \Exception('Database write failed'));
+
+        // Act & Assert
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Database write failed');
+
+        try {
+            $this->service->uploadImage($file, $userId);
+        } catch (\Exception $e) {
+            // 驗證異常被拋出
+            $this->assertEquals('Database write failed', $e->getMessage());
+            // 驗證清理被呼叫（catch 區塊會清理檔案）
+            $this->assertTrue($deleteCalled, '應該呼叫 delete 清理檔案');
+            $this->assertNotEmpty($deletePaths, '應該有檔案路徑被傳入 delete');
+            throw $e;
+        }
     }
 }
