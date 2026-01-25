@@ -18,7 +18,6 @@ interface ItemRepositoryInterface
      *
      * @param Item $item 物品實例
      * @param array $data 更新資料
-     * @return Item
      */
     public function update(Item $item, array $data): Item;
 
@@ -36,7 +35,7 @@ interface ItemRepositoryInterface
      * 根據 short_id 查詢物品（找不到時拋出異常）
      *
      * @param string $shortId 物品 short_id
-     * @return Item
+     *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function findByShortIdOrFail(string $shortId): Item;
@@ -47,7 +46,6 @@ interface ItemRepositoryInterface
      * @param int $days 未來幾天內要過期
      * @param int $perPage 每頁筆數
      * @param int $userId 使用者 ID
-     * @return \Illuminate\Pagination\LengthAwarePaginator
      */
     public function getExpiringSoonItems(
         int $days,
@@ -60,7 +58,6 @@ interface ItemRepositoryInterface
      *
      * @param array $ranges 日期範圍陣列，例如 [7, 30, 90, 180, 365, 1095]
      * @param int $userId 使用者 ID
-     * @return array
      */
     public function getRangeStatistics(array $ranges, int $userId): array;
 
@@ -68,7 +65,6 @@ interface ItemRepositoryInterface
      * 查詢所有有過期日期的商品（尚未棄用且有過期日期，不限制日期範圍）
      *
      * @param int $userId 使用者 ID
-     * @return int
      */
     public function countItemsWithExpirationDate(int $userId): int;
 
@@ -77,7 +73,6 @@ interface ItemRepositoryInterface
      *
      * @param int $userId 使用者 ID
      * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
-     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getTopExpensiveItems(int $userId, Closure $applyCreatedDateFilter): Collection;
 
@@ -114,4 +109,16 @@ interface ItemRepositoryInterface
         ?\Carbon\Carbon $startDate,
         ?\Carbon\Carbon $endDate
     ): array;
+
+    /**
+     * 取得價值統計的查詢資料（有效支出、棄用物品列表）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{
+     *     effective_expense: float,
+     *     discarded_items: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     * }
+     */
+    public function getValueStatisticsData(int $userId, Closure $applyCreatedDateFilter): array;
 }

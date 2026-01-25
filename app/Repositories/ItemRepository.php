@@ -20,7 +20,6 @@ class ItemRepository implements ItemRepositoryInterface
      *
      * @param array $data 物品資料
      * @param int $userId 用戶 ID
-     * @return Item
      */
     private function create(array $data, int $userId): Item
     {
@@ -41,6 +40,7 @@ class ItemRepository implements ItemRepositoryInterface
     public function update(Item $item, array $data): Item
     {
         $item->update($data);
+
         return $item->fresh(['images', 'category', 'product.category']);
     }
 
@@ -83,7 +83,7 @@ class ItemRepository implements ItemRepositoryInterface
      * 根據 short_id 查詢物品（找不到時拋出異常）
      *
      * @param string $shortId 物品 short_id
-     * @return Item
+     *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function findByShortIdOrFail(string $shortId): Item
@@ -99,7 +99,6 @@ class ItemRepository implements ItemRepositoryInterface
      * @param int $days 未來幾天內要過期
      * @param int $perPage 每頁筆數
      * @param int $userId 使用者 ID
-     * @return \Illuminate\Pagination\LengthAwarePaginator
      */
     public function getExpiringSoonItems(
         int $days,
@@ -129,7 +128,6 @@ class ItemRepository implements ItemRepositoryInterface
      *
      * @param array $ranges 日期範圍陣列，例如 [7, 30, 90, 180, 365, 1095]
      * @param int $userId 使用者 ID
-     * @return array
      */
     public function getRangeStatistics(array $ranges, int $userId): array
     {
@@ -155,7 +153,6 @@ class ItemRepository implements ItemRepositoryInterface
      * 查詢所有有過期日期的商品（尚未棄用且有過期日期，不限制日期範圍）
      *
      * @param int $userId 使用者 ID
-     * @return int
      */
     public function countItemsWithExpirationDate(int $userId): int
     {
@@ -170,7 +167,6 @@ class ItemRepository implements ItemRepositoryInterface
      *
      * @param int $userId 使用者 ID
      * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
-     * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getTopExpensiveItems(int $userId, Closure $applyCreatedDateFilter): Collection
     {
@@ -290,6 +286,48 @@ class ItemRepository implements ItemRepositoryInterface
             'discarded' => $totalDiscarded,
             'value' => $totalValue,
             'discarded_value' => $discardedValue,
+        ];
+    }
+
+    /**
+     * 取得價值統計的查詢資料（有效支出、棄用物品列表）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{
+     *     effective_expense: float,
+     *     discarded_items: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     * }
+     */
+    public function getValueStatisticsData(int $userId, Closure $applyCreatedDateFilter): array
+    {
+        $baseQuery = Item::where('user_id', $userId);
+
+        // 有效支出：範圍內新增的物品中，使用中 + 使用後棄用的總金額
+        $effectiveExpenseQuery = (clone $baseQuery);
+        $effectiveExpenseQuery = $applyCreatedDateFilter($effectiveExpenseQuery);
+        $effectiveExpense = $effectiveExpenseQuery
+            ->where(function ($q) {
+                $q->where(function ($sub) {
+                    $sub->whereNotNull('used_at')->whereNull('discarded_at');
+                })->orWhere(function ($sub) {
+                    $sub->whereNotNull('used_at')->whereNotNull('discarded_at');
+                });
+            })
+            ->sum('price') ?? 0;
+
+        // 棄用物品列表（只計算範圍內新增的物品）
+        $discardedItemsInPeriod = (clone $baseQuery);
+        $discardedItemsInPeriod = $applyCreatedDateFilter($discardedItemsInPeriod);
+        $discardedItemsInPeriod = $discardedItemsInPeriod
+            ->whereNotNull('discarded_at')
+            ->whereNotNull('price')
+            ->where('price', '>', 0)
+            ->get();
+
+        return [
+            'effective_expense' => $effectiveExpense,
+            'discarded_items' => $discardedItemsInPeriod,
         ];
     }
 }

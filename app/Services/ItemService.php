@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Item;
 use App\Repositories\Contracts\ItemRepositoryInterface;
-use App\Services\ItemImageService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -34,7 +33,7 @@ class ItemService
         $item = $this->itemRepository->update($item, $data);
 
         // 如果有提供圖片（非空陣列），同步圖片（會自動 fresh 關聯資料）
-        if (!empty($images)) {
+        if (! empty($images)) {
             $item = $this->itemImageService->syncItemImages($item, $images);
         }
 
@@ -50,6 +49,7 @@ class ItemService
     public function calculateQuantity(array $data): int
     {
         $quantity = max((int) ($data['quantity'] ?? 1), 1);
+
         return min($quantity, $this->maxItemQuantity);
     }
 
@@ -60,6 +60,7 @@ class ItemService
      * @param int $quantity 建立數量
      * @param int $userId 用戶 ID
      * @return array{items: array<Item>, item: Item|null, quantity: int} items 為所有建立的物品，item 為第一個物品（向後相容）
+     *
      * @throws \Exception 當資料庫操作或圖片關聯失敗時拋出，已自動執行 rollback
      */
     public function createBatch(array $data, int $quantity, int $userId): array
@@ -71,7 +72,7 @@ class ItemService
             $items = $result['items'];
 
             // 處理圖片關聯（如果有提供，為所有物品附加圖片）
-            if (!empty($data['images']) && !empty($items)) {
+            if (! empty($data['images']) && ! empty($items)) {
                 foreach ($items as $item) {
                     $this->itemImageService->attachImagesToItem($item, $data['images']);
                 }
@@ -92,7 +93,6 @@ class ItemService
      * @param  array  $filters  篩選條件（search, category_id, statuses, sort）
      * @param  int  $userId  使用者 ID（由 Controller 傳入 auth()->id()，便於測試）
      * @param  int  $perPage  每頁筆數
-     * @return LengthAwarePaginator
      */
     public function paginateWithFilters(array $filters, int $userId, int $perPage = 10): LengthAwarePaginator
     {
@@ -100,7 +100,7 @@ class ItemService
             ->where('user_id', $userId);
 
         // 產品篩選（以 product short_id）
-        if (!empty($filters['product_short_id'])) {
+        if (! empty($filters['product_short_id'])) {
             $productShortId = $filters['product_short_id'];
             $query->whereHas('product', function ($q) use ($productShortId) {
                 $q->where('short_id', $productShortId);
@@ -108,7 +108,7 @@ class ItemService
         }
 
         // 搜尋關鍵字
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->where('name', 'ILIKE', '%' . $filters['search'] . '%');
         }
 
@@ -117,7 +117,7 @@ class ItemService
             $categoryId = $filters['category_id'];
 
             if ($categoryId === 'none') {
-                $query->withWhereHas('product', function ($q) use ($categoryId) {
+                $query->withWhereHas('product', function ($q) {
                     $q->whereNull('category_id');
                 });
             } elseif ($categoryId) {
@@ -128,7 +128,7 @@ class ItemService
         }
 
         // 狀態多選篩選
-        if (!empty($filters['statuses']) && is_array($filters['statuses'])) {
+        if (! empty($filters['statuses']) && is_array($filters['statuses'])) {
             $query->status($filters['statuses']);
         }
 
@@ -180,7 +180,6 @@ class ItemService
      * @param string $period 時間範圍：all, year, month, week, three_months
      * @param int|null $year 年份（當 period 為 year 時使用）
      * @param array<int, string>|null $include 需要額外計算的區塊（可選，逗號分隔後解析而來）
-     * @return array
      */
     public function getStatistics(string $period = 'all', ?int $year = null, ?array $include = null): array
     {
@@ -201,7 +200,6 @@ class ItemService
      * @param string $period 時間範圍：all, year, month, week, three_months
      * @param int|null $year 年份（當 period 為 year 時使用）
      * @param array<int, string>|null $include 需要額外計算的區塊（可選，null 代表維持既有整包輸出）
-     * @return array
      */
     public function getStatisticsForUser(
         int $userId,
@@ -222,7 +220,7 @@ class ItemService
         $totals = $this->itemRepository->getTotalsStatistics($userId, $applyCreatedDateFilter, $startDate, $endDate);
 
         // 計算價值統計
-        $valueStats = $this->calculateValueStatistics($baseQuery, $applyCreatedDateFilter, $totals['value']);
+        $valueStats = $this->calculateValueStatistics($userId, $applyCreatedDateFilter, $totals['value']);
 
         // 計算狀態統計
         $statusStats = $this->itemRepository->getStatusCounts($userId, $applyCreatedDateFilter);
@@ -306,8 +304,6 @@ class ItemService
     /**
      * 建立時間範圍（開始和結束日期）
      *
-     * @param string $period
-     * @param int|null $year
      * @return array [Carbon|null, Carbon|null]
      */
     private function buildDateRange(string $period, ?int $year): array
@@ -340,11 +336,6 @@ class ItemService
 
     /**
      * 建立時間範圍過濾函數（用於新增物品的判斷）
-     *
-     * @param string $period
-     * @param Carbon|null $startDate
-     * @param Carbon|null $endDate
-     * @return \Closure
      */
     private function buildCreatedDateFilter(
         string $period,
@@ -380,48 +371,31 @@ class ItemService
                     });
                 });
             }
+
             return $query;
         };
     }
 
-
     /**
      * 計算價值統計（總支出、有效支出、支出效率、棄用物品平均使用成本）
      *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Closure $applyCreatedDateFilter
-     * @param float $totalValue
-     * @return array
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @param float $totalValue 總支出
      */
-    private function calculateValueStatistics($baseQuery, \Closure $applyCreatedDateFilter, float $totalValue): array
+    private function calculateValueStatistics(int $userId, \Closure $applyCreatedDateFilter, float $totalValue): array
     {
-        // 有效支出：範圍內新增的物品中，使用中 + 使用後棄用的總金額
-        $effectiveExpenseQuery = (clone $baseQuery);
-        $effectiveExpenseQuery = $applyCreatedDateFilter($effectiveExpenseQuery);
-        $effectiveExpense = $effectiveExpenseQuery
-            ->where(function ($q) {
-                $q->where(function ($sub) {
-                    $sub->whereNotNull('used_at')->whereNull('discarded_at');
-                })->orWhere(function ($sub) {
-                    $sub->whereNotNull('used_at')->whereNotNull('discarded_at');
-                });
-            })
-            ->sum('price') ?? 0;
+        // 從 Repository 取得查詢資料
+        $valueData = $this->itemRepository->getValueStatisticsData($userId, $applyCreatedDateFilter);
+        $effectiveExpense = $valueData['effective_expense'];
+        $discardedItemsInPeriod = $valueData['discarded_items'];
 
         // 支出效率：有效支出 / 總支出
         $expenseEfficiency = $totalValue > 0
             ? round(($effectiveExpense / $totalValue) * 100, 1)
             : 0;
 
-        // 棄用物品平均使用成本（只計算範圍內新增的物品）
-        $discardedItemsInPeriod = (clone $baseQuery);
-        $discardedItemsInPeriod = $applyCreatedDateFilter($discardedItemsInPeriod);
-        $discardedItemsInPeriod = $discardedItemsInPeriod
-            ->whereNotNull('discarded_at')
-            ->whereNotNull('price')
-            ->where('price', '>', 0)
-            ->get();
-
+        // 計算棄用物品平均使用成本
         $totalDiscardedCost = 0;
         $totalUsageDays = 0;
 
@@ -460,15 +434,10 @@ class ItemService
         ];
     }
 
-
-
     /**
      * 計算已結案物品成本統計
      *
      * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param Carbon|null $startDate
-     * @param Carbon|null $endDate
-     * @return array
      */
     private function calculateDiscardedCostStatistics(
         $baseQuery,
@@ -489,6 +458,7 @@ class ItemService
 
         /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $discardedItemsList */
         $discardedItemsList = $discardedItemsForCost->get();
+
         return $this->calculateItemCosts($discardedItemsList, true);
     }
 
@@ -496,8 +466,6 @@ class ItemService
      * 計算使用中物品成本統計
      *
      * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Closure $applyCreatedDateFilter
-     * @return array
      */
     private function calculateInUseCostStatistics(
         $baseQuery,
@@ -513,6 +481,7 @@ class ItemService
         $inUseItemsForCost = $applyCreatedDateFilter($inUseItemsForCost);
         /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $inUseItemsList */
         $inUseItemsList = $inUseItemsForCost->get();
+
         return $this->calculateItemCosts($inUseItemsList, false, $asOf);
     }
 
@@ -522,7 +491,6 @@ class ItemService
      * @param \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $items
      * @param bool $isDiscarded 是否為已棄用物品
      * @param Carbon|null $asOf 統計基準日（使用中物品用：以 asOf 00:00 到 asOf+1 00:00 計算）
-     * @return array
      */
     private function calculateItemCosts($items, bool $isDiscarded, ?Carbon $asOf = null): array
     {
@@ -600,12 +568,6 @@ class ItemService
 
     /**
      * 計算時間範圍的開始和結束日期
-     *
-     * @param int $userId
-     * @param string $period
-     * @param int|null $year
-     * @param Carbon|null $startDate
-     * @return array
      */
     private function calculateDateRange(int $userId, string $period, ?int $year, ?Carbon $startDate): array
     {

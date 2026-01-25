@@ -1,4 +1,6 @@
 grumphp:
+    extensions:
+        - YieldStudio\GrumPHPLaravelPint\ExtensionLoader
     tasks:
         # PHPStan（靜態分析）
         phpstan:
@@ -20,6 +22,16 @@ grumphp:
         # PHPUnit（測試）
         phpunit:
             config_file: phpunit.xml
+        
+        # Laravel Pint（程式碼格式化，只針對已修改的檔案）
+        laravel_pint:
+            config: pint.json
+            preset: laravel
+            # 在 pre-commit 時自動修復
+            auto_fix: 'pre_commit'
+            # 修復後不自動 stage，手動檢查後再 git add（更安全）
+            auto_stage: false
+            triggered_by: ['php']
         
         # Composer（檢查依賴）
         composer: ~
