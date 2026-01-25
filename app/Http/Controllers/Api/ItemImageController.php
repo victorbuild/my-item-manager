@@ -6,26 +6,28 @@ use App\Http\Controllers\Controller;
 use App\Models\ItemImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
 
 class ItemImageController extends Controller
 {
+    /**
+     * 上傳圖片
+     */
     public function store(Request $request): JsonResponse
     {
         $request->validate([
             'image' => 'required|image|max:10240',
         ]);
 
-        if (!$request->hasFile('image')) {
+        if (! $request->hasFile('image')) {
             return response()->json(['message' => 'No image uploaded.'], 400);
         }
 
         $file = $request->file('image');
 
-        if (!$file->isValid()) {
+        if (! $file->isValid()) {
             return response()->json(['message' => 'Uploaded file is invalid.'], 422);
         }
 
@@ -60,7 +62,7 @@ class ItemImageController extends Controller
             $previewUploaded = Storage::disk('gcs')->put($previewPath, $preview);
             $thumbUploaded = Storage::disk('gcs')->put($thumbPath, $thumb);
 
-            if (!$originalUploaded || !$previewUploaded || !$thumbUploaded) {
+            if (! $originalUploaded || ! $previewUploaded || ! $thumbUploaded) {
                 throw new \Exception('圖片上傳失敗');
             }
 
@@ -74,7 +76,7 @@ class ItemImageController extends Controller
                 'user_id' => auth()->id(),
             ]);
 
-            if (!$itemImage) {
+            if (! $itemImage) {
                 throw new \Exception('資料庫寫入失敗');
             }
 
