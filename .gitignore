@@ -25,6 +25,7 @@ yarn-error.log
 
 # Code coverage reports
 /coverage
+coverage.xml
 
 # Documentation (個人筆記和 TODO，不提交到公開 repo)
 /docs

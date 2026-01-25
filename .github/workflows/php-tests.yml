@@ -62,4 +62,12 @@ jobs:
         run: vendor/bin/phpstan analyse
 
       - name: Execute PHPUnit tests
-        run: vendor/bin/phpunit --configuration phpunit.xml --coverage-text
+        run: vendor/bin/phpunit --configuration phpunit.xml --coverage-text --coverage-clover=coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false

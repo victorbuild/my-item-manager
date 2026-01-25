@@ -4,6 +4,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](https://php.net)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.5-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org)
 [![Tests](https://img.shields.io/badge/tests-141_passed-brightgreen?logo=phpunit&logoColor=white)](./coverage/index.html)
+[![codecov](https://codecov.io/gh/victorbuild/my-item-manager/branch/main/graph/badge.svg)](https://codecov.io/gh/victorbuild/my-item-manager)
 
 > 一個簡單好用的物品管理系統，幫助你記錄物品的購買日期、開始使用時間，追蹤保存期限，並在下次購買或決定是否丟棄時提供判斷依據。
 
