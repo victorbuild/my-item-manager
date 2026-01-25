@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\ItemImage;
 use App\Models\Product;
+use App\Policies\CategoryPolicy;
 use App\Policies\ItemPolicy;
 use App\Policies\MediaPolicy;
 use App\Policies\ProductPolicy;
@@ -65,6 +67,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(Item::class, ItemPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Category::class, CategoryPolicy::class);
         // ItemImage 使用 MediaPolicy（統一媒體資源權限管理）
         Gate::policy(ItemImage::class, MediaPolicy::class);
         // 未來 Media 模型也可以使用同一個 Policy
