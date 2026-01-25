@@ -213,4 +213,35 @@ class ItemRepository implements ItemRepositoryInterface
             'top_five' => $unusedTopFive,
         ];
     }
+
+    /**
+     * 計算狀態統計
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{in_use: int, unused: int, pre_arrival: int, used_discarded: int, unused_discarded: int}
+     */
+    public function getStatusCounts(int $userId, Closure $applyCreatedDateFilter): array
+    {
+        $baseQuery = Item::where('user_id', $userId);
+        $statusFilteredQuery = $applyCreatedDateFilter((clone $baseQuery));
+
+        return [
+            'in_use' => (clone $statusFilteredQuery)
+                ->status('in_use')
+                ->count(),
+            'unused' => (clone $statusFilteredQuery)
+                ->status('unused')
+                ->count(),
+            'pre_arrival' => (clone $statusFilteredQuery)
+                ->status('pre_arrival')
+                ->count(),
+            'used_discarded' => (clone $statusFilteredQuery)
+                ->status('used_discarded')
+                ->count(),
+            'unused_discarded' => (clone $statusFilteredQuery)
+                ->status('unused_discarded')
+                ->count(),
+        ];
+    }
 }

@@ -225,7 +225,7 @@ class ItemService
         $valueStats = $this->calculateValueStatistics($baseQuery, $applyCreatedDateFilter, $totals['value']);
 
         // 計算狀態統計
-        $statusStats = $this->calculateStatusStatistics($baseQuery, $applyCreatedDateFilter);
+        $statusStats = $this->itemRepository->getStatusCounts($userId, $applyCreatedDateFilter);
 
         // 計算時間範圍的開始和結束日期
         $dateRange = $this->calculateDateRange($userId, $period, $year, $startDate);
@@ -504,35 +504,6 @@ class ItemService
         ];
     }
 
-    /**
-     * 計算狀態統計
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Closure $applyCreatedDateFilter
-     * @return array
-     */
-    private function calculateStatusStatistics($baseQuery, \Closure $applyCreatedDateFilter): array
-    {
-        $statusFilteredQuery = $applyCreatedDateFilter((clone $baseQuery));
-
-        return [
-            'in_use' => (clone $statusFilteredQuery)
-                ->status('in_use')
-                ->count(),
-            'unused' => (clone $statusFilteredQuery)
-                ->status('unused')
-                ->count(),
-            'pre_arrival' => (clone $statusFilteredQuery)
-                ->status('pre_arrival')
-                ->count(),
-            'used_discarded' => (clone $statusFilteredQuery)
-                ->status('used_discarded')
-                ->count(),
-            'unused_discarded' => (clone $statusFilteredQuery)
-                ->status('unused_discarded')
-                ->count(),
-        ];
-    }
 
 
     /**

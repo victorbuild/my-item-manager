@@ -89,4 +89,13 @@ interface ItemRepositoryInterface
      * @return array{count: int, top_five: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>}
      */
     public function getUnusedItems(int $userId, Closure $applyCreatedDateFilter): array;
+
+    /**
+     * 計算狀態統計
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{in_use: int, unused: int, pre_arrival: int, used_discarded: int, unused_discarded: int}
+     */
+    public function getStatusCounts(int $userId, Closure $applyCreatedDateFilter): array;
 }
