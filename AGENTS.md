@@ -66,8 +66,64 @@ app/
 - 使用 **Constructor Property Promotion**（PHP 8.0+）
 - **不要在註解中任意使用 icon（表情符號）**，保持程式碼專業和簡潔
 - **必須使用 `use` 語句導入類別**：在檔案開頭使用 `use` 語句導入所有使用的類別，避免在程式碼中使用完整命名空間（如 `\Illuminate\Pagination\LengthAwarePaginator`）
-  - 例外：只在 PHPDoc 註解中可以使用完整命名空間（如 `@return \Illuminate\Pagination\LengthAwarePaginator`）
   - 例外：避免命名衝突時可以使用完整命名空間
+- **PHPDoc 註解中使用完整命名空間**：
+  - **PHPDoc 中必須使用完整命名空間**，不使用 `use` 語句導入的簡短名稱
+  - **優點**：PHPDoc 自包含、避免命名衝突、更明確、不依賴檔案開頭的 `use` 語句
+  - **範例（正確）**：
+    ```php
+    use App\Models\Item;
+    use Illuminate\Database\Eloquent\Collection;
+    
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     */
+    public function getItems(): Collection
+    
+    /**
+     * @return array{count: int, top_five: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>}
+     */
+    public function getUnusedItems(): array
+    ```
+  - **避免（錯誤）**：
+    ```php
+    /**
+     * @return Collection<int, Item>  // 使用簡短名稱，不建議
+     */
+    ```
+- **PHPDoc 必須明確指定型別，避免在程式碼中使用 `@var` 註解**：
+  - **Collection 必須使用泛型語法**：`\Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>` 而不是 `Collection` 或沒有泛型
+  - **Array shape 中的 Collection 也要指定泛型**：`array{count: int, top_five: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>}`
+  - **Closure 參數使用型別提示**：`function (Item $item)` 而不是 `function ($item)` 然後用 `@var` 註解
+  - **範例（正確）**：
+    ```php
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     */
+    public function getItems(): Collection
+    
+    /**
+     * @return array{count: int, top_five: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>}
+     */
+    public function getUnusedItems(): array
+    
+    // 在 closure 中使用型別提示（程式碼中可以使用簡短名稱，因為已經 use 了）
+    $items->map(function (Item $item) {
+        return $item->name; // PHPStan 能正確推斷 $item 是 Item 型別
+    });
+    ```
+  - **避免（錯誤）**：
+    ```php
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection  // 沒有泛型，PHPStan 無法推斷元素型別
+     */
+    
+    // 在程式碼中使用 @var 註解
+    $items->map(function ($item) {
+        /** @var \App\Models\Item $item */  // 應該避免，改用型別提示
+        return $item->name;
+    });
+    ```
 
 ### JavaScript/Vue.js 前端
 
@@ -264,6 +320,7 @@ app/
 - [ ] 有 PHPDoc 註解（中文）
 - [ ] 註解中不使用 icon（表情符號）
 - [ ] 使用 `use` 語句導入類別（避免在程式碼中使用完整命名空間）
+- [ ] PHPDoc 明確指定型別（Collection 使用泛型語法，避免在程式碼中使用 `@var` 註解）
 - [ ] 避免 N+1 查詢
 - [ ] 使用 Form Request 驗證
 - [ ] 使用 Resource 轉換回應
@@ -286,5 +343,5 @@ app/
 
 ---
 
-**最後更新**: 2026-01-24  
-**版本**: 1.1.2
+**最後更新**: 2026-01-25  
+**版本**: 1.1.3
