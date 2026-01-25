@@ -115,6 +115,9 @@ class MediaController extends Controller
         // 使用 Service 層處理查詢邏輯
         $image = $this->mediaService->findByUuidForUser($uuid, $userId);
 
+        // 使用 Policy 檢查權限（雙重保護：Service 層已過濾，Policy 再次確認）
+        $this->authorize('view', $image);
+
         $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
         $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
         $originalPath = "item-images/{$image->uuid}/original_{$image->image_path}.{$image->original_extension}";

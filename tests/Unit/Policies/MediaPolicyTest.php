@@ -4,16 +4,16 @@ namespace Tests\Unit\Policies;
 
 use App\Models\ItemImage;
 use App\Models\User;
-use App\Policies\ItemImagePolicy;
+use App\Policies\MediaPolicy;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-class ItemImagePolicyTest extends TestCase
+class MediaPolicyTest extends TestCase
 {
     use RefreshDatabase;
 
-    private ItemImagePolicy $policy;
+    private MediaPolicy $policy;
 
     private User $user;
 
@@ -22,7 +22,7 @@ class ItemImagePolicyTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->policy = new ItemImagePolicy();
+        $this->policy = new MediaPolicy();
         $this->user = User::factory()->create();
         $this->otherUser = User::factory()->create();
     }

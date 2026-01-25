@@ -5,7 +5,12 @@ namespace App\Policies;
 use App\Models\ItemImage;
 use App\Models\User;
 
-class ItemImagePolicy
+/**
+ * 媒體資源 Policy
+ *
+ * 目前支援 ItemImage，未來可擴充支援 Media 等其他媒體類型
+ */
+class MediaPolicy
 {
     /**
      * 是否可檢視（僅擁有者）
