@@ -2,25 +2,27 @@
 
 namespace App\Http\Resources;
 
-use App\Models\ItemImage;
+use App\Helpers\ImageUrlHelper;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /**
- * @mixin ItemImage
+ * 圖片資源轉換
+ *
+ * @mixin \App\Models\ItemImage
  */
 class ItemImageResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
+     * 轉換資源為陣列
      *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
-        $previewPath = "item-images/{$this->uuid}/preview_{$this->image_path}.webp";
-        $thumbPath = "item-images/{$this->uuid}/thumb_{$this->image_path}.webp";
+        /** @var \App\Models\ItemImage $itemImage */
+        $itemImage = $this->resource;
+        $urls = ImageUrlHelper::generateSignedUrls($itemImage, config('images.url_expiration_minutes.upload', 10));
 
         return [
             'uuid' => $this->uuid,
@@ -28,11 +30,14 @@ class ItemImageResource extends JsonResource
             'original_extension' => $this->original_extension,
             'status' => $this->status,
             'usage_count' => $this->usage_count,
-            'path' => $previewPath,
-            'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
-            'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'original_path' => "item-images/{$this->uuid}/original_{$this->image_path}.{$this->original_extension}",
+            'preview_path' => "item-images/{$this->uuid}/preview_{$this->image_path}.webp",
+            'thumb_path' => "item-images/{$this->uuid}/thumb_{$this->image_path}.webp",
+            'original_url' => $urls['original_url'],
+            'preview_url' => $urls['preview_url'],
+            'thumb_url' => $urls['thumb_url'],
         ];
     }
 }
