@@ -183,4 +183,34 @@ class ItemRepository implements ItemRepositoryInterface
             ->with(['images', 'product'])
             ->get();
     }
+
+    /**
+     * 取得尚未使用的物品（count + top5）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{count: int, top_five: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>}
+     */
+    public function getUnusedItems(int $userId, Closure $applyCreatedDateFilter): array
+    {
+        $query = Item::where('user_id', $userId);
+        $query = $applyCreatedDateFilter($query);
+        $unusedItemsQuery = $query
+            ->whereNull('discarded_at')
+            ->whereNull('used_at')
+            ->whereNotNull('price');
+
+        $unusedCount = (clone $unusedItemsQuery)->count();
+
+        $unusedTopFive = (clone $unusedItemsQuery)
+            ->orderByDesc('price')
+            ->limit(5)
+            ->with(['images', 'product'])
+            ->get();
+
+        return [
+            'count' => $unusedCount,
+            'top_five' => $unusedTopFive,
+        ];
+    }
 }

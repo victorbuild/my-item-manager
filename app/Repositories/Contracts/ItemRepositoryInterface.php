@@ -80,4 +80,13 @@ interface ItemRepositoryInterface
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getTopExpensiveItems(int $userId, Closure $applyCreatedDateFilter): Collection;
+
+    /**
+     * 取得尚未使用的物品（count + top5）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return array{count: int, top_five: \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>}
+     */
+    public function getUnusedItems(int $userId, Closure $applyCreatedDateFilter): array;
 }

@@ -258,7 +258,30 @@ class ItemService
         }
 
         if (in_array('unused_items', $includeSections, true)) {
-            $statistics['unused_items'] = $this->getUnusedItems($baseQuery, $applyCreatedDateFilter);
+            $unusedItemsData = $this->itemRepository->getUnusedItems($userId, $applyCreatedDateFilter);
+            // 計算 days_unused（這個計算邏輯留在 Service）
+            $unusedItemsWithDays = $unusedItemsData['top_five']->map(function (Item $item) {
+                $daysUnused = 0;
+                $today = now();
+
+                if ($item->received_at) {
+                    $daysUnused = round(Carbon::parse($item->received_at)->diffInDays($today), 1);
+                } elseif ($item->purchased_at) {
+                    $daysUnused = round(Carbon::parse($item->purchased_at)->diffInDays($today), 1);
+                } elseif ($item->created_at) {
+                    $daysUnused = round(Carbon::parse($item->created_at)->diffInDays($today), 1);
+                }
+
+                return [
+                    'item' => $item,
+                    'days_unused' => $daysUnused,
+                ];
+            })->values();
+
+            $statistics['unused_items'] = [
+                'count' => $unusedItemsData['count'],
+                'top_five' => $unusedItemsWithDays,
+            ];
         }
 
         if (in_array('discarded_cost_stats', $includeSections, true)) {
@@ -511,51 +534,6 @@ class ItemService
         ];
     }
 
-    /**
-     * 取得尚未使用的物品
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Closure $applyCreatedDateFilter
-     * @return array
-     */
-    private function getUnusedItems($baseQuery, \Closure $applyCreatedDateFilter): array
-    {
-        $unusedItemsQuery = $applyCreatedDateFilter((clone $baseQuery))
-            ->whereNull('discarded_at')
-            ->whereNull('used_at')
-            ->whereNotNull('price');
-
-        $unusedCount = (clone $unusedItemsQuery)->count();
-
-        $unusedTopFive = (clone $unusedItemsQuery)
-            ->orderByDesc('price')
-            ->limit(5)
-            ->with(['images', 'product'])
-            ->get();
-
-        $unusedItemsWithDays = $unusedTopFive->map(function ($item) {
-            $daysUnused = 0;
-            $today = now();
-
-            if ($item->received_at) {
-                $daysUnused = round(\Carbon\Carbon::parse($item->received_at)->diffInDays($today), 1);
-            } elseif ($item->purchased_at) {
-                $daysUnused = round(\Carbon\Carbon::parse($item->purchased_at)->diffInDays($today), 1);
-            } elseif ($item->created_at) {
-                $daysUnused = round(\Carbon\Carbon::parse($item->created_at)->diffInDays($today), 1);
-            }
-
-            return [
-                'item' => $item,
-                'days_unused' => $daysUnused,
-            ];
-        })->values();
-
-        return [
-            'count' => $unusedCount,
-            'top_five' => $unusedItemsWithDays,
-        ];
-    }
 
     /**
      * 計算已結案物品成本統計
