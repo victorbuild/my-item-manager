@@ -15,7 +15,6 @@ class ItemImageRepository implements ItemImageRepositoryInterface
      * 根據 UUID 查詢圖片
      *
      * @param string $uuid 圖片 UUID
-     * @return ItemImage|null
      */
     public function findByUuid(string $uuid): ?ItemImage
     {
@@ -26,7 +25,6 @@ class ItemImageRepository implements ItemImageRepositoryInterface
      * 增加圖片使用次數
      *
      * @param ItemImage $image 圖片實例
-     * @return void
      */
     public function incrementUsageCount(ItemImage $image): void
     {
@@ -37,7 +35,6 @@ class ItemImageRepository implements ItemImageRepositoryInterface
      * 減少圖片使用次數
      *
      * @param ItemImage $image 圖片實例
-     * @return void
      */
     public function decrementUsageCount(ItemImage $image): void
     {
@@ -49,7 +46,6 @@ class ItemImageRepository implements ItemImageRepositoryInterface
      *
      * @param ItemImage $image 圖片實例
      * @param string $status 狀態
-     * @return void
      */
     public function updateStatus(ItemImage $image, string $status): void
     {
@@ -61,7 +57,6 @@ class ItemImageRepository implements ItemImageRepositoryInterface
      * 建立新的圖片記錄
      *
      * @param array<string, mixed> $data 圖片資料
-     * @return ItemImage
      */
     public function create(array $data): ItemImage
     {
