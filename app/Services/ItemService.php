@@ -138,23 +138,6 @@ class ItemService
     }
 
     /**
-     * 取得物品統計資料
-     *
-     * @param string $period 時間範圍：all, year, month, week, three_months
-     * @param int|null $year 年份（當 period 為 year 時使用）
-     * @param array<int, string>|null $include 需要額外計算的區塊（可選，逗號分隔後解析而來）
-     */
-    public function getStatistics(string $period = 'all', ?int $year = null, ?array $include = null): array
-    {
-        $userId = auth()->id();
-        if ($userId === null) {
-            return [];
-        }
-
-        return $this->getStatisticsForUser($userId, $period, $year, $include);
-    }
-
-    /**
      * 取得指定使用者的物品統計資料
      *
      * 用於將統計計算邏輯從 auth() 解耦，方便單元測試與重用。
