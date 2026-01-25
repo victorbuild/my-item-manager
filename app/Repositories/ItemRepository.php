@@ -358,4 +358,26 @@ class ItemRepository implements ItemRepositoryInterface
 
         return $query->get();
     }
+
+    /**
+     * 取得使用中物品列表（用於成本統計）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     */
+    public function getInUseItemsForCost(
+        int $userId,
+        Closure $applyCreatedDateFilter
+    ): Collection {
+        $query = Item::where('user_id', $userId)
+            ->whereNotNull('used_at')
+            ->whereNull('discarded_at')
+            ->whereNotNull('price')
+            ->where('price', '>', 0);
+
+        $query = $applyCreatedDateFilter($query);
+
+        return $query->get();
+    }
 }

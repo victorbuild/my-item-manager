@@ -135,4 +135,16 @@ interface ItemRepositoryInterface
         ?\Carbon\Carbon $startDate,
         ?\Carbon\Carbon $endDate
     ): Collection;
+
+    /**
+     * 取得使用中物品列表（用於成本統計）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item>
+     */
+    public function getInUseItemsForCost(
+        int $userId,
+        Closure $applyCreatedDateFilter
+    ): Collection;
 }

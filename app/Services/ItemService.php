@@ -208,7 +208,6 @@ class ItemService
         ?array $include = null
     ): array {
         $asOf = now()->startOfDay();
-        $baseQuery = Item::where('user_id', $userId);
 
         // 計算時間範圍
         [$startDate, $endDate] = $this->buildDateRange($period, $year);
@@ -291,7 +290,7 @@ class ItemService
         }
 
         if (in_array('in_use_cost_stats', $includeSections, true)) {
-            $inUseCostData = $this->calculateInUseCostStatistics($baseQuery, $applyCreatedDateFilter, $asOf);
+            $inUseCostData = $this->calculateInUseCostStatistics($userId, $applyCreatedDateFilter, $asOf);
             $statistics['in_use_cost_stats'] = [
                 'average_cost_per_day' => $inUseCostData['average_cost_per_day'],
                 'top_five' => $inUseCostData['top_five'],
@@ -455,22 +454,16 @@ class ItemService
     /**
      * 計算使用中物品成本統計
      *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @param Carbon $asOf 統計基準日
      */
     private function calculateInUseCostStatistics(
-        $baseQuery,
+        int $userId,
         \Closure $applyCreatedDateFilter,
         Carbon $asOf
     ): array {
-        $inUseItemsForCost = (clone $baseQuery)
-            ->whereNotNull('used_at')
-            ->whereNull('discarded_at')
-            ->whereNotNull('price')
-            ->where('price', '>', 0);
-
-        $inUseItemsForCost = $applyCreatedDateFilter($inUseItemsForCost);
-        /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $inUseItemsList */
-        $inUseItemsList = $inUseItemsForCost->get();
+        $inUseItemsList = $this->itemRepository->getInUseItemsForCost($userId, $applyCreatedDateFilter);
 
         return $this->calculateItemCosts($inUseItemsList, false, $asOf);
     }
