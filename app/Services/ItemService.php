@@ -96,43 +96,10 @@ class ItemService
      */
     public function paginateWithFilters(array $filters, int $userId, int $perPage = 10): LengthAwarePaginator
     {
-        $query = Item::with(['images', 'product.category'])
-            ->where('user_id', $userId);
+        // 從 Repository 取得帶有篩選條件的查詢建構器
+        $query = $this->itemRepository->buildFilteredQuery($userId, $filters);
 
-        // 產品篩選（以 product short_id）
-        if (! empty($filters['product_short_id'])) {
-            $productShortId = $filters['product_short_id'];
-            $query->whereHas('product', function ($q) use ($productShortId) {
-                $q->where('short_id', $productShortId);
-            });
-        }
-
-        // 搜尋關鍵字
-        if (! empty($filters['search'])) {
-            $query->where('name', 'ILIKE', '%' . $filters['search'] . '%');
-        }
-
-        // 分類篩選
-        if (array_key_exists('category_id', $filters)) {
-            $categoryId = $filters['category_id'];
-
-            if ($categoryId === 'none') {
-                $query->withWhereHas('product', function ($q) {
-                    $q->whereNull('category_id');
-                });
-            } elseif ($categoryId) {
-                $query->withWhereHas('product', function ($q) use ($categoryId) {
-                    $q->where('category_id', $categoryId);
-                });
-            }
-        }
-
-        // 狀態多選篩選
-        if (! empty($filters['statuses']) && is_array($filters['statuses'])) {
-            $query->status($filters['statuses']);
-        }
-
-        // 使用策略模式處理排序
+        // 使用策略模式處理排序（業務邏輯保留在 Service）
         $sortMode = $filters['sort'] ?? 'default';
         $sortStrategy = $this->sortStrategyFactory->create($sortMode);
         $sortStrategy->apply($query);

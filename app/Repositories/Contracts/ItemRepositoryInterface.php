@@ -155,4 +155,12 @@ interface ItemRepositoryInterface
      * @return \Carbon\Carbon|null 第一個物品的創建日期，若無則回傳 null
      */
     public function getFirstItemCreatedAt(int $userId): ?\Carbon\Carbon;
+
+    /**
+     * 建立帶有篩選條件的查詢建構器（用於分頁查詢）
+     *
+     * @param int $userId 使用者 ID
+     * @param array $filters 篩選條件（product_short_id, search, category_id, statuses）
+     */
+    public function buildFilteredQuery(int $userId, array $filters): \Illuminate\Database\Eloquent\Builder;
 }

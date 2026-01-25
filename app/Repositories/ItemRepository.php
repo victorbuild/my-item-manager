@@ -399,4 +399,51 @@ class ItemRepository implements ItemRepositoryInterface
 
         return null;
     }
+
+    /**
+     * 建立帶有篩選條件的查詢建構器（用於分頁查詢）
+     *
+     * @param int $userId 使用者 ID
+     * @param array $filters 篩選條件（product_short_id, search, category_id, statuses）
+     */
+    public function buildFilteredQuery(int $userId, array $filters): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = Item::with(['images', 'product.category'])
+            ->where('user_id', $userId);
+
+        // 產品篩選（以 product short_id）
+        if (! empty($filters['product_short_id'])) {
+            $productShortId = $filters['product_short_id'];
+            $query->whereHas('product', function ($q) use ($productShortId) {
+                $q->where('short_id', $productShortId);
+            });
+        }
+
+        // 搜尋關鍵字
+        if (! empty($filters['search'])) {
+            $query->where('name', 'ILIKE', '%' . $filters['search'] . '%');
+        }
+
+        // 分類篩選
+        if (array_key_exists('category_id', $filters)) {
+            $categoryId = $filters['category_id'];
+
+            if ($categoryId === 'none') {
+                $query->withWhereHas('product', function ($q) {
+                    $q->whereNull('category_id');
+                });
+            } elseif ($categoryId) {
+                $query->withWhereHas('product', function ($q) use ($categoryId) {
+                    $q->where('category_id', $categoryId);
+                });
+            }
+        }
+
+        // 狀態多選篩選
+        if (! empty($filters['statuses']) && is_array($filters['statuses'])) {
+            $query->status($filters['statuses']);
+        }
+
+        return $query;
+    }
 }
