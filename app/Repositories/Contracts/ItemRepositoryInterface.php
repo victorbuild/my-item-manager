@@ -163,4 +163,11 @@ interface ItemRepositoryInterface
      * @param array $filters 篩選條件（product_short_id, search, category_id, statuses）
      */
     public function buildFilteredQuery(int $userId, array $filters): \Illuminate\Database\Eloquent\Builder;
+
+    /**
+     * 刪除物品（包含圖片關聯處理）
+     *
+     * @param Item $item 物品實例
+     */
+    public function delete(Item $item): void;
 }

@@ -446,4 +446,24 @@ class ItemRepository implements ItemRepositoryInterface
 
         return $query;
     }
+
+    /**
+     * 刪除物品（包含圖片關聯處理）
+     *
+     * @param Item $item 物品實例
+     */
+    public function delete(Item $item): void
+    {
+        foreach ($item->images as $image) {
+            $item->images()->detach($image->uuid);
+            $image->decrement('usage_count');
+
+            if ($image->usage_count <= 0) {
+                $image->status = 'draft';
+                $image->save();
+            }
+        }
+
+        $item->delete();
+    }
 }

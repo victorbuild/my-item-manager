@@ -107,20 +107,16 @@ class ItemService
         return $query->paginate($perPage);
     }
 
+    /**
+     * 刪除物品
+     *
+     * @param Item $item 物品實例
+     */
     public function delete(Item $item): void
     {
+        // 使用事務確保所有操作（圖片關聯、圖片狀態更新、物品刪除）的原子性
         DB::transaction(function () use ($item) {
-            foreach ($item->images as $image) {
-                $item->images()->detach($image->uuid);
-                $image->decrement('usage_count');
-
-                if ($image->usage_count <= 0) {
-                    $image->status = 'draft';
-                    $image->save();
-                }
-            }
-
-            $item->delete();
+            $this->itemRepository->delete($item);
         });
     }
 
