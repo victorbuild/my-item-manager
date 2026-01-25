@@ -22,6 +22,7 @@ class CategoryServiceTest extends TestCase
     private CategoryService $service;
 
     private int $testUserId = 1;
+
     private array $testCategoryData = ['name' => '測試分類'];
 
     protected function setUp(): void
@@ -57,18 +58,12 @@ class CategoryServiceTest extends TestCase
             ->andReturn($mockHasMany);
 
         $this->mockRepository
-            ->shouldReceive('findOrFail')
-            ->once()
-            ->with(1, $this->testUserId)
-            ->andReturn($category);
-
-        $this->mockRepository
             ->shouldReceive('delete')
             ->once()
             ->with($category)
             ->andReturn(true);
 
-        $result = $this->service->delete(1, $this->testUserId);
+        $result = $this->service->delete($category);
 
         $this->assertTrue($result);
     }
@@ -93,22 +88,16 @@ class CategoryServiceTest extends TestCase
             ->andReturn($mockHasMany);
 
         $this->mockRepository
-            ->shouldReceive('findOrFail')
-            ->once()
-            ->with(1, $this->testUserId)
-            ->andReturn($category);
-
-        $this->mockRepository
             ->shouldReceive('delete')
             ->never();
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('無法刪除此分類，因為還有 3 個產品關聯此分類。');
 
-        $this->service->delete(1, $this->testUserId);
+        $this->service->delete($category);
     }
 
-    public function test_getAll_should_return_collection_when_user_exists(): void
+    public function test_get_all_should_return_collection_when_user_exists(): void
     {
         $expectedCategories = Collection::make([
             new Category(['id' => 1, 'name' => '分類1']),
@@ -127,7 +116,7 @@ class CategoryServiceTest extends TestCase
         $this->assertCount(2, $result);
     }
 
-    public function test_findOrFail_should_throw_exception_when_category_not_found(): void
+    public function test_find_or_fail_should_throw_exception_when_category_not_found(): void
     {
         $this->mockRepository
             ->shouldReceive('findOrFail')
@@ -156,18 +145,12 @@ class CategoryServiceTest extends TestCase
         $updateData = ['name' => '新名稱'];
 
         $this->mockRepository
-            ->shouldReceive('findOrFail')
-            ->once()
-            ->with(1, $this->testUserId)
-            ->andReturn($category);
-
-        $this->mockRepository
             ->shouldReceive('update')
             ->once()
             ->with($category, $updateData)
             ->andReturn($updatedCategory);
 
-        $result = $this->service->update(1, $updateData, $this->testUserId);
+        $result = $this->service->update($category, $updateData);
 
         $this->assertInstanceOf(Category::class, $result);
         $this->assertEquals('新名稱', $result->name);

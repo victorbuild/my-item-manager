@@ -38,13 +38,14 @@ readonly class CategoryService
                 $q->where('category_id', $category->id)
                     ->where('user_id', $userId);
             })->where('user_id', $userId)->count();
+
             return $category;
         });
 
         // 手動分頁
         $total = $categoriesWithCounts->count();
         $items = $categoriesWithCounts->slice(($page - 1) * $perPage, $perPage)->values();
-        $lastPage = (int)ceil($total / $perPage);
+        $lastPage = (int) ceil($total / $perPage);
 
         return [
             'items' => $items,
@@ -62,9 +63,9 @@ readonly class CategoryService
         return $this->categoryRepository->findOrFail($id, $userId);
     }
 
-    public function getCategoryWithStats(int $id, int $userId, int $page = 1, int $perPage = 10): array
+    public function getCategoryWithStats(Category $category, int $page = 1, int $perPage = 10): array
     {
-        $category = $this->categoryRepository->findOrFail($id, $userId);
+        $userId = $category->user_id;
 
         // 載入關聯
         $category->load('products.items');
@@ -117,11 +118,12 @@ readonly class CategoryService
                     $item->used_at,
                     $item->received_at
                 );
+
                 return in_array($status, ['unused_discarded', 'used_discarded']);
             })->count(),
         ];
 
-        $lastPage = (int)ceil($totalProducts / $perPage);
+        $lastPage = (int) ceil($totalProducts / $perPage);
 
         // 格式化產品數據
         $formattedProducts = $products->map(function ($product) use ($userId) {
@@ -157,6 +159,7 @@ readonly class CategoryService
                     $item->used_at,
                     $item->received_at
                 );
+
                 return in_array($status, ['unused_discarded', 'used_discarded']);
             })->count();
 
@@ -188,15 +191,14 @@ readonly class CategoryService
         ];
     }
 
-    public function update(int $id, array $data, int $userId): Category
+    public function update(Category $category, array $data): Category
     {
-        $category = $this->categoryRepository->findOrFail($id, $userId);
         return $this->categoryRepository->update($category, $data);
     }
 
-    public function delete(int $id, int $userId): bool
+    public function delete(Category $category): bool
     {
-        $category = $this->categoryRepository->findOrFail($id, $userId);
+        $userId = $category->user_id;
 
         // 檢查是否有產品關聯此分類
         $productsCount = $category->products()->where('user_id', $userId)->count();

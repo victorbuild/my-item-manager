@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
+use App\Models\Category;
 use App\Repositories\CategoryRepository;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +19,7 @@ use RuntimeException;
  *
  * 分類（Category）API ，用於管理使用者的產品分類。
  */
-readonly class CategoryController
+class CategoryController extends Controller
 {
     public function __construct(
         private CategoryService $categoryService,
@@ -182,10 +184,13 @@ readonly class CategoryController
      * @responseField items[].created_at string 建立時間（ISO 8601）
      * @responseField items[].updated_at string 更新時間（ISO 8601）
      */
-    public function update(UpdateCategoryRequest $request, int $category): JsonResponse
+    public function update(UpdateCategoryRequest $request, Category $category): JsonResponse
     {
+        // 使用 Policy 檢查權限
+        $this->authorize('update', $category);
+
         $validated = $request->validated();
-        $categoryModel = $this->categoryService->update($category, $validated, $request->user()->id);
+        $categoryModel = $this->categoryService->update($category, $validated);
 
         return response()->json([
             'success' => true,
@@ -211,10 +216,13 @@ readonly class CategoryController
      *   "message": "無法刪除此分類，因為還有 5 個產品關聯此分類。"
      * }
      */
-    public function destroy(Request $request, int $category): JsonResponse|Response
+    public function destroy(Request $request, Category $category): JsonResponse|Response
     {
+        // 使用 Policy 檢查權限
+        $this->authorize('delete', $category);
+
         try {
-            $this->categoryService->delete($category, $request->user()->id);
+            $this->categoryService->delete($category);
 
             return response()->noContent();
         } catch (RuntimeException $e) {
@@ -308,12 +316,15 @@ readonly class CategoryController
      * @responseField meta.per_page integer 每頁筆數
      * @responseField meta.total integer 總筆數
      */
-    public function show(Request $request, int $category): JsonResponse
+    public function show(Request $request, Category $category): JsonResponse
     {
+        // 使用 Policy 檢查權限
+        $this->authorize('view', $category);
+
         $perPage = (int) ($request->query('per_page') ?? 10);
         $page = (int) ($request->query('page') ?? 1);
 
-        $result = $this->categoryService->getCategoryWithStats($category, $request->user()->id, $page, $perPage);
+        $result = $this->categoryService->getCategoryWithStats($category, $page, $perPage);
 
         return response()->json([
             'success' => true,
