@@ -3,6 +3,8 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Item;
+use Closure;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -69,4 +71,13 @@ interface ItemRepositoryInterface
      * @return int
      */
     public function countItemsWithExpirationDate(int $userId): int;
+
+    /**
+     * 取得價格最昂貴的前五名
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getTopExpensiveItems(int $userId, Closure $applyCreatedDateFilter): Collection;
 }

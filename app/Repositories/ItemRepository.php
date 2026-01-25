@@ -4,6 +4,8 @@ namespace App\Repositories;
 
 use App\Models\Item;
 use App\Repositories\Contracts\ItemRepositoryInterface;
+use Closure;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -160,5 +162,25 @@ class ItemRepository implements ItemRepositoryInterface
             ->whereNull('discarded_at')
             ->whereNotNull('expiration_date')
             ->count();
+    }
+
+    /**
+     * 取得價格最昂貴的前五名
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getTopExpensiveItems(int $userId, Closure $applyCreatedDateFilter): Collection
+    {
+        $query = Item::where('user_id', $userId);
+        $query = $applyCreatedDateFilter($query);
+
+        return $query
+            ->whereNotNull('price')
+            ->orderByDesc('price')
+            ->limit(5)
+            ->with(['images', 'product'])
+            ->get();
     }
 }

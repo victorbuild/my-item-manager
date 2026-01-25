@@ -251,7 +251,10 @@ class ItemService
             : array_values(array_intersect($allowedHeavySections, $include));
 
         if (in_array('top_expensive', $includeSections, true)) {
-            $statistics['top_expensive'] = $this->getTopExpensiveItems($baseQuery, $applyCreatedDateFilter);
+            $statistics['top_expensive'] = $this->itemRepository->getTopExpensiveItems(
+                $userId,
+                $applyCreatedDateFilter
+            );
         }
 
         if (in_array('unused_items', $includeSections, true)) {
@@ -506,23 +509,6 @@ class ItemService
                 ->status('unused_discarded')
                 ->count(),
         ];
-    }
-
-    /**
-     * 取得價格最昂貴的前五名
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Closure $applyCreatedDateFilter
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    private function getTopExpensiveItems($baseQuery, \Closure $applyCreatedDateFilter)
-    {
-        return $applyCreatedDateFilter((clone $baseQuery))
-            ->whereNotNull('price')
-            ->orderByDesc('price')
-            ->limit(5)
-            ->with(['images', 'product'])
-            ->get();
     }
 
     /**
