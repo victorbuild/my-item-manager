@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Item;
 use App\Repositories\Contracts\ItemRepositoryInterface;
+use Carbon\Carbon;
 use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -242,6 +243,53 @@ class ItemRepository implements ItemRepositoryInterface
             'unused_discarded' => (clone $statusFilteredQuery)
                 ->status('unused_discarded')
                 ->count(),
+        ];
+    }
+
+    /**
+     * 計算基礎統計（總數、價值等）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @param \Carbon\Carbon|null $startDate 開始日期
+     * @param \Carbon\Carbon|null $endDate 結束日期
+     * @return array{created: int, discarded: int, value: float, discarded_value: float}
+     */
+    public function getTotalsStatistics(
+        int $userId,
+        Closure $applyCreatedDateFilter,
+        ?Carbon $startDate,
+        ?Carbon $endDate
+    ): array {
+        $baseQuery = Item::where('user_id', $userId);
+
+        $totalCreated = $applyCreatedDateFilter((clone $baseQuery))->count();
+
+        $discardedQuery = (clone $baseQuery)->whereNotNull('discarded_at');
+        if ($startDate) {
+            $discardedQuery->where('discarded_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $discardedQuery->where('discarded_at', '<=', $endDate);
+        }
+        $totalDiscarded = $discardedQuery->count();
+
+        $totalValue = $applyCreatedDateFilter((clone $baseQuery))->sum('price') ?: 0;
+
+        $discardedValueQuery = (clone $baseQuery)->whereNotNull('discarded_at');
+        if ($startDate) {
+            $discardedValueQuery->where('discarded_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $discardedValueQuery->where('discarded_at', '<=', $endDate);
+        }
+        $discardedValue = $discardedValueQuery->sum('price') ?: 0;
+
+        return [
+            'created' => $totalCreated,
+            'discarded' => $totalDiscarded,
+            'value' => $totalValue,
+            'discarded_value' => $discardedValue,
         ];
     }
 }

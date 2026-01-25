@@ -219,7 +219,7 @@ class ItemService
         $applyCreatedDateFilter = $this->buildCreatedDateFilter($period, $startDate, $endDate);
 
         // 計算基礎統計
-        $totals = $this->calculateTotalsStatistics($baseQuery, $applyCreatedDateFilter, $startDate, $endDate);
+        $totals = $this->itemRepository->getTotalsStatistics($userId, $applyCreatedDateFilter, $startDate, $endDate);
 
         // 計算價值統計
         $valueStats = $this->calculateValueStatistics($baseQuery, $applyCreatedDateFilter, $totals['value']);
@@ -384,50 +384,6 @@ class ItemService
         };
     }
 
-    /**
-     * 計算基礎統計（總數、價值等）
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $baseQuery
-     * @param \Closure $applyCreatedDateFilter
-     * @param Carbon|null $startDate
-     * @param Carbon|null $endDate
-     * @return array
-     */
-    private function calculateTotalsStatistics(
-        $baseQuery,
-        \Closure $applyCreatedDateFilter,
-        ?Carbon $startDate,
-        ?Carbon $endDate
-    ): array {
-        $totalCreated = $applyCreatedDateFilter((clone $baseQuery))->count();
-
-        $discardedQuery = (clone $baseQuery)->whereNotNull('discarded_at');
-        if ($startDate) {
-            $discardedQuery->where('discarded_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $discardedQuery->where('discarded_at', '<=', $endDate);
-        }
-        $totalDiscarded = $discardedQuery->count();
-
-        $totalValue = $applyCreatedDateFilter((clone $baseQuery))->sum('price') ?: 0;
-
-        $discardedValueQuery = (clone $baseQuery)->whereNotNull('discarded_at');
-        if ($startDate) {
-            $discardedValueQuery->where('discarded_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $discardedValueQuery->where('discarded_at', '<=', $endDate);
-        }
-        $discardedValue = $discardedValueQuery->sum('price') ?: 0;
-
-        return [
-            'created' => $totalCreated,
-            'discarded' => $totalDiscarded,
-            'value' => $totalValue,
-            'discarded_value' => $discardedValue,
-        ];
-    }
 
     /**
      * 計算價值統計（總支出、有效支出、支出效率、棄用物品平均使用成本）

@@ -98,4 +98,20 @@ interface ItemRepositoryInterface
      * @return array{in_use: int, unused: int, pre_arrival: int, used_discarded: int, unused_discarded: int}
      */
     public function getStatusCounts(int $userId, Closure $applyCreatedDateFilter): array;
+
+    /**
+     * 計算基礎統計（總數、價值等）
+     *
+     * @param int $userId 使用者 ID
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @param \Carbon\Carbon|null $startDate 開始日期
+     * @param \Carbon\Carbon|null $endDate 結束日期
+     * @return array{created: int, discarded: int, value: float, discarded_value: float}
+     */
+    public function getTotalsStatistics(
+        int $userId,
+        Closure $applyCreatedDateFilter,
+        ?\Carbon\Carbon $startDate,
+        ?\Carbon\Carbon $endDate
+    ): array;
 }
