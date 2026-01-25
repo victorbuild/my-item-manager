@@ -4,90 +4,56 @@ namespace App\Services;
 
 use App\Models\Category;
 use App\Models\Item;
-use App\Repositories\CategoryRepository;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 readonly class CategoryService
 {
-    public function __construct(private CategoryRepository $categoryRepository)
+    public function __construct(private CategoryRepositoryInterface $categoryRepository)
     {
     }
 
-    public function getAll(int $userId): Collection
-    {
-        return $this->categoryRepository->getAll($userId);
-    }
-
-    public function getAllPaginated(int $userId, int $page = 1, int $perPage = 10, ?string $search = null): array
-    {
-        $categories = $this->categoryRepository->getAll($userId);
-
-        // 如果有搜索參數，先過濾
-        if ($search) {
-            $categories = $categories->filter(function ($category) use ($search) {
-                return stripos($category->name, $search) !== false;
-            });
-        }
-
-        // 為每個分類添加產品和物品數量
-        $categoriesWithCounts = $categories->map(function ($category) use ($userId) {
-            $category->products_count = $category->products()
-                ->where('user_id', $userId)
-                ->count();
-            $category->items_count = Item::whereHas('product', function ($q) use ($category, $userId) {
-                $q->where('category_id', $category->id)
-                    ->where('user_id', $userId);
-            })->where('user_id', $userId)->count();
-
-            return $category;
-        });
-
-        // 手動分頁
-        $total = $categoriesWithCounts->count();
-        $items = $categoriesWithCounts->slice(($page - 1) * $perPage, $perPage)->values();
-        $lastPage = (int) ceil($total / $perPage);
-
-        return [
-            'items' => $items,
-            'meta' => [
-                'current_page' => $page,
-                'last_page' => $lastPage,
-                'per_page' => $perPage,
-                'total' => $total,
-            ],
-        ];
-    }
-
-    public function findOrFail(int $id, int $userId): Category
-    {
-        return $this->categoryRepository->findOrFail($id, $userId);
-    }
-
+    /**
+     * 取得分類詳情（含統計資料和產品列表）
+     *
+     * @param Category $category 分類實例
+     * @param int $page 產品列表頁碼
+     * @param int $perPage 每頁產品筆數
+     * @return array{
+     *   category: \App\Models\Category,
+     *   stats: array{
+     *     products_count: int,
+     *     items_count: int,
+     *     items_in_use: int,
+     *     items_unused: int,
+     *     items_pre_arrival: int,
+     *     items_discarded: int
+     *   },
+     *   products: array<int, array{
+     *     id: int,
+     *     short_id: string,
+     *     name: string,
+     *     brand: string|null,
+     *     items_count: int,
+     *     status_counts: array
+     *   }>,
+     *   meta: array{current_page: int, last_page: int, per_page: int, total: int}
+     * }
+     */
     public function getCategoryWithStats(Category $category, int $page = 1, int $perPage = 10): array
     {
         $userId = $category->user_id;
 
-        // 載入關聯
-        $category->load('products.items');
+        // 調用 Repository 取得資料
+        $data = $this->categoryRepository->getCategoryWithRelations($category, $page, $perPage);
 
-        // 獲取所有產品（用於統計）
-        $allProducts = $category->products()->where('user_id', $userId)->get();
+        $allItems = $data['all_items'];
+        $allProducts = $data['all_products'];
+        $products = $data['products'];
 
-        // 分頁產品
-        $totalProducts = $allProducts->count();
-        $products = $allProducts->slice(($page - 1) * $perPage, $perPage)->values();
-
-        // 計算所有物品的統計
-        /** @var \Illuminate\Support\Collection<int, \App\Models\Item> $allItems */
-        $allItems = collect();
-        foreach ($allProducts as $product) {
-            /** @var \App\Models\Product $product */
-            $productItems = $product->items()->where('user_id', $userId)->get();
-            /** @var \Illuminate\Database\Eloquent\Collection<int, \App\Models\Item> $productItems */
-            $allItems = $allItems->concat($productItems);
-        }
-
-        // 計算統計（使用 Collection 的 filter 方法配合 Item 的狀態判斷）
+        // 業務邏輯：計算統計（狀態計算）
         $stats = [
             'products_count' => $allProducts->count(),
             'items_count' => $allItems->count(),
@@ -123,13 +89,11 @@ readonly class CategoryService
             })->count(),
         ];
 
-        $lastPage = (int) ceil($totalProducts / $perPage);
-
-        // 格式化產品數據
-        $formattedProducts = $products->map(function ($product) use ($userId) {
-            /** @var \App\Models\Product $product */
-            /** @var \Illuminate\Support\Collection<int, \App\Models\Item> $items */
-            $items = $product->items()->where('user_id', $userId)->get();
+        // 業務邏輯：格式化產品數據
+        // 從 Repository 返回的資料中取得物品（已過濾 user_id）
+        $formattedProducts = $products->map(function ($product) {
+            // 從已載入的關聯中取得該產品的物品（Repository 已過濾 user_id）
+            $items = $product->items;
 
             // 計算每個產品的狀態統計（使用 Collection 的 filter 方法配合 Item 的狀態判斷）
             $itemsInUse = $items->filter(function ($item) {
@@ -179,31 +143,32 @@ readonly class CategoryService
         });
 
         return [
-            'category' => $category,
+            'category' => $data['category'],
             'stats' => $stats,
-            'products' => $formattedProducts,
-            'meta' => [
-                'current_page' => $page,
-                'last_page' => $lastPage,
-                'per_page' => $perPage,
-                'total' => $totalProducts,
-            ],
+            'products' => $formattedProducts->toArray(),
+            'meta' => $data['meta'],
         ];
     }
 
-    public function update(Category $category, array $data): Category
-    {
-        return $this->categoryRepository->update($category, $data);
-    }
-
+    /**
+     * 刪除分類
+     *
+     * @param Category $category 分類實例
+     * @return bool 是否刪除成功
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException 當分類仍有關聯產品時拋出
+     */
     public function delete(Category $category): bool
     {
         $userId = $category->user_id;
 
         // 檢查是否有產品關聯此分類
-        $productsCount = $category->products()->where('user_id', $userId)->count();
+        $productsCount = $this->categoryRepository->getProductsCount($category->id, $userId);
         if ($productsCount > 0) {
-            throw new \RuntimeException("無法刪除此分類，因為還有 {$productsCount} 個產品關聯此分類。");
+            throw new HttpException(
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+                "無法刪除此分類，因為還有 {$productsCount} 個產品關聯此分類。"
+            );
         }
 
         return $this->categoryRepository->delete($category);

@@ -13,8 +13,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
- *
- *
  * @property int $id 自動遞增主鍵，僅限內部使用
  * @property string $uuid UUID
  * @property string $short_id short ID
@@ -27,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read User $user
+ *
  * @method static Builder<static>|Product newModelQuery()
  * @method static Builder<static>|Product newQuery()
  * @method static Builder<static>|Product query()
@@ -41,15 +40,20 @@ use Illuminate\Support\Carbon;
  * @method static Builder<static>|Product whereUpdatedAt($value)
  * @method static Builder<static>|Product whereUserId($value)
  * @method static Builder<static>|Product whereUuid($value)
+ *
  * @property int|null $category_id 所屬分類
  * @property-read Category|null $category
  * @property-read Collection<int, Item> $items
  * @property-read int|null $items_count
  * @property-read int|null $owned_items_count
  * @property-read int|null $discarded_items_count
+ *
  * @method static Builder<static>|Product whereCategoryId($value)
+ *
  * @property-read \App\Models\Item|null $latestOwnedItem
+ *
  * @method static \Database\Factories\ProductFactory factory($count = null, $state = [])
+ *
  * @mixin Eloquent
  */
 class Product extends Model
@@ -73,6 +77,11 @@ class Product extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * 取得產品的所有物品
+     *
+     * @return HasMany<\App\Models\Item, $this>
+     */
     public function items(): HasMany
     {
         return $this->hasMany(Item::class);
@@ -87,7 +96,7 @@ class Product extends Model
     {
         return $this->hasOne(Item::class)
             ->whereNull('discarded_at')
-            ->orderByRaw("
+            ->orderByRaw('
                 CASE
                     WHEN used_at IS NOT NULL THEN 0
                     ELSE 1
@@ -98,6 +107,6 @@ class Product extends Model
                 END,
                 expiration_date ASC,
                 created_at ASC
-            ");
+            ');
     }
 }

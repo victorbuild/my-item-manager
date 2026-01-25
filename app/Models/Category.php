@@ -11,8 +11,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- *
- *
  * @property int $id
  * @property int|null $user_id
  * @property string $uuid
@@ -22,6 +20,7 @@ use Illuminate\Support\Str;
  * @property int|null $products_count
  * @property int|null $items_count
  * @property-read \App\Models\User|null $user
+ *
  * @method static Builder<static>|Category newModelQuery()
  * @method static Builder<static>|Category newQuery()
  * @method static Builder<static>|Category query()
@@ -30,8 +29,11 @@ use Illuminate\Support\Str;
  * @method static Builder<static>|Category whereName($value)
  * @method static Builder<static>|Category whereUpdatedAt($value)
  * @method static Builder<static>|Category whereUuid($value)
+ *
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Product> $products
+ *
  * @method static Builder<static>|Category whereUserId($value)
+ *
  * @mixin Eloquent
  */
 class Category extends Model
@@ -44,13 +46,13 @@ class Category extends Model
 
         static::creating(function ($category) {
             if (empty($category->uuid)) {
-                $category->uuid = (string)Str::uuid();
+                $category->uuid = (string) Str::uuid();
             }
             // 如果沒有指定 user_id，使用當前登入用戶
             /** @var \Illuminate\Contracts\Auth\Guard $auth */
             $auth = auth();
             if (empty($category->user_id) && $auth->check()) {
-                $category->user_id = (int)$auth->id();
+                $category->user_id = (int) $auth->id();
             }
         });
     }
@@ -60,6 +62,11 @@ class Category extends Model
         return $this->belongsTo(\App\Models\User::class);
     }
 
+    /**
+     * 取得分類的所有產品
+     *
+     * @return HasMany<\App\Models\Product, $this>
+     */
     public function products(): HasMany
     {
         return $this->hasMany(\App\Models\Product::class);

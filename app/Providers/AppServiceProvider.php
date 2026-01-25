@@ -10,6 +10,8 @@ use App\Policies\CategoryPolicy;
 use App\Policies\ItemPolicy;
 use App\Policies\MediaPolicy;
 use App\Policies\ProductPolicy;
+use App\Repositories\CategoryRepository;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
@@ -49,6 +51,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             ProductRepositoryInterface::class,
             ProductRepository::class
+        );
+
+        $this->app->bind(
+            CategoryRepositoryInterface::class,
+            CategoryRepository::class
         );
 
         // 綁定 ItemService 時注入 config 值，避免 Service 直接依賴 config

@@ -7,12 +7,11 @@ use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
-use App\Repositories\CategoryRepository;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use RuntimeException;
 
 /**
  * @group Categories 分類管理
@@ -22,8 +21,8 @@ use RuntimeException;
 class CategoryController extends Controller
 {
     public function __construct(
-        private CategoryService $categoryService,
-        private CategoryRepository $categoryRepository
+        private CategoryRepositoryInterface $categoryRepository,
+        private CategoryService $categoryService
     ) {
     }
 
@@ -71,7 +70,7 @@ class CategoryController extends Controller
     {
         // 如果請求所有分類（用於下拉選單），不分頁
         if ($request->query('all') === 'true' || $request->query('all') === '1') {
-            $categories = $this->categoryService->getAll($request->user()->id);
+            $categories = $this->categoryRepository->getAll($request->user()->id);
 
             return response()->json([
                 'success' => true,
@@ -85,7 +84,7 @@ class CategoryController extends Controller
         $page = (int) ($request->query('page') ?? 1);
         $search = $request->query('q');
 
-        $result = $this->categoryService->getAllPaginated($request->user()->id, $page, $perPage, $search);
+        $result = $this->categoryRepository->getAllPaginatedWithCounts($request->user()->id, $page, $perPage, $search);
 
         return response()->json([
             'success' => true,
@@ -190,7 +189,7 @@ class CategoryController extends Controller
         $this->authorize('update', $category);
 
         $validated = $request->validated();
-        $categoryModel = $this->categoryService->update($category, $validated);
+        $categoryModel = $this->categoryRepository->update($category, $validated);
 
         return response()->json([
             'success' => true,
@@ -221,16 +220,9 @@ class CategoryController extends Controller
         // 使用 Policy 檢查權限
         $this->authorize('delete', $category);
 
-        try {
-            $this->categoryService->delete($category);
+        $this->categoryService->delete($category);
 
-            return response()->noContent();
-        } catch (RuntimeException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        }
+        return response()->noContent();
     }
 
     /**
