@@ -71,7 +71,7 @@ class ItemImageService
     public function syncItemImages(Item $item, array $images): Item
     {
         if (empty($images)) {
-            return $item->fresh(['images', 'category', 'product.category']);
+            return $this->itemRepository->refreshWithRelations($item);
         }
 
         // 處理移除的圖片
@@ -83,7 +83,7 @@ class ItemImageService
             }
 
             // 移除關聯
-            $item->images()->detach($uuid);
+            $this->itemRepository->detachImage($item, $uuid);
 
             // 更新圖片使用次數和狀態
             $this->decrementImageUsage($uuid);
@@ -99,8 +99,8 @@ class ItemImageService
             }
 
             // 避免重複 attach（使用查詢而非載入關聯）
-            if (! $item->images()->where('uuid', $uuid)->exists()) {
-                $item->images()->attach($uuid, [
+            if (! $this->itemRepository->hasImage($item, $uuid)) {
+                $this->itemRepository->attachImage($item, $uuid, [
                     'sort_order' => ++$loopIndex,
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -114,7 +114,7 @@ class ItemImageService
         // 原始圖片（status === 'original'）不異動
 
         // 重新載入關聯資料以反映最新的圖片狀態
-        return $item->fresh(['images', 'category', 'product.category']);
+        return $this->itemRepository->refreshWithRelations($item);
     }
 
     /**

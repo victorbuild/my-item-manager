@@ -179,4 +179,32 @@ interface ItemRepositoryInterface
      * @param array<string, mixed> $pivotData Pivot 表額外資料（如 sort_order）
      */
     public function attachImage(Item $item, string $imageUuid, array $pivotData = []): void;
+
+    /**
+     * 移除物品的圖片關聯
+     *
+     * @param Item $item 物品實例
+     * @param string $imageUuid 圖片 UUID
+     */
+    public function detachImage(Item $item, string $imageUuid): void;
+
+    /**
+     * 檢查物品是否已有指定圖片
+     *
+     * @param Item $item 物品實例
+     * @param string $imageUuid 圖片 UUID
+     */
+    public function hasImage(Item $item, string $imageUuid): bool;
+
+    /**
+     * 重新載入物品及其關聯
+     *
+     * @param Item $item 物品實例
+     * @param array<string> $relations 要載入的關聯，預設為 ['images', 'category', 'product.category']
+     * @return Item 重新載入後的物品實例
+     */
+    public function refreshWithRelations(
+        Item $item,
+        array $relations = ['images', 'category', 'product.category']
+    ): Item;
 }
