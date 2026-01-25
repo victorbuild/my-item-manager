@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Item;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
+use App\Repositories\Contracts\ItemRepositoryInterface;
 use Exception;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
@@ -21,7 +22,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class ItemImageService
 {
     public function __construct(
-        private readonly ItemImageRepositoryInterface $itemImageRepository
+        private readonly ItemImageRepositoryInterface $itemImageRepository,
+        private readonly ItemRepositoryInterface $itemRepository
     ) {
     }
 
@@ -47,7 +49,7 @@ class ItemImageService
             $uuid = $imgObj['uuid'];
 
             // 使用已存在的圖片 UUID 建立多對多關聯
-            $item->images()->attach($uuid, [
+            $this->itemRepository->attachImage($item, $uuid, [
                 'sort_order' => ++$loopIndex,
                 'created_at' => now(),
                 'updated_at' => now(),

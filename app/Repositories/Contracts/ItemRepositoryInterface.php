@@ -170,4 +170,13 @@ interface ItemRepositoryInterface
      * @param Item $item 物品實例
      */
     public function delete(Item $item): void;
+
+    /**
+     * 附加圖片到物品
+     *
+     * @param Item $item 物品實例
+     * @param string $imageUuid 圖片 UUID
+     * @param array<string, mixed> $pivotData Pivot 表額外資料（如 sort_order）
+     */
+    public function attachImage(Item $item, string $imageUuid, array $pivotData = []): void;
 }

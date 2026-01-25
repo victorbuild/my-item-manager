@@ -26,7 +26,11 @@ class ItemImageServiceTest extends TestCase
     {
         parent::setUp();
         $this->mockRepository = Mockery::mock(ItemImageRepositoryInterface::class);
-        $this->service = new ItemImageService($this->mockRepository);
+        // 階段 1：使用真實的 ItemRepository（透過 Laravel DI）
+        $this->service = new ItemImageService(
+            $this->mockRepository,
+            app(\App\Repositories\Contracts\ItemRepositoryInterface::class)
+        );
     }
 
     protected function tearDown(): void
