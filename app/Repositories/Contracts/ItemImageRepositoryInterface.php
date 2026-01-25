@@ -42,4 +42,12 @@ interface ItemImageRepositoryInterface
      * @return void
      */
     public function updateStatus(ItemImage $image, string $status): void;
+
+    /**
+     * 建立新的圖片記錄
+     *
+     * @param array<string, mixed> $data 圖片資料
+     * @return \App\Models\ItemImage
+     */
+    public function create(array $data): ItemImage;
 }

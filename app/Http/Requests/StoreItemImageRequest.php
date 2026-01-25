@@ -11,12 +11,10 @@ class StoreItemImageRequest extends FormRequest
 {
     /**
      * 判斷使用者是否有權限進行此請求
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return true;
     }
 
     /**

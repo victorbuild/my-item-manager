@@ -56,4 +56,15 @@ class ItemImageRepository implements ItemImageRepositoryInterface
         $image->status = $status;
         $image->save();
     }
+
+    /**
+     * 建立新的圖片記錄
+     *
+     * @param array<string, mixed> $data 圖片資料
+     * @return ItemImage
+     */
+    public function create(array $data): ItemImage
+    {
+        return ItemImage::create($data);
+    }
 }
