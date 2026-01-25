@@ -581,11 +581,9 @@ class ItemService
             $end = $today;
         } else {
             // 全部時間範圍，使用第一個物品的創建日期
-            $firstItem = Item::where('user_id', $userId)
-                ->orderBy('created_at', 'asc')
-                ->first();
-            if ($firstItem && $firstItem->created_at) {
-                $start = Carbon::parse($firstItem->created_at)->startOfDay();
+            $firstItemCreatedAt = $this->itemRepository->getFirstItemCreatedAt($userId);
+            if ($firstItemCreatedAt) {
+                $start = $firstItemCreatedAt->copy()->startOfDay();
             } else {
                 $start = $today->copy()->startOfDay();
             }

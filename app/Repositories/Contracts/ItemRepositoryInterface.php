@@ -147,4 +147,12 @@ interface ItemRepositoryInterface
         int $userId,
         Closure $applyCreatedDateFilter
     ): Collection;
+
+    /**
+     * 取得第一個物品的創建日期（用於計算時間範圍）
+     *
+     * @param int $userId 使用者 ID
+     * @return \Carbon\Carbon|null 第一個物品的創建日期，若無則回傳 null
+     */
+    public function getFirstItemCreatedAt(int $userId): ?\Carbon\Carbon;
 }

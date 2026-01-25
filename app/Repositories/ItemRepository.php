@@ -380,4 +380,23 @@ class ItemRepository implements ItemRepositoryInterface
 
         return $query->get();
     }
+
+    /**
+     * 取得第一個物品的創建日期（用於計算時間範圍）
+     *
+     * @param int $userId 使用者 ID
+     * @return \Carbon\Carbon|null 第一個物品的創建日期，若無則回傳 null
+     */
+    public function getFirstItemCreatedAt(int $userId): ?Carbon
+    {
+        $firstItem = Item::where('user_id', $userId)
+            ->orderBy('created_at', 'asc')
+            ->first();
+
+        if ($firstItem && $firstItem->created_at) {
+            return Carbon::parse($firstItem->created_at);
+        }
+
+        return null;
+    }
 }
