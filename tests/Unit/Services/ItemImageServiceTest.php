@@ -158,32 +158,51 @@ class ItemImageServiceTest extends TestCase
         ];
 
         // Mock Repository 行為（只應該被呼叫一次）
+        $findByUuidCallCount = 0;
         $this->mockRepository
             ->shouldReceive('findByUuid')
             ->with('uuid-1')
             ->once()
-            ->andReturn($image1);
+            ->andReturnUsing(function ($uuid) use (&$findByUuidCallCount, $image1) {
+                $findByUuidCallCount++;
 
+                return $image1;
+            });
+
+        $incrementUsageCountCallCount = 0;
         $this->mockRepository
             ->shouldReceive('incrementUsageCount')
-            ->once();
+            ->once()
+            ->andReturnUsing(function () use (&$incrementUsageCountCallCount) {
+                $incrementUsageCountCallCount++;
+            });
 
+        $updateStatusCallCount = 0;
         $this->mockRepository
             ->shouldReceive('updateStatus')
-            ->once();
+            ->once()
+            ->andReturnUsing(function () use (&$updateStatusCallCount) {
+                $updateStatusCallCount++;
+            });
 
         // Mock ItemRepository attachImage（只應該被呼叫一次）
+        $attachCallCount = 0;
         $this->mockItemRepository
             ->shouldReceive('attachImage')
             ->with($item, 'uuid-1', Mockery::type('array'))
-            ->once();
+            ->once()
+            ->andReturnUsing(function () use (&$attachCallCount) {
+                $attachCallCount++;
+            });
 
         // Act
         $this->service->attachImagesToItem($item, $images);
 
-        // Assert - 只驗證 Mock 被正確調用，不檢查資料庫狀態
-        // Mockery 的驗證會在 tearDown() 中執行，這裡添加明確的 assertion 避免 PHPUnit 標記為 risky
-        $this->assertTrue(true);
+        // Assert - 驗證行為：只處理 status='new' 的圖片，status='original' 的圖片應該被跳過
+        $this->assertEquals(1, $findByUuidCallCount, 'findByUuid 應該只被調用 1 次（只處理 uuid-1）');
+        $this->assertEquals(1, $incrementUsageCountCallCount, 'incrementUsageCount 應該只被調用 1 次');
+        $this->assertEquals(1, $updateStatusCallCount, 'updateStatus 應該只被調用 1 次');
+        $this->assertEquals(1, $attachCallCount, 'attachImage 應該只被調用 1 次（只處理 uuid-1）');
     }
 
     /**
@@ -234,59 +253,6 @@ class ItemImageServiceTest extends TestCase
 
         // Assert - 驗證行為：只處理有 UUID 的圖片，沒有 UUID 的圖片應該被跳過
         $this->assertEquals(1, $attachCallCount, '只有有 UUID 的圖片應該被處理');
-    }
-
-    /**
-     * 測試：圖片狀態從 draft 變為 used
-     */
-    #[Test]
-    public function it_should_update_status_from_draft_to_used(): void
-    {
-        // Arrange
-        $item = new Item();
-        $item->id = 1;
-        $image = new ItemImage();
-        $image->uuid = 'uuid-1';
-        $image->status = ItemImage::STATUS_DRAFT;
-
-        $images = [
-            ['uuid' => 'uuid-1', 'status' => 'new'],
-        ];
-
-        // Mock Repository 行為
-        $this->mockRepository
-            ->shouldReceive('findByUuid')
-            ->with('uuid-1')
-            ->once()
-            ->andReturn($image);
-
-        $this->mockRepository
-            ->shouldReceive('incrementUsageCount')
-            ->with($image)
-            ->once();
-
-        $this->mockRepository
-            ->shouldReceive('updateStatus')
-            ->with(Mockery::on(function ($img) {
-                return $img->uuid === 'uuid-1' && $img->status === ItemImage::STATUS_DRAFT;
-            }), ItemImage::STATUS_USED)
-            ->once();
-
-        // Mock ItemRepository attachImage
-        $attachCallCount = 0;
-        $this->mockItemRepository
-            ->shouldReceive('attachImage')
-            ->with($item, 'uuid-1', Mockery::type('array'))
-            ->once()
-            ->andReturnUsing(function () use (&$attachCallCount) {
-                $attachCallCount++;
-            });
-
-        // Act
-        $this->service->attachImagesToItem($item, $images);
-
-        // Assert - 驗證行為：attachImage 被調用，updateStatus 也被調用（因為狀態是 draft）
-        $this->assertEquals(1, $attachCallCount, 'attachImage 應該被調用 1 次');
     }
 
     /**
@@ -416,10 +382,10 @@ class ItemImageServiceTest extends TestCase
     }
 
     /**
-     * 測試：圖片不存在時不更新使用次數
+     * 測試：圖片不存在時仍會 attach，但不會更新使用次數
      */
     #[Test]
-    public function it_should_not_update_usage_when_image_not_found(): void
+    public function it_should_attach_image_even_when_image_not_found_but_not_update_usage(): void
     {
         // Arrange
         $item = new Item();
