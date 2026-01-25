@@ -3,10 +3,16 @@
 namespace App\Services;
 
 use App\Models\ItemImage;
+use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class MediaService
 {
+    public function __construct(
+        private readonly ItemImageRepositoryInterface $itemImageRepository
+    ) {
+    }
+
     /**
      * 取得用戶的圖片列表（帶篩選）
      *
@@ -14,7 +20,6 @@ class MediaService
      * @param string|null $status 狀態篩選
      * @param bool|null $hasItems 是否有關聯：true=有關聯, false=沒有關聯, null=全部
      * @param int $perPage 每頁筆數
-     * @return LengthAwarePaginator
      */
     public function paginateForUser(
         int $userId,
@@ -47,7 +52,6 @@ class MediaService
      *
      * @param int $userId 用戶 ID
      * @param int $perPage 每頁筆數
-     * @return LengthAwarePaginator
      */
     public function paginateUnusedForUser(int $userId, int $perPage = 50): LengthAwarePaginator
     {
@@ -95,19 +99,21 @@ class MediaService
     }
 
     /**
-     * 根據 UUID 取得用戶的圖片（包含關聯的 items）
+     * 根據 UUID 取得圖片（包含關聯的 items）
+     * 注意：此方法不過濾 user_id，權限檢查應由 Controller 層的 Policy 處理
      *
      * @param string $uuid 圖片 UUID
-     * @param int $userId 用戶 ID
-     * @return ItemImage
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException 當圖片不存在時
      */
-    public function findByUuidForUser(string $uuid, int $userId): ItemImage
+    public function findByUuidForUser(string $uuid): ItemImage
     {
-        return ItemImage::query()
-            ->where('user_id', $userId)
-            ->with('items')
-            ->where('uuid', $uuid)
-            ->firstOrFail();
+        $image = $this->itemImageRepository->findByUuid($uuid);
+
+        if (! $image) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException();
+        }
+
+        return $image->load('items');
     }
 }

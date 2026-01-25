@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ImageUrlHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class MediaController extends Controller
 {
@@ -40,8 +40,7 @@ class MediaController extends Controller
 
         // 為每個圖片產生縮圖 URL
         $transformedData = $images->getCollection()->map(function ($image) {
-            $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
-            $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
+            $urls = ImageUrlHelper::generateSignedUrls($image, config('images.url_expiration_minutes.default', 60));
 
             return [
                 'uuid' => $image->uuid,
@@ -51,8 +50,8 @@ class MediaController extends Controller
                 'usage_count' => $image->usage_count,
                 'created_at' => $image->created_at,
                 'updated_at' => $image->updated_at,
-                'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
-                'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
+                'thumb_url' => $urls['thumb_url'],
+                'preview_url' => $urls['preview_url'],
             ];
         });
 
@@ -82,8 +81,7 @@ class MediaController extends Controller
 
         // 為每個圖片產生縮圖 URL
         $transformedData = $images->getCollection()->map(function ($image) {
-            $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
-            $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
+            $urls = ImageUrlHelper::generateSignedUrls($image, config('images.url_expiration_minutes.default', 60));
 
             return [
                 'uuid' => $image->uuid,
@@ -91,8 +89,8 @@ class MediaController extends Controller
                 'original_extension' => $image->original_extension,
                 'status' => $image->status,
                 'created_at' => $image->created_at,
-                'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
-                'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
+                'thumb_url' => $urls['thumb_url'],
+                'preview_url' => $urls['preview_url'],
             ];
         });
 
@@ -110,17 +108,13 @@ class MediaController extends Controller
      */
     public function show(string $uuid): JsonResponse
     {
-        $userId = auth()->id() ?? 0;
+        // 使用 Service 層處理查詢邏輯（不過濾 user_id）
+        $image = $this->mediaService->findByUuidForUser($uuid);
 
-        // 使用 Service 層處理查詢邏輯
-        $image = $this->mediaService->findByUuidForUser($uuid, $userId);
-
-        // 使用 Policy 檢查權限（雙重保護：Service 層已過濾，Policy 再次確認）
+        // 使用 Policy 檢查權限（如果沒有權限會拋出 AuthorizationException，返回 403）
         $this->authorize('view', $image);
 
-        $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
-        $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
-        $originalPath = "item-images/{$image->uuid}/original_{$image->image_path}.{$image->original_extension}";
+        $urls = ImageUrlHelper::generateSignedUrls($image, config('images.url_expiration_minutes.default', 60));
 
         /** @var \Illuminate\Database\Eloquent\Collection<int, Item> $itemsCollection */
         $itemsCollection = $image->items;
@@ -141,9 +135,9 @@ class MediaController extends Controller
             'usage_count' => $image->usage_count,
             'created_at' => $image->created_at,
             'updated_at' => $image->updated_at,
-            'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
-            'preview_url' => Storage::disk('gcs')->temporaryUrl($previewPath, now()->addMinutes(60)),
-            'original_url' => Storage::disk('gcs')->temporaryUrl($originalPath, now()->addMinutes(60)),
+            'thumb_url' => $urls['thumb_url'],
+            'preview_url' => $urls['preview_url'],
+            'original_url' => $urls['original_url'],
             'items' => $items,
         ]);
     }

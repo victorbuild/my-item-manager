@@ -5,6 +5,7 @@ namespace Tests\Feature\Services;
 use App\Models\Item;
 use App\Models\ItemImage;
 use App\Models\User;
+use App\Repositories\ItemImageRepository;
 use App\Services\MediaService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,11 +23,11 @@ class MediaServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new MediaService();
+        $this->service = new MediaService(new ItemImageRepository());
         $this->user = User::factory()->create();
     }
 
-    public function test_paginateForUser_should_return_paginated_images_when_no_filters(): void
+    public function test_paginate_for_user_should_return_paginated_images_when_no_filters(): void
     {
         // Arrange
         ItemImage::factory()->count(5)->create(['user_id' => $this->user->id]);
@@ -39,7 +40,7 @@ class MediaServiceTest extends TestCase
         $this->assertEquals(5, $result->total());
     }
 
-    public function test_paginateForUser_should_filter_by_status_when_status_provided(): void
+    public function test_paginate_for_user_should_filter_by_status_when_status_provided(): void
     {
         // Arrange
         ItemImage::factory()->count(3)->create([
@@ -62,7 +63,7 @@ class MediaServiceTest extends TestCase
         });
     }
 
-    public function test_paginateForUser_should_filter_by_hasItems_true_when_provided(): void
+    public function test_paginate_for_user_should_filter_by_has_items_true_when_provided(): void
     {
         // Arrange
         $item = Item::factory()->create(['user_id' => $this->user->id]);
@@ -80,7 +81,7 @@ class MediaServiceTest extends TestCase
         $this->assertEquals($imageWithItem->uuid, $result->first()->uuid);
     }
 
-    public function test_paginateForUser_should_filter_by_hasItems_false_when_provided(): void
+    public function test_paginate_for_user_should_filter_by_has_items_false_when_provided(): void
     {
         // Arrange
         $item = Item::factory()->create(['user_id' => $this->user->id]);
@@ -98,7 +99,7 @@ class MediaServiceTest extends TestCase
         $this->assertEquals($imageWithoutItem->uuid, $result->first()->uuid);
     }
 
-    public function test_paginateForUser_should_use_custom_perPage_when_provided(): void
+    public function test_paginate_for_user_should_use_custom_per_page_when_provided(): void
     {
         // Arrange
         ItemImage::factory()->count(10)->create(['user_id' => $this->user->id]);
@@ -112,7 +113,7 @@ class MediaServiceTest extends TestCase
         $this->assertEquals(10, $result->total());
     }
 
-    public function test_paginateUnusedForUser_should_return_paginated_unused_images(): void
+    public function test_paginate_unused_for_user_should_return_paginated_unused_images(): void
     {
         // Arrange
         $item = Item::factory()->create(['user_id' => $this->user->id]);
@@ -130,7 +131,7 @@ class MediaServiceTest extends TestCase
         $this->assertEquals($imageWithoutItem->uuid, $result->first()->uuid);
     }
 
-    public function test_getQuotaInfo_should_return_quota_info_with_unlimited(): void
+    public function test_get_quota_info_should_return_quota_info_with_unlimited(): void
     {
         // Arrange
         ItemImage::factory()->count(100)->create(['user_id' => $this->user->id]);
@@ -147,13 +148,13 @@ class MediaServiceTest extends TestCase
         $this->assertEquals(0.0, $result['percentage']);
     }
 
-    public function test_findByUuidForUser_should_return_image_when_exists(): void
+    public function test_find_by_uuid_for_user_should_return_image_when_exists(): void
     {
         // Arrange
         $image = ItemImage::factory()->create(['user_id' => $this->user->id]);
 
         // Act
-        $result = $this->service->findByUuidForUser($image->uuid, $this->user->id);
+        $result = $this->service->findByUuidForUser($image->uuid);
 
         // Assert
         $this->assertInstanceOf(ItemImage::class, $result);
@@ -161,25 +162,27 @@ class MediaServiceTest extends TestCase
         $this->assertTrue($result->relationLoaded('items'));
     }
 
-    public function test_findByUuidForUser_should_throw_exception_when_not_found(): void
+    public function test_find_by_uuid_for_user_should_throw_exception_when_not_found(): void
     {
         // Assert
         $this->expectException(ModelNotFoundException::class);
 
         // Act
-        $this->service->findByUuidForUser('non-existent-uuid', $this->user->id);
+        $this->service->findByUuidForUser('non-existent-uuid');
     }
 
-    public function test_findByUuidForUser_should_throw_exception_when_belongs_to_different_user(): void
+    public function test_find_by_uuid_for_user_should_return_image_even_when_belongs_to_different_user(): void
     {
         // Arrange
         $otherUser = User::factory()->create();
         $image = ItemImage::factory()->create(['user_id' => $otherUser->id]);
 
-        // Assert
-        $this->expectException(ModelNotFoundException::class);
-
         // Act
-        $this->service->findByUuidForUser($image->uuid, $this->user->id);
+        $result = $this->service->findByUuidForUser($image->uuid);
+
+        // Assert
+        // Service 層不過濾 user_id，權限檢查由 Controller 層的 Policy 處理
+        $this->assertInstanceOf(ItemImage::class, $result);
+        $this->assertEquals($image->uuid, $result->uuid);
     }
 }
