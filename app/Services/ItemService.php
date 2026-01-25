@@ -178,25 +178,16 @@ class ItemService
         // 建立時間範圍過濾函數（用於新增物品的判斷）
         $applyCreatedDateFilter = $this->buildCreatedDateFilter($period, $startDate, $endDate);
 
-        // 計算基礎統計
-        $totals = $this->itemRepository->getTotalsStatistics($userId, $applyCreatedDateFilter, $startDate, $endDate);
-
-        // 計算價值統計
-        $valueStats = $this->calculateValueStatistics($userId, $applyCreatedDateFilter, $totals['value']);
-
-        // 計算狀態統計
-        $statusStats = $this->itemRepository->getStatusCounts($userId, $applyCreatedDateFilter);
-
-        // 計算時間範圍的開始和結束日期
-        $dateRange = $this->calculateDateRange($userId, $period, $year, $startDate);
-
-        $statistics = [
-            'as_of' => $asOf->toDateString(),
-            'totals' => $totals,
-            'status' => $statusStats,
-            'value_stats' => $valueStats,
-            'date_range' => $dateRange,
-        ];
+        // 建立基礎統計
+        $statistics = $this->buildBaseStatistics(
+            $userId,
+            $period,
+            $year,
+            $startDate,
+            $endDate,
+            $applyCreatedDateFilter,
+            $asOf
+        );
 
         $allowedHeavySections = [
             'top_expensive',
@@ -261,6 +252,48 @@ class ItemService
         }
 
         return $statistics;
+    }
+
+    /**
+     * 建立基礎統計資料
+     *
+     * @param int $userId 使用者 ID
+     * @param string $period 時間範圍
+     * @param int|null $year 年份
+     * @param Carbon|null $startDate 開始日期
+     * @param Carbon|null $endDate 結束日期
+     * @param \Closure $applyCreatedDateFilter 建立日期過濾函數
+     * @param Carbon $asOf 統計基準日
+     * @return array 基礎統計資料（as_of, totals, status, value_stats, date_range）
+     */
+    private function buildBaseStatistics(
+        int $userId,
+        string $period,
+        ?int $year,
+        ?Carbon $startDate,
+        ?Carbon $endDate,
+        \Closure $applyCreatedDateFilter,
+        Carbon $asOf
+    ): array {
+        // 計算基礎統計
+        $totals = $this->itemRepository->getTotalsStatistics($userId, $applyCreatedDateFilter, $startDate, $endDate);
+
+        // 計算價值統計
+        $valueStats = $this->calculateValueStatistics($userId, $applyCreatedDateFilter, $totals['value']);
+
+        // 計算狀態統計
+        $statusStats = $this->itemRepository->getStatusCounts($userId, $applyCreatedDateFilter);
+
+        // 計算時間範圍的開始和結束日期
+        $dateRange = $this->calculateDateRange($userId, $period, $year, $startDate);
+
+        return [
+            'as_of' => $asOf->toDateString(),
+            'totals' => $totals,
+            'status' => $statusStats,
+            'value_stats' => $valueStats,
+            'date_range' => $dateRange,
+        ];
     }
 
     /**
