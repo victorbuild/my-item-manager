@@ -5,14 +5,11 @@ namespace Tests\Unit\Policies;
 use App\Models\Product;
 use App\Models\User;
 use App\Policies\ProductPolicy;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ProductPolicyTest extends TestCase
 {
-    use RefreshDatabase;
-
     private ProductPolicy $policy;
 
     private User $user;
@@ -23,8 +20,10 @@ class ProductPolicyTest extends TestCase
     {
         parent::setUp();
         $this->policy = new ProductPolicy();
-        $this->user = User::factory()->create();
-        $this->otherUser = User::factory()->create();
+        $this->user = User::factory()->make();
+        $this->user->id = 1;
+        $this->otherUser = User::factory()->make();
+        $this->otherUser->id = 2;
     }
 
     /**
@@ -33,7 +32,7 @@ class ProductPolicyTest extends TestCase
     #[Test]
     public function it_should_allow_owner_to_view_product(): void
     {
-        $product = Product::factory()->create(['user_id' => $this->user->id]);
+        $product = Product::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->view($this->user, $product);
 
@@ -46,7 +45,7 @@ class ProductPolicyTest extends TestCase
     #[Test]
     public function it_should_deny_other_user_to_view_product(): void
     {
-        $product = Product::factory()->create(['user_id' => $this->user->id]);
+        $product = Product::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->view($this->otherUser, $product);
 
@@ -59,7 +58,7 @@ class ProductPolicyTest extends TestCase
     #[Test]
     public function it_should_allow_owner_to_update_product(): void
     {
-        $product = Product::factory()->create(['user_id' => $this->user->id]);
+        $product = Product::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->update($this->user, $product);
 
@@ -72,7 +71,7 @@ class ProductPolicyTest extends TestCase
     #[Test]
     public function it_should_deny_other_user_to_update_product(): void
     {
-        $product = Product::factory()->create(['user_id' => $this->user->id]);
+        $product = Product::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->update($this->otherUser, $product);
 
@@ -85,7 +84,7 @@ class ProductPolicyTest extends TestCase
     #[Test]
     public function it_should_allow_owner_to_delete_product(): void
     {
-        $product = Product::factory()->create(['user_id' => $this->user->id]);
+        $product = Product::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->delete($this->user, $product);
 
@@ -98,7 +97,7 @@ class ProductPolicyTest extends TestCase
     #[Test]
     public function it_should_deny_other_user_to_delete_product(): void
     {
-        $product = Product::factory()->create(['user_id' => $this->user->id]);
+        $product = Product::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->delete($this->otherUser, $product);
 

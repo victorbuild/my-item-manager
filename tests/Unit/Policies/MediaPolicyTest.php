@@ -5,14 +5,11 @@ namespace Tests\Unit\Policies;
 use App\Models\ItemImage;
 use App\Models\User;
 use App\Policies\MediaPolicy;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class MediaPolicyTest extends TestCase
 {
-    use RefreshDatabase;
-
     private MediaPolicy $policy;
 
     private User $user;
@@ -23,8 +20,10 @@ class MediaPolicyTest extends TestCase
     {
         parent::setUp();
         $this->policy = new MediaPolicy();
-        $this->user = User::factory()->create();
-        $this->otherUser = User::factory()->create();
+        $this->user = User::factory()->make();
+        $this->user->id = 1;
+        $this->otherUser = User::factory()->make();
+        $this->otherUser->id = 2;
     }
 
     /**
@@ -33,7 +32,7 @@ class MediaPolicyTest extends TestCase
     #[Test]
     public function it_should_allow_owner_to_view_item_image(): void
     {
-        $itemImage = ItemImage::factory()->create(['user_id' => $this->user->id]);
+        $itemImage = ItemImage::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->view($this->user, $itemImage);
 
@@ -46,7 +45,7 @@ class MediaPolicyTest extends TestCase
     #[Test]
     public function it_should_deny_other_user_to_view_item_image(): void
     {
-        $itemImage = ItemImage::factory()->create(['user_id' => $this->user->id]);
+        $itemImage = ItemImage::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->view($this->otherUser, $itemImage);
 
@@ -59,7 +58,7 @@ class MediaPolicyTest extends TestCase
     #[Test]
     public function it_should_allow_owner_to_update_item_image(): void
     {
-        $itemImage = ItemImage::factory()->create(['user_id' => $this->user->id]);
+        $itemImage = ItemImage::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->update($this->user, $itemImage);
 
@@ -72,7 +71,7 @@ class MediaPolicyTest extends TestCase
     #[Test]
     public function it_should_deny_other_user_to_update_item_image(): void
     {
-        $itemImage = ItemImage::factory()->create(['user_id' => $this->user->id]);
+        $itemImage = ItemImage::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->update($this->otherUser, $itemImage);
 
@@ -85,7 +84,7 @@ class MediaPolicyTest extends TestCase
     #[Test]
     public function it_should_allow_owner_to_delete_item_image(): void
     {
-        $itemImage = ItemImage::factory()->create(['user_id' => $this->user->id]);
+        $itemImage = ItemImage::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->delete($this->user, $itemImage);
 
@@ -98,7 +97,7 @@ class MediaPolicyTest extends TestCase
     #[Test]
     public function it_should_deny_other_user_to_delete_item_image(): void
     {
-        $itemImage = ItemImage::factory()->create(['user_id' => $this->user->id]);
+        $itemImage = ItemImage::factory()->make(['user_id' => $this->user->id]);
 
         $result = $this->policy->delete($this->otherUser, $itemImage);
 
