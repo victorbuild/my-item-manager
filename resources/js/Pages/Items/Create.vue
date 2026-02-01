@@ -59,7 +59,7 @@
             <div v-if="selectedProduct.model">🧾 型號：{{ selectedProduct.model }}</div>
             <div v-if="selectedProduct.spec">⚙️ 規格：{{ selectedProduct.spec }}</div>
             <div v-if="selectedProduct.barcode">🔢 條碼：{{ selectedProduct.barcode }}</div>
-            <div>📦 目前已有物品數量：{{ selectedProduct.items_count ?? 0 }}</div>
+            <div>📦 目前已有物品數量：{{ selectedProduct.owned_items_count ?? 0 }}</div>
         </div>
 
         <form @submit.prevent="submitForm(false)" class="space-y-4">
