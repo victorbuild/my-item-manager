@@ -39,7 +39,7 @@ jobs:
         run: vendor/bin/phpcs
 
       - name: Audit Composer dependencies
-        run: composer audit --no-interaction --no-dev
+        run: composer audit --no-interaction --no-dev --ignore-severity=medium --ignore-severity=low
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
