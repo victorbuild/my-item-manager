@@ -62,4 +62,14 @@ class ItemImageRepository implements ItemImageRepositoryInterface
     {
         return ItemImage::create($data);
     }
+
+    /**
+     * 刪除圖片記錄
+     *
+     * @param ItemImage $image 圖片實例
+     */
+    public function delete(ItemImage $image): bool
+    {
+        return $image->delete();
+    }
 }

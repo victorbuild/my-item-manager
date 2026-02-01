@@ -26,4 +26,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/media', [MediaController::class, 'index']);
     Route::get('/media/unused', [MediaController::class, 'unused']); // 未使用的圖片（用於選擇）
     Route::get('/media/{uuid}', [MediaController::class, 'show']);
+    Route::delete('/media/{uuid}', [MediaController::class, 'destroy']);
 });

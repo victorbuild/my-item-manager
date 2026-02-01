@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class MediaService
 {
@@ -115,5 +116,55 @@ class MediaService
         }
 
         return $image->load('items');
+    }
+
+    /**
+     * 刪除圖片
+     * 注意：此方法不過濾 user_id，權限檢查應由 Controller 層的 Policy 處理
+     *
+     * @param ItemImage $image 圖片實例
+     *
+     * @throws \Exception 當圖片正在被使用時
+     */
+    public function delete(ItemImage $image): bool
+    {
+        // 檢查圖片是否正在被使用
+        if ($image->usage_count > 0) {
+            throw new \Exception('無法刪除正在被使用的圖片');
+        }
+
+        // 從 GCS 刪除檔案
+        $this->deleteImageFilesFromGcs($image);
+
+        // 刪除資料庫記錄
+        return $this->itemImageRepository->delete($image);
+    }
+
+    /**
+     * 從 GCS 刪除圖片相關檔案
+     *
+     * @param ItemImage $image 圖片實例
+     */
+    private function deleteImageFilesFromGcs(ItemImage $image): void
+    {
+        $disk = Storage::disk('gcs');
+        $uuid = $image->uuid;
+        $basename = $image->image_path;
+        $originalExt = $image->original_extension;
+
+        // 原圖
+        $originalPath = "item-images/{$uuid}/original_{$basename}.{$originalExt}";
+        // 預覽圖
+        $previewPath = "item-images/{$uuid}/preview_{$basename}.webp";
+        // 縮圖
+        $thumbPath = "item-images/{$uuid}/thumb_{$basename}.webp";
+
+        $paths = [$originalPath, $previewPath, $thumbPath];
+
+        foreach ($paths as $path) {
+            if ($disk->exists($path)) {
+                $disk->delete($path);
+            }
+        }
     }
 }

@@ -105,9 +105,19 @@
                         >
                             {{ image.status === 'draft' ? '草稿' : '已使用' }}
                         </span>
-                        <span v-if="image.usage_count > 0" class="text-xs text-gray-500">
-                            {{ image.usage_count }}
-                        </span>
+                        <div class="flex items-center gap-1">
+                            <span v-if="image.usage_count > 0" class="text-xs text-gray-500">
+                                {{ image.usage_count }}
+                            </span>
+                            <button
+                                @click.stop="deleteImage(image)"
+                                :disabled="image.usage_count > 0"
+                                class="text-red-500 hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed text-sm p-1"
+                                title="刪除圖片"
+                            >
+                                🗑️
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -151,12 +161,21 @@
                 <div class="p-4">
                     <div class="flex justify-between items-start mb-3">
                         <h2 class="text-lg font-bold text-gray-800">圖片詳情</h2>
-                        <button
-                            @click="selectedImage = null"
-                            class="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-                        >
-                            ×
-                        </button>
+                        <div class="flex gap-2">
+                            <button
+                                @click="deleteImage(selectedImage)"
+                                :disabled="selectedImage.usage_count > 0"
+                                class="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                刪除
+                            </button>
+                            <button
+                                @click="selectedImage = null"
+                                class="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                            >
+                                ×
+                            </button>
+                        </div>
                     </div>
 
                     <div class="space-y-4">
@@ -336,6 +355,38 @@ const formatDate = (dateString) => {
         hour: '2-digit',
         minute: '2-digit',
     })
+}
+
+const deleteImage = async (image) => {
+    if (image.usage_count > 0) {
+        alert('無法刪除正在被使用的圖片')
+        return
+    }
+
+    if (!confirm('確定要刪除這張圖片嗎？此操作無法復原。')) {
+        return
+    }
+
+    try {
+        const res = await axios.delete(`/api/media/${image.uuid}`)
+        
+        if (res.data.success) {
+            // 重新載入圖片列表以確保資料同步，保持在當前頁面
+            await fetchImages(pagination.value.current_page)
+            
+            // 如果是詳情視窗中顯示的圖片，關閉視窗
+            if (selectedImage.value && selectedImage.value.uuid === image.uuid) {
+                selectedImage.value = null
+            }
+            
+            alert('圖片刪除成功')
+        } else {
+            alert('刪除失敗：' + res.data.message)
+        }
+    } catch (error) {
+        console.error('刪除圖片失敗:', error)
+        alert('刪除失敗：' + (error.response?.data?.message || error.message))
+    }
 }
 
 onMounted(() => {

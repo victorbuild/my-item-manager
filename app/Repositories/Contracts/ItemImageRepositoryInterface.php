@@ -45,4 +45,11 @@ interface ItemImageRepositoryInterface
      * @param array<string, mixed> $data 圖片資料
      */
     public function create(array $data): ItemImage;
+
+    /**
+     * 刪除圖片記錄
+     *
+     * @param ItemImage $image 圖片實例
+     */
+    public function delete(ItemImage $image): bool;
 }

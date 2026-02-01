@@ -141,4 +141,28 @@ class MediaController extends Controller
             'items' => $items,
         ]);
     }
+
+    /**
+     * 刪除圖片
+     */
+    public function destroy(string $uuid): JsonResponse
+    {
+        $image = $this->mediaService->findByUuidForUser($uuid);
+
+        $this->authorize('delete', $image);
+
+        try {
+            $this->mediaService->delete($image);
+
+            return response()->json([
+                'success' => true,
+                'message' => '圖片刪除成功',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
 }

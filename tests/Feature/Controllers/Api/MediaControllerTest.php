@@ -20,7 +20,6 @@ class MediaControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Storage::fake('gcs');
         $this->user = User::factory()->create([
             'password' => Hash::make('password'),
         ]);
@@ -288,5 +287,100 @@ class MediaControllerTest extends TestCase
         $data = $response->json('data');
         $this->assertCount(1, $data);
         $this->assertEquals($imageWithoutItem->uuid, $data[0]['uuid']);
+    }
+
+    /**
+     * 測試：成功刪除自己的圖片
+     */
+    #[Test]
+    public function it_should_delete_own_image_successfully(): void
+    {
+        // Arrange
+        $image = ItemImage::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => ItemImage::STATUS_DRAFT,
+            'usage_count' => 0,
+        ]);
+
+        // 模擬 GCS 檔案存在
+        $originalPath = "item-images/{$image->uuid}/original_{$image->image_path}.{$image->original_extension}";
+        $previewPath = "item-images/{$image->uuid}/preview_{$image->image_path}.webp";
+        $thumbPath = "item-images/{$image->uuid}/thumb_{$image->image_path}.webp";
+
+        Storage::disk('gcs')->put($originalPath, 'fake content');
+        Storage::disk('gcs')->put($previewPath, 'fake content');
+        Storage::disk('gcs')->put($thumbPath, 'fake content');
+
+        // Act
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/media/{$image->uuid}");
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '圖片刪除成功',
+            ]);
+
+        // 確認資料庫記錄已被刪除
+        $this->assertDatabaseMissing('item_images', ['uuid' => $image->uuid]);
+
+        // 確認 GCS 檔案已被刪除
+        Storage::disk('gcs')->assertMissing($originalPath);
+        Storage::disk('gcs')->assertMissing($previewPath);
+        Storage::disk('gcs')->assertMissing($thumbPath);
+    }
+
+    /**
+     * 測試：刪除他人的圖片 - 403（MediaPolicy delete）
+     */
+    #[Test]
+    public function it_should_return_403_when_deleting_others_image(): void
+    {
+        // Arrange
+        $otherUser = User::factory()->create();
+        $image = ItemImage::factory()->create([
+            'user_id' => $otherUser->id,
+            'status' => ItemImage::STATUS_DRAFT,
+            'usage_count' => 0,
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/media/{$image->uuid}");
+
+        // Assert
+        $response->assertStatus(403);
+
+        // 確認資料庫記錄仍然存在
+        $this->assertDatabaseHas('item_images', ['uuid' => $image->uuid]);
+    }
+
+    /**
+     * 測試：刪除正在被使用的圖片 - 422
+     */
+    #[Test]
+    public function it_should_return_422_when_deleting_image_in_use(): void
+    {
+        // Arrange
+        $image = ItemImage::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => ItemImage::STATUS_USED,
+            'usage_count' => 1,
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)
+            ->deleteJson("/api/media/{$image->uuid}");
+
+        // Assert
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+                'message' => '無法刪除正在被使用的圖片',
+            ]);
+
+        // 確認資料庫記錄仍然存在
+        $this->assertDatabaseHas('item_images', ['uuid' => $image->uuid]);
     }
 }
