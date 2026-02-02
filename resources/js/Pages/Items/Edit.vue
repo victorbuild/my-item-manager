@@ -312,8 +312,7 @@ const _searchCategory = async (query) => {
     searchQuery.value = query
     try {
         const res = await axios.get('/api/categories', { params: { q: query } })
-        // 處理分頁返回的數據結構
-        categories.value = res.data.items || res.data || []
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
         if (query && !categories.value.find(c => c.name === query)) {
             categories.value.unshift({
                 id: '__create__',
@@ -450,8 +449,7 @@ onMounted(async () => {
     await loadItem()
     try {
         const res = await axios.get('/api/categories')
-        // 處理分頁返回的數據結構
-        categories.value = res.data.items || res.data || []
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
     } catch (error) {
         console.error('❌ 讀取分類失敗', error)
     }

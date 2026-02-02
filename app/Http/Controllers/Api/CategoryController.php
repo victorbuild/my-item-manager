@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
+use App\Http\Responses\ApiResponse;
 use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Services\CategoryService;
@@ -39,7 +40,7 @@ class CategoryController extends Controller
      * @response 200 {
      *   "success": true,
      *   "message": "取得成功",
-     *   "items": [
+     *   "data": [
      *     {
      *       "id": 1,
      *       "name": "電子產品",
@@ -55,11 +56,11 @@ class CategoryController extends Controller
      *   }
      * }
      *
-     * @responseField items array 分類列表
-     * @responseField items[].id integer 分類 ID
-     * @responseField items[].name string 分類名稱
-     * @responseField items[].created_at string 建立時間（ISO 8601）
-     * @responseField items[].updated_at string 更新時間（ISO 8601）
+     * @responseField data array 分類列表
+     * @responseField data[].id integer 分類 ID
+     * @responseField data[].name string 分類名稱
+     * @responseField data[].created_at string 建立時間（ISO 8601）
+     * @responseField data[].updated_at string 更新時間（ISO 8601）
      * @responseField meta object 分頁資訊（當 all 不為 true 時提供）
      * @responseField meta.current_page integer 當前頁碼
      * @responseField meta.last_page integer 最後一頁
@@ -72,11 +73,10 @@ class CategoryController extends Controller
         if ($request->query('all') === 'true' || $request->query('all') === '1') {
             $categories = $this->categoryRepository->getAll($request->user()->id);
 
-            return response()->json([
-                'success' => true,
-                'message' => '取得成功',
-                'items' => CategoryResource::collection($categories),
-            ]);
+            return ApiResponse::success(
+                data: CategoryResource::collection($categories),
+                message: '取得成功'
+            );
         }
 
         // 否則使用分頁
@@ -86,12 +86,11 @@ class CategoryController extends Controller
 
         $result = $this->categoryRepository->getAllPaginatedWithCounts($request->user()->id, $page, $perPage, $search);
 
-        return response()->json([
-            'success' => true,
-            'message' => '取得成功',
-            'items' => CategoryResource::collection($result['items']),
-            'meta' => $result['meta'],
-        ]);
+        return ApiResponse::success(
+            data: CategoryResource::collection($result['items']),
+            message: '取得成功',
+            meta: $result['meta']
+        );
     }
 
     /**

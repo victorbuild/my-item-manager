@@ -649,8 +649,7 @@ const _searchCategory = async (query) => {
     // 這邊呼叫 GET API 搜尋
     try {
         const res = await axios.get('/api/categories', { params: { q: query } })
-        // 處理分頁返回的數據結構
-        categories.value = res.data.items || res.data || []
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
 
         // 如果沒有完全相符的分類，加入「新增分類」選項
         if (query && !categories.value.find(c => c.name === query)) {
@@ -736,8 +735,7 @@ onMounted(async () => {
 
     try {
         const res = await axios.get('/api/categories')
-        // 處理分頁返回的數據結構
-        categories.value = res.data.items || res.data || []
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
     } catch (error) {
         console.error('❌ 讀取分類失敗', error)
     }

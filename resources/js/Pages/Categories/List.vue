@@ -66,7 +66,7 @@ const fetchCategories = async (page = 1) => {
                 q: search.value || undefined
             }
         })
-        categories.value = res.data.items
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
         pagination.value = res.data.meta
     } catch (e) {
         console.error('無法取得分類資料', e)

@@ -98,8 +98,7 @@ const debounce = (func, delay) => {
 const _searchCategory = async (query) => {
     try {
         const res = await axios.get('/api/categories', { params: { q: query } })
-        // 處理分頁返回的數據結構
-        categories.value = res.data.items || res.data || []
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
 
         // 如果沒有完全相符的分類，加入「新增分類」選項
         if (query && !categories.value.find(c => c.name === query)) {
@@ -203,8 +202,7 @@ const submitForm = async () => {
 onMounted(async () => {
     try {
         const res = await axios.get('/api/categories')
-        // 處理分頁返回的數據結構
-        categories.value = res.data.items || res.data || []
+        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
     } catch (e) {
         console.error('❌ 載入分類失敗', e)
     }
