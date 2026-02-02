@@ -44,8 +44,8 @@ class CategoryControllerTest extends TestCase
             ])
             ->assertJsonStructure([
                 'items' => [
-                    '*' => ['id', 'name', 'created_at', 'updated_at']
-                ]
+                    '*' => ['id', 'name', 'created_at', 'updated_at'],
+                ],
             ]);
 
         $this->assertDatabaseHas('categories', [
@@ -101,7 +101,7 @@ class CategoryControllerTest extends TestCase
             ->assertJsonValidationErrors(['name']);
 
         $response->assertJsonFragment([
-            'name' => ['此分類名稱已存在，請使用其他名稱']
+            'name' => ['此分類名稱已存在，請使用其他名稱'],
         ]);
     }
 
