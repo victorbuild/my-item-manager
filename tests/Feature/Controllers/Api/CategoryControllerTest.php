@@ -136,4 +136,96 @@ class CategoryControllerTest extends TestCase
             'user_id' => $this->user->id,
         ]);
     }
+
+    /**
+     * 測試：未登入取得分類列表 - 401
+     */
+    #[Test]
+    public function it_should_return_401_when_listing_categories_unauthenticated(): void
+    {
+        $response = $this->getJson('/api/categories');
+
+        $response->assertStatus(401);
+    }
+
+    /**
+     * 測試：取得分類列表 - 成功（分頁格式 data/meta）
+     */
+    #[Test]
+    public function it_should_list_categories_successfully_with_data_and_meta(): void
+    {
+        // Arrange
+        Category::create([
+            'user_id' => $this->user->id,
+            'name' => '電子產品',
+        ]);
+        Category::create([
+            'user_id' => $this->user->id,
+            'name' => '辦公用品',
+        ]);
+        $otherUser = User::factory()->create();
+        Category::create([
+            'user_id' => $otherUser->id,
+            'name' => '其他人的分類',
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/categories?page=1&per_page=10');
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '取得成功',
+            ])
+            ->assertJsonStructure([
+                'meta' => ['current_page', 'last_page', 'per_page', 'total'],
+                'data' => [
+                    '*' => ['id', 'name', 'created_at', 'updated_at', 'products_count', 'items_count'],
+                ],
+            ])
+            ->assertJsonPath('meta.total', 2);
+    }
+
+    /**
+     * 測試：all=true 時回傳所有分類（不含分頁 meta）
+     */
+    #[Test]
+    public function it_should_return_all_categories_without_meta_when_all_query_is_true(): void
+    {
+        // Arrange
+        Category::create([
+            'user_id' => $this->user->id,
+            'name' => '分類 A',
+        ]);
+        Category::create([
+            'user_id' => $this->user->id,
+            'name' => '分類 B',
+        ]);
+        $otherUser = User::factory()->create();
+        Category::create([
+            'user_id' => $otherUser->id,
+            'name' => '其他人的分類',
+        ]);
+
+        // Act
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/categories?all=true');
+
+        // Assert
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => '取得成功',
+            ])
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'name', 'created_at', 'updated_at'],
+                ],
+            ])
+            ->assertJsonMissingPath('meta');
+
+        $this->assertCount(2, $response->json('data'));
+    }
 }
