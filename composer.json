@@ -6,6 +6,8 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
+        "ext-exif": "*",
+        "ext-gd": "*",
         "php": "^8.4",
         "google/cloud-storage": "^1.48",
         "intervention/image": "^3.11",

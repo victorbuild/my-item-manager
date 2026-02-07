@@ -213,7 +213,7 @@ class ItemImageService
 
             // 產生縮圖與預覽圖
             $manager = new ImageManager(new Driver());
-            $img = $manager->read($fileContent);
+            $img = $manager->read($fileContent)->orient();
 
             $preview = $img->scaleDown(
                 width: config('images.preview.width', 600),
