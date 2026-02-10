@@ -145,7 +145,10 @@ const createCategory = async (categoryName) => {
     
     try {
         const res = await axios.post('/api/categories', { name: categoryName.trim() })
-        const newCategory = res.data.items[0]
+        const newCategory = res.data?.data
+        if (!newCategory) {
+            throw new Error('建立分類回應缺少資料')
+        }
         
         // 添加到分類列表
         if (!categories.value.find(c => c.id === newCategory.id)) {
@@ -191,7 +194,6 @@ const submitForm = async () => {
                 barcode: form.value.barcode,
             })
             alert('✅ 已建立產品')
-            // 若需要導向至新產品詳細頁，請改為 router.push(`/products/${res.data.id}`)
             router.push('/products')
         }
     } catch (e) {
@@ -211,7 +213,10 @@ onMounted(async () => {
         isEdit.value = true
         try {
             const res = await axios.get(`/api/products/${route.params.id}`)
-            const p = res.data.item
+            const p = res.data?.data
+            if (!p) {
+                throw new Error('產品回應缺少資料')
+            }
             form.value.name = p.name
             form.value.brand = p.brand
             form.value.category = p.category
