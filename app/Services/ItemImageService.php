@@ -89,9 +89,8 @@ class ItemImageService
             $this->decrementImageUsage($uuid);
         }
 
-        // 處理新增的圖片
+        // 處理新增的圖片（sort_order 稍後依前端順序統一設定）
         $newImages = collect($images)->where('status', 'new');
-        $loopIndex = 0;
         foreach ($newImages as $imgObj) {
             $uuid = $imgObj['uuid'] ?? null;
             if (! $uuid) {
@@ -101,7 +100,7 @@ class ItemImageService
             // 避免重複 attach（使用查詢而非載入關聯）
             if (! $this->itemRepository->hasImage($item, $uuid)) {
                 $this->itemRepository->attachImage($item, $uuid, [
-                    'sort_order' => ++$loopIndex,
+                    'sort_order' => 0,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -111,7 +110,19 @@ class ItemImageService
             }
         }
 
-        // 原始圖片（status === 'original'）不異動
+        // 依前端陣列順序，統一更新所有留存圖片（original + new）的 sort_order
+        // 確保排序與前端顯示一致，同時修正 original 圖片排序從未更新的問題
+        $sortOrder = 1;
+        foreach ($images as $imgObj) {
+            if (($imgObj['status'] ?? null) === 'removed') {
+                continue;
+            }
+            $uuid = $imgObj['uuid'] ?? null;
+            if (! $uuid) {
+                continue;
+            }
+            $this->itemRepository->updateImageSortOrder($item, $uuid, $sortOrder++);
+        }
 
         // 重新載入關聯資料以反映最新的圖片狀態
         return $this->itemRepository->refreshWithRelations($item);

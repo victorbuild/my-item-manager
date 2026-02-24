@@ -629,6 +629,17 @@ class ItemImageServiceTest extends TestCase
             }), Mockery::type('array'))
             ->twice();
 
+        // 驗證 sort_order 依陣列順序統一更新（uuid-1=1, uuid-2=2）
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-1', 1)
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-2', 2)
+            ->once();
+
         $this->mockItemRepository
             ->shouldReceive('refreshWithRelations')
             ->with($item)
@@ -638,7 +649,7 @@ class ItemImageServiceTest extends TestCase
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert - 驗證行為：hasImage, attachImage, refreshWithRelations 被正確調用
+        // Assert - 驗證行為：hasImage, attachImage, updateImageSortOrder, refreshWithRelations 被正確調用
         $this->assertTrue(true, 'syncItemImages 應該正常執行，新增圖片並重新載入關聯');
     }
 
@@ -691,6 +702,17 @@ class ItemImageServiceTest extends TestCase
             ->with($item, 'uuid-2', Mockery::type('array'))
             ->once();
 
+        // 驗證 original 和 new 圖片都依陣列順序更新 sort_order（uuid-1=1, uuid-2=2）
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-1', 1)
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-2', 2)
+            ->once();
+
         $this->mockItemRepository
             ->shouldReceive('refreshWithRelations')
             ->with($item)
@@ -700,7 +722,7 @@ class ItemImageServiceTest extends TestCase
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert - 驗證行為：只處理 status='new' 的圖片，status='original' 的圖片不異動
+        // Assert - 驗證行為：只處理 status='new' 的圖片，status='original' 的圖片不異動，但兩者都更新 sort_order
         $this->assertTrue(true, 'syncItemImages 應該正常執行，只處理 status=new 的圖片');
     }
 
@@ -779,6 +801,12 @@ class ItemImageServiceTest extends TestCase
             ->with($item, 'uuid-2', Mockery::type('array'))
             ->once();
 
+        // uuid-1 是 removed 跳過，uuid-2（new）得到 sort_order=1
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-2', 1)
+            ->once();
+
         $this->mockItemRepository
             ->shouldReceive('refreshWithRelations')
             ->with($item)
@@ -788,7 +816,7 @@ class ItemImageServiceTest extends TestCase
         // Act
         $this->service->syncItemImages($item, $images);
 
-        // Assert - 驗證行為：同時處理移除和新增，detachImage, hasImage, attachImage, refreshWithRelations 都被正確調用
+        // Assert - 驗證行為：同時處理移除和新增，detachImage, hasImage, attachImage, updateImageSortOrder, refreshWithRelations 都被正確調用
         $this->assertTrue(true, 'syncItemImages 應該正常執行，同時處理移除和新增');
     }
 
@@ -830,6 +858,12 @@ class ItemImageServiceTest extends TestCase
         // 不應該呼叫 attachImage（因為圖片已存在）
         $this->mockItemRepository
             ->shouldNotReceive('attachImage');
+
+        // 雖然未 attach，仍需更新 sort_order（updateExistingPivot 只更新已存在的 pivot）
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-1', 1)
+            ->once();
 
         $this->mockItemRepository
             ->shouldReceive('refreshWithRelations')
@@ -1011,6 +1045,232 @@ class ItemImageServiceTest extends TestCase
             $this->assertNotEmpty($deletePaths, '應該有檔案路徑被傳入 delete');
             throw $e;
         }
+    }
+
+    /**
+     * 測試：同步圖片 - sort_order 依前端陣列順序設定（mixed 狀態）
+     */
+    #[Test]
+    public function it_should_update_sort_order_for_all_active_images_based_on_frontend_order(): void
+    {
+        // Arrange
+        $item = new Item();
+        $item->id = 1;
+        $imageA = new ItemImage();
+        $imageA->uuid = 'uuid-a';
+        $imageA->usage_count = 1;
+        $imageC = new ItemImage();
+        $imageC->uuid = 'uuid-c';
+        $imageC->status = ItemImage::STATUS_DRAFT;
+        $imageD = new ItemImage();
+        $imageD->uuid = 'uuid-d';
+        $imageD->status = ItemImage::STATUS_DRAFT;
+
+        // 前端送出：A(original), B(removed), C(original), D(new)
+        $images = [
+            ['uuid' => 'uuid-a', 'status' => 'original'],
+            ['uuid' => 'uuid-b', 'status' => 'removed'],
+            ['uuid' => 'uuid-c', 'status' => 'original'],
+            ['uuid' => 'uuid-d', 'status' => 'new'],
+        ];
+
+        // Mock：移除 B
+        $this->mockRepository
+            ->shouldReceive('findByUuid')
+            ->with('uuid-b')
+            ->once()
+            ->andReturn($imageA); // 使用 imageA mock 代替 B（只需 usage_count）
+        $this->mockRepository
+            ->shouldReceive('decrementUsageCount')
+            ->once();
+        $this->mockRepository
+            ->shouldReceive('updateStatus')
+            ->with(Mockery::any(), ItemImage::STATUS_DRAFT)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('detachImage')
+            ->with($item, 'uuid-b')
+            ->once();
+
+        // Mock：新增 D
+        $this->mockRepository
+            ->shouldReceive('findByUuid')
+            ->with('uuid-d')
+            ->once()
+            ->andReturn($imageD);
+        $this->mockRepository
+            ->shouldReceive('incrementUsageCount')
+            ->with($imageD)
+            ->once();
+        $this->mockRepository
+            ->shouldReceive('updateStatus')
+            ->with(Mockery::on(fn ($img) => $img->uuid === 'uuid-d'), ItemImage::STATUS_USED)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('hasImage')
+            ->with($item, 'uuid-d')
+            ->once()
+            ->andReturn(false);
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-d', Mockery::type('array'))
+            ->once();
+
+        // 驗證 sort_order：A=1, B 跳過, C=2, D=3
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-a', 1)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-c', 2)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-d', 3)
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
+
+        // Act
+        $result = $this->service->syncItemImages($item, $images);
+
+        // Assert
+        $this->assertSame($item, $result);
+    }
+
+    /**
+     * 測試：同步圖片 - original 圖片的 sort_order 也會被更新（核心 bug 修正）
+     */
+    #[Test]
+    public function it_should_update_sort_order_for_original_images_when_order_changes(): void
+    {
+        // Arrange
+        $item = new Item();
+        $item->id = 1;
+
+        // 前端反轉順序：C 在前、A 在後（原始 DB 中 A=1, C=2）
+        $images = [
+            ['uuid' => 'uuid-c', 'status' => 'original'],
+            ['uuid' => 'uuid-a', 'status' => 'original'],
+        ];
+
+        // 無 removed / new，不需要 detach/attach/findByUuid
+
+        // 驗證 sort_order 依新順序設定：C=1, A=2
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-c', 1)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-a', 2)
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
+
+        // Act
+        $result = $this->service->syncItemImages($item, $images);
+
+        // Assert
+        $this->assertSame($item, $result);
+    }
+
+    /**
+     * 測試：同步圖片 - removed 圖片不佔排序編號，後續序號連續
+     */
+    #[Test]
+    public function it_should_skip_removed_images_in_sort_order_calculation(): void
+    {
+        // Arrange
+        $item = new Item();
+        $item->id = 1;
+        $imageA = new ItemImage();
+        $imageA->uuid = 'uuid-a';
+        $imageA->usage_count = 1;
+        $imageC = new ItemImage();
+        $imageC->uuid = 'uuid-c';
+        $imageC->status = ItemImage::STATUS_DRAFT;
+
+        // A 被移除，B(original) 和 C(new) 留存
+        $images = [
+            ['uuid' => 'uuid-a', 'status' => 'removed'],
+            ['uuid' => 'uuid-b', 'status' => 'original'],
+            ['uuid' => 'uuid-c', 'status' => 'new'],
+        ];
+
+        // Mock：移除 A
+        $this->mockRepository
+            ->shouldReceive('findByUuid')
+            ->with('uuid-a')
+            ->once()
+            ->andReturn($imageA);
+        $this->mockRepository
+            ->shouldReceive('decrementUsageCount')
+            ->with($imageA)
+            ->once();
+        $this->mockRepository
+            ->shouldReceive('updateStatus')
+            ->with(Mockery::any(), ItemImage::STATUS_DRAFT)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('detachImage')
+            ->with($item, 'uuid-a')
+            ->once();
+
+        // Mock：新增 C
+        $this->mockRepository
+            ->shouldReceive('findByUuid')
+            ->with('uuid-c')
+            ->once()
+            ->andReturn($imageC);
+        $this->mockRepository
+            ->shouldReceive('incrementUsageCount')
+            ->with($imageC)
+            ->once();
+        $this->mockRepository
+            ->shouldReceive('updateStatus')
+            ->with(Mockery::on(fn ($img) => $img->uuid === 'uuid-c'), ItemImage::STATUS_USED)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('hasImage')
+            ->with($item, 'uuid-c')
+            ->once()
+            ->andReturn(false);
+        $this->mockItemRepository
+            ->shouldReceive('attachImage')
+            ->with($item, 'uuid-c', Mockery::type('array'))
+            ->once();
+
+        // 驗證：A 跳過，B=1，C=2（序號不因 A 被移除而跳號）
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-b', 1)
+            ->once();
+        $this->mockItemRepository
+            ->shouldReceive('updateImageSortOrder')
+            ->with($item, 'uuid-c', 2)
+            ->once();
+
+        $this->mockItemRepository
+            ->shouldReceive('refreshWithRelations')
+            ->with($item)
+            ->once()
+            ->andReturn($item);
+
+        // Act
+        $result = $this->service->syncItemImages($item, $images);
+
+        // Assert
+        $this->assertSame($item, $result);
     }
 
     /**

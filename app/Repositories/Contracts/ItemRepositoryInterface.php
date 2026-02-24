@@ -197,6 +197,15 @@ interface ItemRepositoryInterface
     public function hasImage(Item $item, string $imageUuid): bool;
 
     /**
+     * 更新物品圖片的排序順序
+     *
+     * @param Item $item 物品實例
+     * @param string $imageUuid 圖片 UUID
+     * @param int $sortOrder 排序順序
+     */
+    public function updateImageSortOrder(Item $item, string $imageUuid, int $sortOrder): void;
+
+    /**
      * 重新載入物品及其關聯
      *
      * @param Item $item 物品實例
