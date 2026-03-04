@@ -8,6 +8,11 @@
                 <input v-model="password" type="password" placeholder="密碼" class="w-full mb-3 p-2 border rounded" required />
                 <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">登入</button>
             </form>
+            <p class="text-xs text-gray-400 mt-4 text-center">
+                本站受 reCAPTCHA 保護，並適用 Google
+                <a href="https://policies.google.com/privacy" target="_blank" class="underline">隱私權政策</a>與
+                <a href="https://policies.google.com/terms" target="_blank" class="underline">服務條款</a>。
+            </p>
         </div>
     </div>
 </template>
