@@ -425,7 +425,6 @@ const loadItem = async () => {
                 // 忽略錯誤，維持原本 product
             }
         }
-        console.log('[載入] uploadList:', JSON.parse(JSON.stringify(uploadList.value)))
     } catch (e) {
         uploadList.value = []
         alert('載入物品資料失敗')
@@ -442,7 +441,6 @@ const onUploadSuccess = (filePath, url) => {
         status: 'new'
     })
     syncUploadList()
-    console.log('[新增] images:', JSON.parse(JSON.stringify(images.value)))
 }
 
 onMounted(async () => {

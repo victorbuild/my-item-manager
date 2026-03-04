@@ -90,7 +90,7 @@
                         :alt="image.image_path"
                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         @error="handleImageError($event, image)"
-                        @load="handleImageLoad($event, image)"
+
                         loading="lazy"
                     />
                 </div>
@@ -285,7 +285,6 @@ const fetchImages = async (page = 1) => {
         }
 
         const res = await axios.get('/api/media', { params })
-        console.log('API 響應:', res.data)
         images.value = res.data.data || []
         pagination.value = {
             current_page: res.data.current_page || 1,
@@ -297,11 +296,6 @@ const fetchImages = async (page = 1) => {
             quota.value = res.data.quota
         }
         
-        // 檢查第一個圖片的 URL
-        if (images.value.length > 0) {
-            console.log('第一個圖片數據:', images.value[0])
-            console.log('第一個圖片 thumb_url:', images.value[0].thumb_url)
-        }
     } catch (error) {
         console.error('載入圖片失敗:', error)
         console.error('錯誤詳情:', error.response?.data || error.message)
@@ -331,7 +325,6 @@ const handleImageError = (event, image) => {
     
     // 如果當前使用的是 thumb_url，嘗試使用 preview_url 作為備用
     if (event.target.src === image.thumb_url && image.preview_url && event.target.src !== image.preview_url) {
-        console.log('縮圖載入失敗，嘗試使用預覽圖:', image.preview_url)
         event.target.src = image.preview_url
         return
     }
@@ -339,10 +332,6 @@ const handleImageError = (event, image) => {
     // 如果都失敗，顯示錯誤占位符
     event.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3E無法載入圖片%3C/text%3E%3C/svg%3E'
     event.target.style.backgroundColor = '#f3f4f6'
-}
-
-const handleImageLoad = (event, image) => {
-    console.log('圖片載入成功:', image.uuid, event.target.src)
 }
 
 const formatDate = (dateString) => {
