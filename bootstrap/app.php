@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\UnprocessableEntityException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -7,18 +8,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use App\Exceptions\UnprocessableEntityException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->statefulApi();
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(\App\Http\Middleware\CspHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // 統一處理 API 路由和認證路由的所有異常，確保都返回 JSON 格式
@@ -26,13 +27,13 @@ return Application::configure(basePath: dirname(__DIR__))
             // 處理 API 路由和認證路由（login, register, logout）
             $isApiRoute = $request->is('api/*');
             $isAuthRoute = in_array($request->path(), ['login', 'register', 'logout']);
-            
-            if (!$isApiRoute && !$isAuthRoute) {
+
+            if (! $isApiRoute && ! $isAuthRoute) {
                 return null;
             }
-            
+
             // API 路由一律返回 JSON，認證路由需要是 JSON 請求
-            if (!$isApiRoute && !$request->expectsJson() && !$request->isJson()) {
+            if (! $isApiRoute && ! $request->expectsJson() && ! $request->isJson()) {
                 return null;
             }
 
