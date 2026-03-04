@@ -115,6 +115,22 @@ php artisan db:seed
 npm run build
 ```
 
+### CORS 設定
+
+部署時必須將 `CORS_ALLOWED_ORIGINS` 設定為前端的實際網域，否則瀏覽器會阻擋所有 API 請求。
+
+在 `.env` 中設定：
+
+```env
+# 單一網域
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+
+# 多個網域（逗號分隔）
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+```
+
+> **注意**：請勿使用 `*`（wildcard）。本專案使用 Sanctum cookie 認證，wildcard 與 `supports_credentials` 同時啟用會造成安全問題。
+
 ### Google Cloud Storage 設定（可選）
 
 若需使用 GCS 儲存圖片，請先取得服務帳戶 JSON 憑證，然後執行：
