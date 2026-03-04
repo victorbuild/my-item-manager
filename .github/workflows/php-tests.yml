@@ -38,8 +38,11 @@ jobs:
       - name: PHP CodeSniffer
         run: vendor/bin/phpcs
 
-      - name: Audit Composer dependencies
-        run: composer audit --no-interaction --no-dev --ignore-severity=medium --ignore-severity=low
+      - name: "Audit Composer dependencies (blocking: medium+)"
+        run: composer audit --no-interaction --no-dev --ignore-severity=low
+
+      - name: "Audit Composer dependencies (info: low)"
+        run: composer audit --no-interaction --no-dev --ignore-severity=medium --ignore-severity=high --ignore-severity=critical || true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
