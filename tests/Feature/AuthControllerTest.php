@@ -6,6 +6,7 @@ use App\Events\UserLoggedIn;
 use App\Events\UserLoginFailed;
 use App\Models\LoginLog;
 use App\Models\User;
+use App\Services\RecaptchaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +21,15 @@ use Tests\TestCase;
 class AuthControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->mock(RecaptchaService::class)
+            ->shouldReceive('verify')
+            ->andReturn(true);
+    }
 
     /**
      * 測試：登入成功時應該觸發 UserLoggedIn 事件
@@ -38,6 +48,7 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'password',
+            'recaptcha_token' => 'test-token',
         ]);
 
         // Assert
@@ -69,6 +80,7 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'password',
+            'recaptcha_token' => 'test-token',
         ], [
             'User-Agent' => 'Test Browser',
         ]);
@@ -108,6 +120,7 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'password',
+            'recaptcha_token' => 'test-token',
         ]);
 
         // Assert
@@ -135,6 +148,7 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'wrong-password',
+            'recaptcha_token' => 'test-token',
         ], [
             'User-Agent' => 'Test Browser',
         ]);
@@ -178,6 +192,7 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'wrong-password',
+            'recaptcha_token' => 'test-token',
         ]);
 
         // Assert
@@ -205,6 +220,7 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/login', [
             'email' => 'nonexistent@example.com',
             'password' => 'any-password',
+            'recaptcha_token' => 'test-token',
         ], [
             'User-Agent' => 'Test Browser',
         ]);
@@ -247,6 +263,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'password',
+            'recaptcha_token' => 'test-token',
         ]);
 
         // 登出
@@ -256,6 +273,7 @@ class AuthControllerTest extends TestCase
         $this->postJson('/login', [
             'email' => 'test@example.com',
             'password' => 'password',
+            'recaptcha_token' => 'test-token',
         ]);
 
         // Assert

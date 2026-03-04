@@ -42,7 +42,7 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validated();
+        $credentials = $request->only(['email', 'password']);
 
         $this->authService->attemptLogin(
             $credentials,

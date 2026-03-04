@@ -13,9 +13,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
 const emailInput = ref(null);
 const email = ref('');
@@ -23,21 +25,49 @@ const password = ref('');
 const errorMessage = ref('');
 const router = useRouter();
 
+onMounted(() => {
+    if (document.getElementById('recaptcha-script')) return;
+    const script = document.createElement('script');
+    script.id = 'recaptcha-script';
+    script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+    script.async = true;
+    document.head.appendChild(script);
+});
+
+const getRecaptchaToken = () => {
+    return new Promise((resolve, reject) => {
+        window.grecaptcha.ready(async () => {
+            try {
+                const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'login' });
+                resolve(token);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    });
+};
+
 const handleLogin = async () => {
-    errorMessage.value = ''; // 每次送出前清除錯誤
+    errorMessage.value = '';
     try {
+        const recaptchaToken = await getRecaptchaToken();
         await axios.get('/sanctum/csrf-cookie');
-        await axios.post('/login', { email: email.value, password: password.value });
+        await axios.post('/login', {
+            email: email.value,
+            password: password.value,
+            recaptcha_token: recaptchaToken,
+        });
         localStorage.setItem('loggedIn', 'true');
         router.push('/');
     } catch (error) {
         if (error.response?.data?.message) {
             errorMessage.value = error.response.data.message;
+        } else if (error.response?.data?.errors?.recaptcha_token) {
+            errorMessage.value = error.response.data.errors.recaptcha_token[0];
         } else {
             errorMessage.value = '登入失敗，請稍後再試';
         }
 
-        // 清空欄位
         email.value = '';
         password.value = '';
 

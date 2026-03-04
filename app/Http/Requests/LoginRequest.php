@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\ValidRecaptcha;
+use App\Services\RecaptchaService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -31,6 +33,11 @@ class LoginRequest extends FormRequest
         return [
             'email' => 'required|email',
             'password' => 'required',
+            'recaptcha_token' => [
+                'required',
+                'string',
+                new ValidRecaptcha(app(RecaptchaService::class)),
+            ],
         ];
     }
 }

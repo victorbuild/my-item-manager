@@ -21,6 +21,7 @@ use App\Repositories\ItemRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\UserRepository;
 use App\Services\ItemService;
+use App\Services\RecaptchaService;
 use App\Strategies\Sort\SortStrategyFactory;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
@@ -63,6 +64,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->when(ItemService::class)
             ->needs('$maxItemQuantity')
             ->give(fn () => config('app.max_item_quantity', 100));
+
+        // 注入 reCAPTCHA secret key
+        $this->app->when(RecaptchaService::class)
+            ->needs('$secretKey')
+            ->give(fn () => config('services.recaptcha.secret_key', ''));
 
         // 註冊排序策略工廠
         $this->app->singleton(SortStrategyFactory::class);

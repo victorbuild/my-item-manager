@@ -3,6 +3,7 @@
 namespace Tests\Unit\Http\Requests;
 
 use App\Http\Requests\LoginRequest;
+use App\Services\RecaptchaService;
 use Illuminate\Support\Facades\Validator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,9 +30,14 @@ class LoginRequestTest extends TestCase
     #[Test]
     public function it_should_pass_validation_with_valid_data(): void
     {
+        $this->mock(RecaptchaService::class)
+            ->shouldReceive('verify')
+            ->andReturn(true);
+
         $validator = Validator::make([
             'email' => 'test@example.com',
             'password' => 'password123',
+            'recaptcha_token' => 'test-token',
         ], $this->getRules());
 
         $this->assertTrue($validator->passes());
