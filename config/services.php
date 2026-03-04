@@ -36,7 +36,7 @@ return [
     ],
 
     'recaptcha' => [
-      'secret_key' => env('RECAPTCHA_SECRET_KEY'),
+        'secret_key' => env('RECAPTCHA_SECRET_KEY'),
     ],
 
 ];

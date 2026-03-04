@@ -15,8 +15,6 @@ class LoginRequest extends FormRequest
      * 判斷使用者是否有權限進行此請求
      *
      * 登入請求允許任何人嘗試（因為登入本身是給未登入的使用者使用的）
-     *
-     * @return bool
      */
     public function authorize(): bool
     {

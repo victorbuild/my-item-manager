@@ -55,7 +55,7 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => '登入成功'
+                'message' => '登入成功',
             ]);
 
         Event::assertDispatched(UserLoggedIn::class, function ($event) use ($user) {
@@ -65,7 +65,6 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：登入成功時應該建立登入紀錄
-     *
      */
     #[Test]
     public function it_should_create_login_log_on_successful_login(): void
@@ -103,7 +102,6 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：登入成功時應該更新使用者的最後登入時間
-     *
      */
     #[Test]
     public function it_should_update_user_last_login_at_on_successful_login(): void
@@ -133,7 +131,6 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：登入失敗時應該建立失敗登入紀錄
-     *
      */
     #[Test]
     public function it_should_create_failed_login_log_on_failed_login(): void
@@ -157,7 +154,7 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(401)
             ->assertJson([
                 'success' => false,
-                'message' => '帳號或密碼錯誤'
+                'message' => '帳號或密碼錯誤',
             ]);
 
         $this->assertDatabaseHas('login_logs', [
@@ -176,7 +173,6 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：登入失敗時應該觸發 UserLoginFailed 事件
-     *
      */
     #[Test]
     public function it_should_dispatch_user_login_failed_event_on_failed_login(): void
@@ -199,7 +195,7 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(401)
             ->assertJson([
                 'success' => false,
-                'message' => '帳號或密碼錯誤'
+                'message' => '帳號或密碼錯誤',
             ]);
 
         Event::assertDispatched(UserLoginFailed::class, function ($event) {
@@ -209,7 +205,6 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：Email 不存在時也應該記錄失敗登入
-     *
      */
     #[Test]
     public function it_should_create_failed_login_log_when_email_not_exists(): void
@@ -229,7 +224,7 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(401)
             ->assertJson([
                 'success' => false,
-                'message' => '帳號或密碼錯誤'
+                'message' => '帳號或密碼錯誤',
             ]);
 
         // 應該記錄失敗登入，即使 email 不存在
@@ -248,7 +243,6 @@ class AuthControllerTest extends TestCase
 
     /**
      * 測試：多次登入應該建立多筆登入紀錄
-     *
      */
     #[Test]
     public function it_should_create_multiple_login_logs_for_multiple_logins(): void
