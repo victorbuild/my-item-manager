@@ -10,7 +10,7 @@ return [
      * any class that implements `Spatie\Csp\Preset`
      */
     'presets' => [
-        //
+        App\Csp\Presets\AppPreset::class,
     ],
 
     /**
@@ -25,7 +25,7 @@ return [
      * a new policy or changes to existing CSP policy without breaking anything.
      */
     'report_only_presets' => [
-        App\Csp\Presets\AppPreset::class,
+        //
     ],
 
     /**
