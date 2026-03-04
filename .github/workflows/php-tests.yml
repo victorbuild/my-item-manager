@@ -55,6 +55,12 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
+      - name: "Audit NPM dependencies (blocking: medium+)"
+        run: npm audit --audit-level=moderate --omit=dev
+
+      - name: "Audit NPM dependencies (info: low)"
+        run: npm audit --audit-level=none --omit=dev || true
+
       - name: Copy .env
         run: cp .env.example .env
         
