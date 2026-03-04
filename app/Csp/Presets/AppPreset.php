@@ -57,8 +57,10 @@ class AppPreset implements Preset
             ->add(Directive::FRAME, 'https://www.google.com')
 
             // fetch / XHR / WebSocket 連線目標
-            // 'self'：所有 API 請求只打自己的後端，不允許連到第三方
+            // 'self'：所有 API 請求只打自己的後端
+            // google.com：reCAPTCHA v3 驗證時會透過 XHR 打 Google 的 /recaptcha/api2/clr
             ->add(Directive::CONNECT, Keyword::SELF)
+            ->add(Directive::CONNECT, 'https://www.google.com')
 
             // 禁止 Flash、Java Applet 等舊式 Plugin，現代瀏覽器已不支援，全面封鎖
             ->add(Directive::OBJECT, Keyword::NONE)
