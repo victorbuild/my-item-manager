@@ -192,6 +192,59 @@ class ItemControllerTest extends TestCase
     }
 
     /**
+     * 測試：建立物品 - 價格超過資料庫欄位上限時回傳 422
+     */
+    #[Test]
+    public function it_should_return_422_when_creating_item_with_price_exceeding_database_limit(): void
+    {
+        $response = $this->actingAs($this->user)->postJson('/api/items', [
+            'name' => '價格過大的物品',
+            'price' => 100000000,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors' => [
+                    'price',
+                ],
+            ]);
+
+        $this->assertDatabaseMissing('items', [
+            'name' => '價格過大的物品',
+        ]);
+    }
+
+    /**
+     * 測試：更新物品 - 價格超過資料庫欄位上限時回傳 422
+     */
+    #[Test]
+    public function it_should_return_422_when_updating_item_with_price_exceeding_database_limit(): void
+    {
+        $item = Item::factory()->create([
+            'user_id' => $this->user->id,
+            'name' => '原始名稱',
+            'price' => 1000,
+        ]);
+
+        $response = $this->actingAs($this->user)->putJson("/api/items/{$item->short_id}", [
+            'name' => '原始名稱',
+            'price' => 100000000,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonStructure([
+                'message',
+                'errors' => [
+                    'price',
+                ],
+            ]);
+
+        $item->refresh();
+        $this->assertEquals(1000, $item->price);
+    }
+
+    /**
      * 測試：更新物品 - 驗證失敗（圖片數量超過限制）
      */
     #[Test]

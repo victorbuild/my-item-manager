@@ -48,7 +48,7 @@ class UpdateItemRequest extends FormRequest
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
-            'price' => 'nullable|numeric',
+            'price' => 'nullable|numeric|max:99999999.99',
             'serial_number' => 'nullable|string|max:255',
             'purchased_at' => [
                 'nullable',

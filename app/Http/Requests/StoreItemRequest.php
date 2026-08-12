@@ -29,7 +29,7 @@ class StoreItemRequest extends FormRequest
             'description' => 'nullable|string',
             'location' => 'nullable|string|max:255',
             'quantity' => 'nullable|integer|min:1|max:' . config('app.max_item_quantity'),
-            'price' => 'nullable|numeric',
+            'price' => 'nullable|numeric|max:99999999.99',
             'purchased_at' => [
                 'nullable',
                 'date',
