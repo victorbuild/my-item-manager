@@ -1,0 +1,39 @@
+name: Security audit
+
+on:
+  schedule:
+    - cron: '0 18 * * 0'
+  workflow_dispatch:
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    name: Dependency vulnerability audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl
+          coverage: none
+
+      - name: "Audit Composer production dependencies (blocking: high+)"
+        run: composer audit --locked --no-interaction --no-dev --ignore-severity=low --ignore-severity=medium
+
+      - name: "Audit Composer all dependencies (blocking: high+)"
+        run: composer audit --locked --no-interaction --ignore-severity=low --ignore-severity=medium
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: "Audit NPM production dependencies (blocking: high+)"
+        run: npm audit --audit-level=high --omit=dev
+
+      - name: "Audit NPM all dependencies (blocking: high+)"
+        run: npm audit --audit-level=high

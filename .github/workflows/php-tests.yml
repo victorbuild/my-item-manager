@@ -1,4 +1,4 @@
-name: PHP tests
+name: CI
 
 on:
   push:
@@ -7,12 +7,12 @@ on:
     branches: [ main ]
 
 jobs:
-  php-tests:
+  quality-checks:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         php-versions: ['8.4']
-    name: PHP ${{ matrix.php-versions }} tests
+    name: Quality checks (PHP ${{ matrix.php-versions }})
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,13 +29,13 @@ jobs:
       - name: Validate composer.json and composer.lock
         run: composer validate
 
-      - name: Install dependencies
+      - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-suggest
 
-      - name: PHP Lint
+      - name: PHP lint
         run: find . -type f -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
 
-      - name: PHP CodeSniffer
+      - name: PHP CodeSniffer rules
         run: vendor/bin/phpcs
 
       - name: "Audit Composer dependencies (blocking: medium+)"
@@ -49,7 +49,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install NPM dependencies
+      - name: Install frontend dependencies
         run: npm ci
 
       - name: Build frontend assets
@@ -67,10 +67,10 @@ jobs:
       - name: Generate app key
         run: php artisan key:generate
 
-      - name: Run PHPStan static analysis
+      - name: Run PHPStan
         run: vendor/bin/phpstan analyse
 
-      - name: Execute PHPUnit tests
+      - name: Run PHPUnit
         run: vendor/bin/phpunit --configuration phpunit.xml --coverage-text --coverage-clover=coverage.xml
 
       - name: Upload coverage to Codecov
