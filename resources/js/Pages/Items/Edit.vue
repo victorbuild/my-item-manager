@@ -5,6 +5,7 @@ import { ref, onMounted, nextTick, watchEffect, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from '../../axios'
 import { Html5Qrcode } from 'html5-qrcode'
+import { isDngFile, isSupportedImageFile, prepareImageForUpload } from '../../utils/imageUpload'
 
 const router = useRouter()
 const route = useRoute()
@@ -62,7 +63,7 @@ const newProduct = ref({
 
 const images = ref([])
 
-const handleFileSelect = (e) => {
+const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
     const maxImages = 9
     const currentCount = uploadList.value.filter(item => item.statusForApi !== 'removed').length
@@ -70,37 +71,49 @@ const handleFileSelect = (e) => {
         alert(`最多只能上傳 ${maxImages} 張圖片，目前已上傳 ${currentCount} 張`)
         return
     }
-    prepareUpload(files)
+    await prepareUpload(files)
+    e.target.value = ''
 }
 
-const handleDrop = (e) => {
-    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))
+const handleDrop = async (e) => {
+    const files = Array.from(e.dataTransfer.files).filter(isSupportedImageFile)
     const maxImages = 9
     const currentCount = uploadList.value.filter(item => item.statusForApi !== 'removed').length
     if (currentCount + files.length > maxImages) {
         alert(`最多只能上傳 ${maxImages} 張圖片，目前已上傳 ${currentCount} 張`)
         return
     }
-    prepareUpload(files)
+    await prepareUpload(files)
 }
 
-const prepareUpload = (files) => {
-    files.forEach(file => {
+const prepareUpload = async (files) => {
+    for (const sourceFile of files) {
         const id = uploadId++
-        const preview = URL.createObjectURL(file)
-        uploadList.value.push({
+        const item = {
             id,
-            file,
-            preview,
+            file: null,
+            preview: '',
             progress: 0,
-            status: 'waiting',
+            status: 'preparing',
             url: '',
             thumb_url: '',
             preview_url: '',
             idFromApi: null,
             statusForApi: 'new' // 統一用 statusForApi
-        })
-    })
+        }
+        uploadList.value.push(item)
+
+        try {
+            item.file = await prepareImageForUpload(sourceFile)
+            item.preview = URL.createObjectURL(item.file)
+            item.status = 'waiting'
+            item.convertedFromDng = isDngFile(sourceFile)
+        } catch (error) {
+            uploadList.value = uploadList.value.filter(upload => upload.id !== id)
+            console.error('DNG 預覽圖擷取失敗', error)
+            alert(`${sourceFile.name} 無法處理：${error.message}`)
+        }
+    }
     startUploadQueue()
 }
 
@@ -624,8 +637,11 @@ const stopScanner = async () => {
                         :key="item.uuid || item.id"
                         class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
                         :class="{ 'opacity-50': item.status !== 'done' }">
-                        <img :src="item.preview" class="w-full h-full object-contain"
+                        <img v-if="item.preview" :src="item.preview" class="w-full h-full object-contain"
                             :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
+                        <div v-else class="w-full h-full flex items-center justify-center px-2 text-center text-xs text-gray-500">
+                            正在準備 DNG…
+                        </div>
                         <button type="button" @click="removeImageByUploadUuid(item.uuid)"
                             class="absolute top-0 right-0 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center shadow"
                             style="transform: translate(50%,-50%); z-index:10">
@@ -641,7 +657,7 @@ const stopScanner = async () => {
                         class="relative aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer bg-white"
                         @click="fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
                         <span class="text-gray-400 text-sm">+ 加入照片</span>
-                        <input type="file" accept="image/*" multiple class="hidden" ref="fileInput"
+                        <input type="file" accept="image/*,.dng,image/dng,image/x-adobe-dng" multiple class="hidden" ref="fileInput"
                             @change="handleFileSelect" />
                     </div>
                 </div>

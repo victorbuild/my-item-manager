@@ -80,8 +80,11 @@
                     <div v-for="(item, index) in uploadList" :key="item.id"
                         class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
                         :class="{ 'opacity-50': item.status !== 'done' }">
-                        <img :src="item.preview" class="w-full h-full object-contain"
+                        <img v-if="item.preview" :src="item.preview" class="w-full h-full object-contain"
                             :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
+                        <div v-else class="w-full h-full flex items-center justify-center px-2 text-center text-xs text-gray-500">
+                            正在準備 DNG…
+                        </div>
                         <button type="button" @click="removeImage(index)"
                             class="absolute top-0 right-0 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center shadow"
                             style="transform: translate(50%,-50%); z-index:10">
@@ -98,7 +101,7 @@
                         class="relative aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer bg-white"
                         @click="fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
                         <span class="text-gray-400 text-sm">+ 加入照片</span>
-                        <input type="file" accept="image/*" multiple class="hidden" ref="fileInput"
+                        <input type="file" accept="image/*,.dng,image/dng,image/x-adobe-dng" multiple class="hidden" ref="fileInput"
                             @change="handleFileSelect" />
                     </div>
                 </div>
@@ -352,6 +355,7 @@ import { useRouter } from 'vue-router'
 import axios from '../../axios'
 import { Html5Qrcode } from 'html5-qrcode'
 import Swal from 'sweetalert2'
+import { isDngFile, isSupportedImageFile, prepareImageForUpload } from '../../utils/imageUpload'
 
 const categories = ref([])
 const selectedCategory = ref(null)
@@ -379,7 +383,7 @@ const mediaLibraryImages = ref([])
 const loadingMediaLibrary = ref(false)
 const selectedMediaImages = ref([])
 
-const handleFileSelect = (e) => {
+const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
     const maxImages = 9
 
@@ -388,11 +392,12 @@ const handleFileSelect = (e) => {
         return
     }
 
-    prepareUpload(files)
+    await prepareUpload(files)
+    e.target.value = ''
 }
 
-const handleDrop = (e) => {
-    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))
+const handleDrop = async (e) => {
+    const files = Array.from(e.dataTransfer.files).filter(isSupportedImageFile)
     const maxImages = 9
 
     if (uploadList.value.length + files.length > maxImages) {
@@ -400,24 +405,35 @@ const handleDrop = (e) => {
         return
     }
 
-    prepareUpload(files)
+    await prepareUpload(files)
 }
 
-const prepareUpload = (files) => {
-    files.forEach(file => {
+const prepareUpload = async (files) => {
+    for (const sourceFile of files) {
         const id = uploadId++
-        const preview = URL.createObjectURL(file)
-        uploadList.value.push({
+        const item = {
             id,
-            file,
-            preview,
+            file: null,
+            preview: '',
             progress: 0,
-            status: 'waiting',
+            status: 'preparing',
             url: '',
             thumb_url: '',
             preview_url: ''
-        })
-    })
+        }
+        uploadList.value.push(item)
+
+        try {
+            item.file = await prepareImageForUpload(sourceFile)
+            item.preview = URL.createObjectURL(item.file)
+            item.status = 'waiting'
+            item.convertedFromDng = isDngFile(sourceFile)
+        } catch (error) {
+            uploadList.value = uploadList.value.filter(upload => upload.id !== id)
+            console.error('DNG 預覽圖擷取失敗', error)
+            alert(`${sourceFile.name} 無法處理：${error.message}`)
+        }
+    }
     startUploadQueue()
 }
 
