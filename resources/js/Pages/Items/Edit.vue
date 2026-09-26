@@ -110,7 +110,7 @@ const prepareUpload = async (files) => {
             item.convertedFromDng = isDngFile(sourceFile)
         } catch (error) {
             uploadList.value = uploadList.value.filter(upload => upload.id !== id)
-            console.error('DNG 預覽圖擷取失敗', error)
+            console.error('圖片準備失敗', error)
             alert(`${sourceFile.name} 無法處理：${error.message}`)
         }
     }
@@ -640,7 +640,7 @@ const stopScanner = async () => {
                         <img v-if="item.preview" :src="item.preview" class="w-full h-full object-contain"
                             :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
                         <div v-else class="w-full h-full flex items-center justify-center px-2 text-center text-xs text-gray-500">
-                            正在準備 DNG…
+                            正在準備圖片…
                         </div>
                         <button type="button" @click="removeImageByUploadUuid(item.uuid)"
                             class="absolute top-0 right-0 bg-gray-500 rounded-full w-4 h-4 flex items-center justify-center shadow"
@@ -657,7 +657,7 @@ const stopScanner = async () => {
                         class="relative aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer bg-white"
                         @click="fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
                         <span class="text-gray-400 text-sm">+ 加入照片</span>
-                        <input type="file" accept="image/*,.dng,image/dng,image/x-adobe-dng" multiple class="hidden" ref="fileInput"
+                        <input type="file" accept="image/*,.dng,.heic,.heif" multiple class="hidden" ref="fileInput"
                             @change="handleFileSelect" />
                     </div>
                 </div>
