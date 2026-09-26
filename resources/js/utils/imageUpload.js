@@ -1,4 +1,8 @@
 const DNG_MIME_TYPES = new Set(['image/dng', 'image/x-adobe-dng', 'image/x-dng'])
+const HEIC_MIME_TYPES = new Set(['image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence'])
+const HEIC_EXTENSIONS = new Set(['heic', 'heif'])
+const HEIC_MAX_DIMENSION = 2500
+const HEIC_JPEG_QUALITY = 0.9
 
 const TIFF_TYPE_SIZES = {
     1: 1, // BYTE
@@ -15,7 +19,73 @@ export const isDngFile = (file) => {
     return extension === 'dng' || DNG_MIME_TYPES.has(file.type.toLowerCase())
 }
 
-export const isSupportedImageFile = (file) => file.type.startsWith('image/') || isDngFile(file)
+export const isHeicFile = (file) => {
+    const extension = file.name.split('.').pop()?.toLowerCase()
+    return HEIC_EXTENSIONS.has(extension) || HEIC_MIME_TYPES.has(file.type.toLowerCase())
+}
+
+export const isSupportedImageFile = (file) => file.type.startsWith('image/') || isDngFile(file) || isHeicFile(file)
+
+export const getScaledDimensions = (width, height, maxDimension = HEIC_MAX_DIMENSION) => {
+    if (width <= maxDimension && height <= maxDimension) return { width, height }
+
+    const scale = maxDimension / Math.max(width, height)
+    return {
+        width: Math.round(width * scale),
+        height: Math.round(height * scale),
+    }
+}
+
+const loadBrowserImage = async (file) => {
+    const objectUrl = URL.createObjectURL(file)
+    const image = new Image()
+
+    try {
+        image.src = objectUrl
+        await image.decode()
+        return { image, objectUrl }
+    } catch {
+        URL.revokeObjectURL(objectUrl)
+        throw new Error('此瀏覽器無法處理 HEIC 圖片，請使用 Safari 17 以上版本，或改為上傳 JPEG')
+    }
+}
+
+const canvasToJpegBlob = (canvas) => new Promise((resolve, reject) => {
+    canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('無法將 HEIC 轉換成 JPEG')),
+        'image/jpeg',
+        HEIC_JPEG_QUALITY,
+    )
+})
+
+const renderToJpeg = async (source, width, height) => {
+    const dimensions = getScaledDimensions(width, height)
+    const canvas = document.createElement('canvas')
+    canvas.width = dimensions.width
+    canvas.height = dimensions.height
+
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('瀏覽器無法建立圖片轉換畫布')
+
+    context.drawImage(source, 0, 0, dimensions.width, dimensions.height)
+    return canvasToJpegBlob(canvas)
+}
+
+const convertHeicToJpeg = async (file) => {
+    const { image, objectUrl } = await loadBrowserImage(file)
+
+    try {
+        const jpegBlob = await renderToJpeg(image, image.naturalWidth, image.naturalHeight)
+        const basename = file.name.replace(/\.(heic|heif)$/i, '') || 'image'
+
+        return new File([jpegBlob], `${basename}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: file.lastModified,
+        })
+    } finally {
+        URL.revokeObjectURL(objectUrl)
+    }
+}
 
 const readEntryValues = (view, littleEndian, type, count, valueOffset, entryOffset) => {
     const typeSize = TIFF_TYPE_SIZES[type]
@@ -111,6 +181,7 @@ export const extractDngJpegPreview = (arrayBuffer) => {
 }
 
 export const prepareImageForUpload = async (file) => {
+    if (isHeicFile(file)) return convertHeicToJpeg(file)
     if (!isDngFile(file)) return file
 
     const jpegBuffer = extractDngJpegPreview(await file.arrayBuffer())

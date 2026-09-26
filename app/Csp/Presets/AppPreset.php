@@ -47,9 +47,11 @@ class AppPreset implements Preset
             // 圖片來源
             // 'self'：本地上傳的圖片
             // data:：base64 編碼的圖片（部分 UI 元件或預覽縮圖）
+            // blob:：使用者選擇圖片後，由 URL.createObjectURL 產生的本機預覽
             // storage.googleapis.com：Google Cloud Storage 儲存的物品圖片
             ->add(Directive::IMG, Keyword::SELF)
             ->add(Directive::IMG, 'data:')
+            ->add(Directive::IMG, 'blob:')
             ->add(Directive::IMG, 'https://storage.googleapis.com')
 
             // iframe 來源
