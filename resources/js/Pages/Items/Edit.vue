@@ -76,7 +76,12 @@ const handleFileSelect = async (e) => {
 }
 
 const handleDrop = async (e) => {
-    const files = Array.from(e.dataTransfer.files).filter(isSupportedImageFile)
+    const files = Array.from(e.dataTransfer.files)
+        .filter(isSupportedImageFile)
+        .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', {
+            numeric: true,
+            sensitivity: 'base',
+        }))
     const maxImages = 9
     const currentCount = uploadList.value.filter(item => item.statusForApi !== 'removed').length
     if (currentCount + files.length > maxImages) {
