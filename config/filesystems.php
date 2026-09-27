@@ -57,6 +57,9 @@ return [
                 : null,
             'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
             'visibility' => PortableVisibilityHandler::NO_PREDEFINED_VISIBILITY,
+            'metadata' => [
+                'cacheControl' => 'private, max-age=3600',
+            ],
         ],
 
         's3' => [

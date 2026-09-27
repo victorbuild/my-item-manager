@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Helpers\ImageUrlHelper;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -147,6 +148,8 @@ class MediaService
      */
     private function deleteImageFilesFromGcs(ItemImage $image): void
     {
+        ImageUrlHelper::forgetSignedUrls($image);
+
         $disk = Storage::disk('gcs');
         $uuid = $image->uuid;
         $basename = $image->image_path;
