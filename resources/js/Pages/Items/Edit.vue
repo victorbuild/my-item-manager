@@ -1,7 +1,7 @@
 <script setup>
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
-import { ref, onMounted, nextTick, watchEffect, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watchEffect, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from '../../axios'
 import { Html5Qrcode } from 'html5-qrcode'
@@ -28,6 +28,52 @@ const barcodeDetected = ref(false) // 是否檢測到條碼
 const fileInput = ref(null)
 const uploadList = ref([])
 let uploadId = 0
+const isExternalFileDragging = ref(false)
+let externalDragDepth = 0
+const activeUploadList = computed(() => uploadList.value.filter(item => item.statusForApi !== 'removed'))
+const draggedImageKey = ref(null)
+const dropTargetKey = ref(null)
+const dropSide = ref('before')
+
+const imageKey = item => item.uuid || `upload-${item.id}`
+
+const resetImageDrag = () => {
+    draggedImageKey.value = null
+    dropTargetKey.value = null
+    dropSide.value = 'before'
+}
+
+const handleImageDragStart = (item, event) => {
+    draggedImageKey.value = imageKey(item)
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', draggedImageKey.value)
+}
+
+const handleImageDragOver = (item, event) => {
+    const key = imageKey(item)
+    if (draggedImageKey.value === null || draggedImageKey.value === key) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    dropTargetKey.value = key
+    dropSide.value = event.clientX < rect.left + rect.width / 2 ? 'before' : 'after'
+    event.dataTransfer.dropEffect = 'move'
+}
+
+const handleImageDrop = (targetItem) => {
+    const activeItems = [...activeUploadList.value]
+    const fromIndex = activeItems.findIndex(item => imageKey(item) === draggedImageKey.value)
+    const targetIndex = activeItems.findIndex(item => imageKey(item) === imageKey(targetItem))
+    if (fromIndex === -1 || targetIndex === -1 || fromIndex === targetIndex) {
+        resetImageDrag()
+        return
+    }
+
+    const [movedItem] = activeItems.splice(fromIndex, 1)
+    let insertIndex = activeItems.findIndex(item => imageKey(item) === imageKey(targetItem))
+    if (dropSide.value === 'after') insertIndex += 1
+    activeItems.splice(insertIndex, 0, movedItem)
+    uploadList.value = [...activeItems, ...uploadList.value.filter(item => item.statusForApi === 'removed')]
+    resetImageDrag()
+}
 
 // 媒體櫃相關
 const showMediaLibrary = ref(false)
@@ -76,6 +122,8 @@ const handleFileSelect = async (e) => {
 }
 
 const handleDrop = async (e) => {
+    externalDragDepth = 0
+    isExternalFileDragging.value = false
     const files = Array.from(e.dataTransfer.files)
         .filter(isSupportedImageFile)
         .sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', {
@@ -89,6 +137,35 @@ const handleDrop = async (e) => {
         return
     }
     await prepareUpload(files)
+}
+
+const isFileDrag = event => Array.from(event.dataTransfer?.types || []).includes('Files')
+
+const handleWindowDragEnter = (event) => {
+    if (!isFileDrag(event)) return
+    event.preventDefault()
+    externalDragDepth += 1
+    isExternalFileDragging.value = true
+}
+
+const handleWindowDragOver = (event) => {
+    if (!isFileDrag(event)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+}
+
+const handleWindowDragLeave = (event) => {
+    if (!isFileDrag(event)) return
+    externalDragDepth = Math.max(0, externalDragDepth - 1)
+    if (externalDragDepth === 0) isExternalFileDragging.value = false
+}
+
+const handleWindowDrop = async (event) => {
+    if (!isFileDrag(event)) return
+    event.preventDefault()
+    externalDragDepth = 0
+    isExternalFileDragging.value = false
+    await handleDrop(event)
 }
 
 const prepareUpload = async (files) => {
@@ -462,6 +539,11 @@ const onUploadSuccess = (filePath, url) => {
 }
 
 onMounted(async () => {
+    window.addEventListener('dragenter', handleWindowDragEnter)
+    window.addEventListener('dragover', handleWindowDragOver)
+    window.addEventListener('dragleave', handleWindowDragLeave)
+    window.addEventListener('drop', handleWindowDrop)
+
     await loadItem()
     try {
         const res = await axios.get('/api/categories')
@@ -469,6 +551,13 @@ onMounted(async () => {
     } catch (error) {
         console.error('❌ 讀取分類失敗', error)
     }
+})
+
+onBeforeUnmount(() => {
+    window.removeEventListener('dragenter', handleWindowDragEnter)
+    window.removeEventListener('dragover', handleWindowDragOver)
+    window.removeEventListener('dragleave', handleWindowDragLeave)
+    window.removeEventListener('drop', handleWindowDrop)
 })
 
 const submitForm = async (stay = false) => {
@@ -575,6 +664,18 @@ const stopScanner = async () => {
 
 <template>
     <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto space-y-6">
+        <div v-if="isExternalFileDragging"
+            class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 backdrop-blur-[2px] pointer-events-none">
+            <div class="mx-6 w-full max-w-sm rounded-3xl border border-white/70 bg-white/95 px-8 py-9 text-center shadow-2xl shadow-slate-950/20 ring-1 ring-slate-900/5">
+                <div class="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5V6.75A2.25 2.25 0 0 1 5.25 4.5h13.5A2.25 2.25 0 0 1 21 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25H7.5M3 16.5l3.22-3.22a2.25 2.25 0 0 1 3.18 0l1.35 1.35 3.72-3.72a2.25 2.25 0 0 1 3.18 0L21 14.25M15.75 8.25h.008v.008h-.008V8.25Z" />
+                    </svg>
+                </div>
+                <p class="text-lg font-semibold tracking-tight text-slate-900">放開以上傳圖片</p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">支援一次拖入多張圖片，最多 9 張</p>
+            </div>
+        </div>
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold">📝 編輯物品</h1>
             <router-link to="/items" class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded">
@@ -637,11 +738,28 @@ const stopScanner = async () => {
                         🖼️ 從媒體櫃選擇
                     </button>
                 </div>
+                <p v-if="activeUploadList.length > 1" class="text-xs text-gray-500 mb-2">
+                    拖曳圖片可調整順序；藍色標線表示放開後的位置。
+                </p>
                 <div class="grid grid-cols-4 gap-2 mt-2">
-                    <div v-for="(item, index) in uploadList.filter(item => item.statusForApi !== 'removed')"
+                    <div v-for="(item, index) in activeUploadList"
                         :key="item.uuid || item.id"
-                        class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible"
-                        :class="{ 'opacity-50': item.status !== 'done' }">
+                        class="relative aspect-square border border-gray-300 rounded bg-white overflow-visible cursor-grab active:cursor-grabbing transition-all"
+                        :class="{
+                            'opacity-50': item.status !== 'done' || draggedImageKey === imageKey(item),
+                            'ring-2 ring-indigo-500': dropTargetKey === imageKey(item),
+                        }"
+                        draggable="true"
+                        @dragstart="handleImageDragStart(item, $event)"
+                        @dragover.prevent="handleImageDragOver(item, $event)"
+                        @drop.prevent="handleImageDrop(item)"
+                        @dragend="resetImageDrag">
+                        <div v-if="dropTargetKey === imageKey(item)"
+                            class="absolute top-0 bottom-0 w-1 bg-indigo-600 rounded-full z-20 pointer-events-none shadow-sm shadow-indigo-900/30"
+                            :class="dropSide === 'before' ? '-left-1' : '-right-1'"></div>
+                        <span class="absolute left-1 top-1 z-10 rounded-full bg-gray-800/75 px-1.5 py-0.5 text-[10px] font-bold text-white pointer-events-none">
+                            {{ index + 1 }}
+                        </span>
                         <img v-if="item.preview" :src="item.preview" class="w-full h-full object-contain"
                             :alt="`${form.name || '未命名物品'} - 預覽圖片 ${index + 1}`" />
                         <div v-else class="w-full h-full flex items-center justify-center px-2 text-center text-xs text-gray-500">
@@ -658,9 +776,9 @@ const stopScanner = async () => {
                         <div v-else-if="item.status === 'error'"
                             class="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded">❌</div>
                     </div>
-                    <div v-if="uploadList.filter(item => item.statusForApi !== 'removed').length < 9"
+                    <div v-if="activeUploadList.length < 9"
                         class="relative aspect-square border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer bg-white"
-                        @click="fileInput.click()" @dragover.prevent @drop.prevent="handleDrop">
+                        @click="fileInput.click()" @dragover.prevent @drop.prevent.stop="handleDrop">
                         <span class="text-gray-400 text-sm">+ 加入照片</span>
                         <input type="file" accept="image/*,.dng,.heic,.heif" multiple class="hidden" ref="fileInput"
                             @change="handleFileSelect" />
