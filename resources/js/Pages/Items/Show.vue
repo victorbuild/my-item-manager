@@ -49,8 +49,8 @@
                         📅 購買日期：
                         <input type="date" class="p-1 border rounded" 
                             :value="tempDates.purchased_at !== null && tempDates.purchased_at !== undefined ? tempDates.purchased_at : (item.purchased_at?.slice(0, 10) || '')"
-                            :min="undefined"
-                            :max="todayString"
+                            :min="getDateMin(effectiveDates, 'purchased_at')"
+                            :max="getDateMax(effectiveDates, 'purchased_at')"
                             @input="(e) => handleDateInput('purchased_at', e.target.value)"
                             @blur="validateDate('purchased_at')"
                             @keyup.enter="saveItemDate('purchased_at')" />
@@ -59,8 +59,8 @@
                         📦 到貨日期：
                         <input type="date" class="p-1 border rounded" 
                             :value="tempDates.received_at !== null && tempDates.received_at !== undefined ? tempDates.received_at : (item.received_at?.slice(0, 10) || '')"
-                            :min="(tempDates.purchased_at || item.purchased_at?.slice(0, 10)) || undefined"
-                            :max="todayString"
+                            :min="getDateMin(effectiveDates, 'received_at')"
+                            :max="getDateMax(effectiveDates, 'received_at')"
                             @input="(e) => handleDateInput('received_at', e.target.value)"
                             @blur="validateDate('received_at')"
                             @keyup.enter="saveItemDate('received_at')" />
@@ -69,8 +69,8 @@
                         🚀 開始使用日期：
                         <input type="date" class="p-1 border rounded" 
                             :value="tempDates.used_at !== null && tempDates.used_at !== undefined ? tempDates.used_at : (item.used_at?.slice(0, 10) || '')"
-                            :min="getUsedAtMinDate()"
-                            :max="todayString"
+                            :min="getDateMin(effectiveDates, 'used_at')"
+                            :max="getDateMax(effectiveDates, 'used_at')"
                             @input="(e) => handleDateInput('used_at', e.target.value)"
                             @blur="validateDate('used_at')"
                             @keyup.enter="saveItemDate('used_at')" />
@@ -79,8 +79,8 @@
                         🗑️ 報廢日期：
                         <input type="date" class="p-1 border rounded" 
                             :value="tempDates.discarded_at !== null && tempDates.discarded_at !== undefined ? tempDates.discarded_at : (item.discarded_at?.slice(0, 10) || '')"
-                            :min="(tempDates.used_at || item.used_at?.slice(0, 10)) || (tempDates.received_at || item.received_at?.slice(0, 10)) || (tempDates.purchased_at || item.purchased_at?.slice(0, 10)) || undefined"
-                            :max="todayString"
+                            :min="getDateMin(effectiveDates, 'discarded_at')"
+                            :max="getDateMax(effectiveDates, 'discarded_at')"
                             @input="(e) => handleDateInput('discarded_at', e.target.value)"
                             @blur="validateDate('discarded_at')"
                             @keyup.enter="saveItemDate('discarded_at')" />
@@ -162,6 +162,7 @@
 </template>
 
 <script setup>
+import { getMaxItemDate, getDateMin, getDateMax } from '../../utils/itemDates'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
@@ -175,8 +176,13 @@ const item = ref(null)
 const today = dayjs()
 const discardNote = ref('')
 
-// 今天的日期字串（用於 max 屬性）
-const todayString = today.format('YYYY-MM-DD')
+// 日期上限（今天後一個月）
+const maxItemDate = getMaxItemDate()
+const effectiveDates = computed(() => Object.fromEntries(
+    ['purchased_at', 'received_at', 'used_at', 'discarded_at'].map(field => [
+        field, tempDates.value[field] ?? item.value?.[field]?.slice(0, 10) ?? ''
+    ])
+))
 
 // 臨時日期狀態
 const tempDates = ref({
@@ -254,20 +260,6 @@ onMounted(fetchItem)
 const formatPrice = (val) => {
     if (val == null) return '—'
     return Number(val).toLocaleString()
-}
-
-// 取得開始使用日期的最小日期（購買日期或到貨日期，取較晚者）
-const getUsedAtMinDate = () => {
-    const purchasedAt = tempDates.value.purchased_at || item.value?.purchased_at?.slice(0, 10) || ''
-    const receivedAt = tempDates.value.received_at || item.value?.received_at?.slice(0, 10) || ''
-    
-    // 如果有到貨日期，使用到貨日期；否則使用購買日期
-    if (receivedAt) {
-        return receivedAt
-    } else if (purchasedAt) {
-        return purchasedAt
-    }
-    return undefined
 }
 
 // 檢查是否有日期變更
@@ -371,12 +363,12 @@ const validateDate = (field) => {
         return
     }
     
-    // 檢查日期是否超過今天
-    if (value > todayString) {
+    // 檢查日期是否超過今天後一個月
+    if (value > maxItemDate) {
         Swal.fire({
             icon: 'warning',
             title: '日期驗證',
-            text: '日期不能超過今天',
+            text: '日期不能超過今天後一個月',
             confirmButtonText: '確定'
         }).then(() => {
             // 恢復原始值
@@ -393,10 +385,10 @@ const validateDate = (field) => {
     }
     
     // 前端驗證日期順序
-    const purchasedAt = tempDates.value.purchased_at || item.value?.purchased_at?.slice(0, 10) || ''
-    const receivedAt = tempDates.value.received_at || item.value?.received_at?.slice(0, 10) || ''
-    const usedAt = tempDates.value.used_at || item.value?.used_at?.slice(0, 10) || ''
-    const discardedAt = tempDates.value.discarded_at || item.value?.discarded_at?.slice(0, 10) || ''
+    const purchasedAt = effectiveDates.value.purchased_at
+    const receivedAt = effectiveDates.value.received_at
+    const usedAt = effectiveDates.value.used_at
+    const discardedAt = effectiveDates.value.discarded_at
     
     let errorMessage = null
     
@@ -468,12 +460,12 @@ const saveItemDate = async (field) => {
         return
     }
     
-    // 檢查日期是否超過今天
-    if (value > todayString) {
+    // 檢查日期是否超過今天後一個月
+    if (value > maxItemDate) {
         await Swal.fire({
             icon: 'warning',
             title: '日期驗證',
-            text: '日期不能超過今天',
+            text: '日期不能超過今天後一個月',
             confirmButtonText: '確定'
         })
         tempDates.value[field] = null
@@ -524,8 +516,8 @@ const saveAllDates = async () => {
             continue
         }
         
-        // 檢查日期是否超過今天
-        if (value > todayString) {
+        // 檢查日期是否超過今天後一個月
+        if (value > maxItemDate) {
             invalidFields.push(field)
             continue
         }
