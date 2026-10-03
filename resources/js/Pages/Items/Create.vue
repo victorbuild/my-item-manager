@@ -232,7 +232,7 @@
                 <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
                 <input v-model="form.purchased_at" type="date" 
                     :class="['w-full p-2 border rounded', formErrors.purchased_at ? 'border-red-500' : '']" 
-                    :max="todayString" required />
+                    :min="getDateMin(form, 'purchased_at')" :max="getDateMax(form, 'purchased_at')" required />
                 <p v-if="formErrors.purchased_at" class="text-sm text-red-500 mt-1">{{ formErrors.purchased_at }}</p>
             </div>
 
@@ -240,8 +240,7 @@
                 <label class="block font-medium">📦 到貨日期</label>
                 <input v-model="form.received_at" type="date" 
                     :class="['w-full p-2 border rounded', formErrors.received_at ? 'border-red-500' : '']" 
-                    :min="form.purchased_at || undefined" 
-                    :max="todayString" />
+                    :min="getDateMin(form, 'received_at')" :max="getDateMax(form, 'received_at')" />
                 <p v-if="formErrors.received_at" class="text-sm text-red-500 mt-1">{{ formErrors.received_at }}</p>
             </div>
 
@@ -249,8 +248,7 @@
                 <label class="block font-medium">🚀 開始使用日期</label>
                 <input v-model="form.used_at" type="date" 
                     :class="['w-full p-2 border rounded', formErrors.used_at ? 'border-red-500' : '']" 
-                    :min="form.received_at || form.purchased_at || undefined" 
-                    :max="todayString" />
+                    :min="getDateMin(form, 'used_at')" :max="getDateMax(form, 'used_at')" />
                 <p v-if="formErrors.used_at" class="text-sm text-red-500 mt-1">{{ formErrors.used_at }}</p>
             </div>
 
@@ -258,8 +256,7 @@
                 <label class="block font-medium">🗑️ 報廢日期</label>
                 <input v-model="form.discarded_at" type="date" 
                     :class="['w-full p-2 border rounded', formErrors.discarded_at ? 'border-red-500' : '']" 
-                    :min="form.used_at || form.received_at || form.purchased_at || undefined" 
-                    :max="todayString" />
+                    :min="getDateMin(form, 'discarded_at')" :max="getDateMax(form, 'discarded_at')" />
                 <p v-if="formErrors.discarded_at" class="text-sm text-red-500 mt-1">{{ formErrors.discarded_at }}</p>
             </div>
             <div>
@@ -271,7 +268,7 @@
                     </button>
                 </label>
                 <input v-model="form.expiration_date" type="date" 
-                    :class="['w-full p-2 border rounded', formErrors.expiration_date ? 'border-red-500' : '']" />
+                    :class="['w-full p-2 border rounded', formErrors.expiration_date ? 'border-red-500' : '']" max="9999-12-31" />
                 <p v-if="formErrors.expiration_date" class="text-sm text-red-500 mt-1">{{ formErrors.expiration_date }}</p>
             </div>
 
@@ -377,6 +374,7 @@
 </template>
 
 <script setup>
+import { getTodayDate, getDateMin, getDateMax } from '../../utils/itemDates'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
 import { ref, onMounted, onBeforeUnmount, nextTick, watchEffect, computed, watch } from 'vue'
@@ -394,8 +392,7 @@ const creatingCategory = ref(false)
 
 const router = useRouter()
 
-// 今天的日期字串（用於 max 屬性）
-const todayString = new Date().toISOString().split('T')[0]
+// 日期上限（今天後一個月）
 
 const showScanner = ref(false)
 const isSubmitting = ref(false)
@@ -856,7 +853,7 @@ onMounted(async () => {
         }
     }
 
-    form.value.purchased_at = new Date().toISOString().split('T')[0]
+    form.value.purchased_at = getTodayDate()
 
     try {
         const res = await axios.get('/api/categories')
@@ -978,7 +975,7 @@ const resetForm = () => {
         location: '',
         quantity: 1,
         price: '',
-        purchased_at: new Date().toISOString().split('T')[0],
+        purchased_at: getTodayDate(),
         received_at: '',
         used_at: '',
         discarded_at: '',

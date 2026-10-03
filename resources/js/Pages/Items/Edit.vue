@@ -1,4 +1,5 @@
 <script setup>
+import { getDateMin, getDateMax } from '../../utils/itemDates'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
 import { ref, onMounted, onBeforeUnmount, nextTick, watchEffect, computed, watch } from 'vue'
@@ -11,8 +12,7 @@ const router = useRouter()
 const route = useRoute()
 const itemId = route.params.id
 
-// 今天的日期字串（用於 max 屬性）
-const todayString = new Date().toISOString().split('T')[0]
+// 日期上限（今天後一個月）
 
 const categories = ref([])
 const selectedCategory = ref(null)
@@ -853,25 +853,22 @@ const stopScanner = async () => {
             </div>
             <div>
                 <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
-                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" :max="todayString" required />
+                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" :min="getDateMin(form, 'purchased_at')" :max="getDateMax(form, 'purchased_at')" required />
             </div>
             <div>
                 <label class="block font-medium">📦 到貨日期</label>
                 <input v-model="form.received_at" type="date" class="w-full p-2 border rounded" 
-                    :min="form.purchased_at || undefined" 
-                    :max="todayString" />
+                    :min="getDateMin(form, 'received_at')" :max="getDateMax(form, 'received_at')" />
             </div>
             <div>
                 <label class="block font-medium">🚀 開始使用日期</label>
                 <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" 
-                    :min="form.received_at || form.purchased_at || undefined" 
-                    :max="todayString" />
+                    :min="getDateMin(form, 'used_at')" :max="getDateMax(form, 'used_at')" />
             </div>
             <div>
                 <label class="block font-medium">🗑️ 報廢日期</label>
                 <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" 
-                    :min="form.used_at || form.received_at || form.purchased_at || undefined" 
-                    :max="todayString" />
+                    :min="getDateMin(form, 'discarded_at')" :max="getDateMax(form, 'discarded_at')" />
             </div>
             <div>
                 <label class="block font-medium">
@@ -881,7 +878,7 @@ const stopScanner = async () => {
                         （使用製造日期換算）
                     </button>
                 </label>
-                <input v-model="form.expiration_date" type="date" class="w-full p-2 border rounded" />
+                <input v-model="form.expiration_date" type="date" class="w-full p-2 border rounded" max="9999-12-31" />
             </div>
             <div v-if="showManufactureDateModal"
                 class="fixed top-0 left-0 w-screen h-screen bg-gray-900/90 flex items-center justify-center z-50">
