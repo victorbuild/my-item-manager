@@ -32,6 +32,36 @@ class AuthControllerTest extends TestCase
     }
 
     /**
+     * 登入後以 session cookie 呼叫 API，必須保留登入狀態。
+     */
+    #[Test]
+    public function it_should_keep_session_authenticated_when_calling_user_api_after_login(): void
+    {
+        config(['session.driver' => 'database', 'session.secure' => false]);
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+
+        $login = $this->postJson('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'recaptcha_token' => 'test-token',
+        ]);
+        $login->assertOk();
+        $cookie = $login->getCookie(config('session.cookie'));
+        $this->assertNotNull($cookie);
+
+        // 清除同一測試程序內的 guard 與 session，模擬新的 HTTP 請求。
+        $this->app->make('auth')->forgetGuards();
+        $this->app->make('session')->forgetDrivers();
+        $this->app->forgetInstance('session.store');
+
+        $this->withCredentials()
+            ->withCookie($cookie->getName(), $cookie->getValue())
+            ->getJson('/api/user', ['Referer' => 'http://localhost/'])
+            ->assertOk()
+            ->assertJsonPath('data.id', $user->id);
+    }
+
+    /**
      * 測試：登入成功時應該觸發 UserLoggedIn 事件
      */
     #[Test]
