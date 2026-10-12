@@ -40,7 +40,11 @@ class MediaController extends Controller
 
         // 為每個圖片產生縮圖 URL
         $transformedData = $images->getCollection()->map(function ($image) {
-            $urls = ImageUrlHelper::generateSignedUrls($image, config('images.url_expiration_minutes.default', 60));
+            $urls = ImageUrlHelper::generateSignedUrls(
+                $image,
+                config('images.url_expiration_minutes.default', 60),
+                ['thumb', 'preview']
+            );
 
             return [
                 'uuid' => $image->uuid,
@@ -81,7 +85,11 @@ class MediaController extends Controller
 
         // 為每個圖片產生縮圖 URL
         $transformedData = $images->getCollection()->map(function ($image) {
-            $urls = ImageUrlHelper::generateSignedUrls($image, config('images.url_expiration_minutes.default', 60));
+            $urls = ImageUrlHelper::generateSignedUrls(
+                $image,
+                config('images.url_expiration_minutes.default', 60),
+                ['thumb', 'preview']
+            );
 
             return [
                 'uuid' => $image->uuid,

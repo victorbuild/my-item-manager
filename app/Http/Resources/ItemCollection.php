@@ -2,8 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Helpers\ImageUrlHelper;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Illuminate\Support\Facades\Storage;
 
 class ItemCollection extends ResourceCollection
 {
@@ -20,6 +20,7 @@ class ItemCollection extends ResourceCollection
                 $formatDate = function ($date) {
                     return $date ? \Carbon\Carbon::parse($date)->format('Y-m-d') : null;
                 };
+
                 return [
                     'name' => $item->name,
                     'price' => $item->price,
@@ -34,9 +35,14 @@ class ItemCollection extends ResourceCollection
                     'status' => $item->status,
                     // 主圖（第一張圖片）
                     'main_image' => $item->images->isNotEmpty() ? (function ($img) {
-                        $thumbPath = "item-images/{$img->uuid}/thumb_{$img->image_path}.webp";
+                        $urls = ImageUrlHelper::generateSignedUrls(
+                            $img,
+                            config('images.url_expiration_minutes.default', 60),
+                            ['thumb']
+                        );
+
                         return [
-                            'thumb_url' => Storage::disk('gcs')->temporaryUrl($thumbPath, now()->addMinutes(60)),
+                            'thumb_url' => $urls['thumb_url'],
                         ];
                     })($item->images->first()) : null,
                 ];

@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\ItemImage;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -11,40 +12,80 @@ use Illuminate\Support\Facades\Storage;
  */
 class ImageUrlHelper
 {
+    private const VARIANTS = ['original', 'preview', 'thumb'];
+
     /**
      * 產生圖片的簽署 URL
      *
      * @param \App\Models\ItemImage $image 圖片實例
-     * @param int $expirationMinutes 過期時間（分鐘），預設為上傳時的過期時間
-     * @return array{original_url: string, preview_url: string, thumb_url: string}
+     * @param int $expirationMinutes 過期時間（分鐘），預設為一般查詢的過期時間
+     * @param array<int, string> $variants 需要產生的圖片尺寸
+     * @return array<string, string>
      */
-    public static function generateSignedUrls(ItemImage $image, ?int $expirationMinutes = null): array
-    {
+    public static function generateSignedUrls(
+        ItemImage $image,
+        ?int $expirationMinutes = null,
+        array $variants = self::VARIANTS
+    ): array {
         if ($expirationMinutes === null) {
-            $expirationMinutes = config('images.url_expiration_minutes.upload', 10);
+            $expirationMinutes = config('images.url_expiration_minutes.default', 60);
         }
 
-        $uuid = $image->uuid;
-        $basename = $image->image_path;
-        $extension = $image->original_extension;
+        $paths = self::paths($image);
+        $expiresAt = now()->addMinutes($expirationMinutes);
+        $cacheMinutes = max(
+            1,
+            $expirationMinutes - config('images.url_cache_safety_minutes', 5)
+        );
+        $urls = [];
 
-        $originalPath = "item-images/{$uuid}/original_{$basename}.{$extension}";
-        $previewPath = "item-images/{$uuid}/preview_{$basename}.webp";
-        $thumbPath = "item-images/{$uuid}/thumb_{$basename}.webp";
+        foreach (array_unique($variants) as $variant) {
+            if (! in_array($variant, self::VARIANTS, true)) {
+                continue;
+            }
+
+            $path = $paths[$variant];
+            $cacheKey = self::cacheKey($image, $variant, $path);
+            $urls["{$variant}_url"] = Cache::remember(
+                $cacheKey,
+                now()->addMinutes($cacheMinutes),
+                fn (): string => Storage::disk('gcs')->temporaryUrl(
+                    $path,
+                    $expiresAt,
+                    ['version' => 'v4']
+                )
+            );
+        }
+
+        return $urls;
+    }
+
+    /**
+     * 清除圖片的簽署 URL 快取。
+     */
+    public static function forgetSignedUrls(ItemImage $image): void
+    {
+        foreach (self::paths($image) as $variant => $path) {
+            Cache::forget(self::cacheKey($image, $variant, $path));
+        }
+    }
+
+    /**
+     * @return array{original: string, preview: string, thumb: string}
+     */
+    private static function paths(ItemImage $image): array
+    {
+        $folder = "item-images/{$image->uuid}";
 
         return [
-            'original_url' => Storage::disk('gcs')->temporaryUrl(
-                $originalPath,
-                now()->addMinutes($expirationMinutes)
-            ),
-            'preview_url' => Storage::disk('gcs')->temporaryUrl(
-                $previewPath,
-                now()->addMinutes($expirationMinutes)
-            ),
-            'thumb_url' => Storage::disk('gcs')->temporaryUrl(
-                $thumbPath,
-                now()->addMinutes($expirationMinutes)
-            ),
+            'original' => "{$folder}/original_{$image->image_path}.{$image->original_extension}",
+            'preview' => "{$folder}/preview_{$image->image_path}.webp",
+            'thumb' => "{$folder}/thumb_{$image->image_path}.webp",
         ];
+    }
+
+    private static function cacheKey(ItemImage $image, string $variant, string $path): string
+    {
+        return "image-signed-url:{$image->uuid}:{$variant}:" . sha1($path);
     }
 }

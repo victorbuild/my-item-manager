@@ -41,4 +41,9 @@ return [
         'upload' => env('IMAGE_URL_EXPIRATION_UPLOAD', 10), // 上傳時的回應 URL 過期時間
         'default' => env('IMAGE_URL_EXPIRATION_DEFAULT', 60), // 一般查詢時的 URL 過期時間
     ],
+
+    /**
+     * 簽署 URL 快取比 URL 本身提早失效的安全時間（分鐘）
+     */
+    'url_cache_safety_minutes' => env('IMAGE_URL_CACHE_SAFETY_MINUTES', 5),
 ];

@@ -22,7 +22,10 @@ class ItemImageResource extends JsonResource
     {
         /** @var \App\Models\ItemImage $itemImage */
         $itemImage = $this->resource;
-        $urls = ImageUrlHelper::generateSignedUrls($itemImage, config('images.url_expiration_minutes.upload', 10));
+        $urls = ImageUrlHelper::generateSignedUrls(
+            $itemImage,
+            config('images.url_expiration_minutes.default', 60)
+        );
 
         return [
             'uuid' => $this->uuid,
