@@ -3,8 +3,15 @@ vendor
 storage/app/public
 storage/framework/cache
 storage/*.key
+storage/app/credentials
 debugbar
 .env
+.env.*
+!.env.example
+IMG_*.jpeg
+docs
+.claude
+.mcp.json
 .git
 .gitignore
 .idea

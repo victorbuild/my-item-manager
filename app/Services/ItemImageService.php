@@ -6,14 +6,12 @@ use App\Models\Item;
 use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\Contracts\ItemRepositoryInterface;
-use Exception;
 use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\ImageManager;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Throwable;
 
 /**
  * 物品圖片服務
@@ -23,7 +21,8 @@ class ItemImageService
 {
     public function __construct(
         private readonly ItemImageRepositoryInterface $itemImageRepository,
-        private readonly ItemRepositoryInterface $itemRepository
+        private readonly ItemRepositoryInterface $itemRepository,
+        private readonly VipsImageProcessor $imageProcessor
     ) {
     }
 
@@ -212,6 +211,8 @@ class ItemImageService
             );
         }
 
+        $variants = $this->imageProcessor->generate($fileContent);
+
         try {
             // 上傳原圖
             $originalUploaded = Storage::disk('gcs')->put($originalPath, $fileContent);
@@ -222,23 +223,9 @@ class ItemImageService
                 );
             }
 
-            // 產生縮圖與預覽圖
-            $manager = new ImageManager(new Driver());
-            $img = $manager->read($fileContent)->orient();
-
-            $preview = $img->scaleDown(
-                width: config('images.preview.width', 600),
-                height: config('images.preview.height', 800)
-            )->toWebp(config('images.preview.quality', 85));
-
-            $thumb = $img->scaleDown(
-                width: config('images.thumb.width', 300),
-                height: config('images.thumb.height', 400)
-            )->toWebp(config('images.thumb.quality', 75));
-
             // 上傳縮圖與預覽圖
-            $previewUploaded = Storage::disk('gcs')->put($previewPath, $preview);
-            $thumbUploaded = Storage::disk('gcs')->put($thumbPath, $thumb);
+            $previewUploaded = Storage::disk('gcs')->put($previewPath, $variants['preview']);
+            $thumbUploaded = Storage::disk('gcs')->put($thumbPath, $variants['thumb']);
 
             if (! $previewUploaded || ! $thumbUploaded) {
                 // 清理已上傳的檔案
@@ -260,7 +247,7 @@ class ItemImageService
             ]);
 
             return $itemImage;
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             // 確保清理已上傳的檔案
             Storage::disk('gcs')->delete([$originalPath, $previewPath, $thumbPath]);
             throw $e;

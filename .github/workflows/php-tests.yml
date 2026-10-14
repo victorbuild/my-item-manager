@@ -21,10 +21,13 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, intl
+          extensions: mbstring, intl, gd, exif
           ini-values: post_max_size=256M, short_open_tag=On
           coverage: xdebug
           tools: php-cs-fixer, phpunit
+
+      - name: Install libvips
+        run: sudo apt-get update && sudo apt-get install -y libvips-tools
 
       - name: Validate composer.json and composer.lock
         run: composer validate
