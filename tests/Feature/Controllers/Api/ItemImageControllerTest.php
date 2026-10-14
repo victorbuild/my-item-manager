@@ -27,6 +27,29 @@ class ItemImageControllerTest extends TestCase
     }
 
     /**
+     * 測試：損壞 JPEG 回傳 422 並且不儲存檔案
+     */
+    #[Test]
+    public function it_should_return_422_without_storing_image_when_jpeg_body_is_truncated(): void
+    {
+        $source = UploadedFile::fake()->image('photo.jpg', 800, 600);
+        $content = substr(file_get_contents($source->getRealPath()), 0, 650);
+        $this->assertNotFalse(getimagesizefromstring($content));
+        $file = UploadedFile::fake()->createWithContent('broken.jpg', $content);
+
+        $this->actingAs($this->user)
+            ->postJson('/api/item-images', ['image' => $file])
+            ->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+                'message' => '圖片內容損壞或不完整，請重新選擇圖片',
+            ]);
+
+        $this->assertSame([], Storage::disk('gcs')->allFiles());
+        $this->assertDatabaseCount('item_images', 0);
+    }
+
+    /**
      * 測試：成功上傳圖片
      */
     #[Test]

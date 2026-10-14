@@ -7,8 +7,12 @@ use App\Models\ItemImage;
 use App\Repositories\Contracts\ItemImageRepositoryInterface;
 use App\Repositories\Contracts\ItemRepositoryInterface;
 use App\Services\ItemImageService;
+use App\Services\VipsImageProcessor;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class ItemImageServiceTest extends TestCase
@@ -33,7 +37,8 @@ class ItemImageServiceTest extends TestCase
         // 階段 2：使用 Mock ItemRepository（真正的 Unit 測試）
         $this->service = new ItemImageService(
             $this->mockRepository,
-            $this->mockItemRepository
+            $this->mockItemRepository,
+            $this->app->make(VipsImageProcessor::class)
         );
     }
 
@@ -41,6 +46,26 @@ class ItemImageServiceTest extends TestCase
     {
         Mockery::close();
         parent::tearDown();
+    }
+
+    /** 測試損壞圖片不會寫入 GCS 或資料庫。 */
+    #[Test]
+    public function it_should_not_store_files_when_jpeg_body_is_truncated(): void
+    {
+        $source = UploadedFile::fake()->image('photo.jpg', 800, 600);
+        $file = UploadedFile::fake()->createWithContent(
+            'broken.jpg',
+            substr(file_get_contents($source->getRealPath()), 0, 650)
+        );
+        Storage::shouldReceive('disk')->never();
+        $this->mockRepository->shouldNotReceive('create');
+
+        try {
+            $this->service->uploadImage($file, 1);
+            $this->fail('損壞圖片應拒絕上傳');
+        } catch (HttpException $exception) {
+            $this->assertSame(422, $exception->getStatusCode());
+        }
     }
 
     /**

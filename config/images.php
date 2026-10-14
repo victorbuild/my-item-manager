@@ -16,12 +16,14 @@ return [
      */
     'max_size' => env('IMAGE_MAX_SIZE', 10240),
 
+    'max_pixels' => env('IMAGE_MAX_PIXELS', 60000000),
+
     /**
      * 預覽圖設定
      */
     'preview' => [
-        'width' => env('IMAGE_PREVIEW_WIDTH', 600),
-        'height' => env('IMAGE_PREVIEW_HEIGHT', 800),
+        'width' => env('IMAGE_PREVIEW_WIDTH', 1600),
+        'height' => env('IMAGE_PREVIEW_HEIGHT', 1600),
         'quality' => env('IMAGE_PREVIEW_QUALITY', 85),
     ],
 
