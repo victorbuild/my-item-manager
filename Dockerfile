@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # 將擴充套件的編譯工作獨立出來，正式映像檔只複製編譯結果，不帶入開發用函式庫。
-FROM php:8.4-fpm-trixie AS extensions
+FROM php:8.5.12-fpm-trixie AS extensions
 ARG USE_TW_MIRROR=false
 # 僅在建置時明確啟用台灣鏡像；保留官方來源備份，安全更新仍使用官方來源。
 RUN case "$USE_TW_MIRROR" in \
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 開發與正式環境共用相同的 PHP 擴充套件與 libvips，減少環境差異。
 # 與編譯階段使用相同的 Debian 基底，避免擴充套件與系統函式庫不相容。
 # libvips-tools 提供圖片轉檔指令；移除基底內的編譯工具，減少不必要的套件。
-FROM php:8.4-fpm-trixie AS runtime
+FROM php:8.5.12-fpm-trixie AS runtime
 ARG USE_TW_MIRROR=false
 # runtime 是獨立的基底階段，因此也需要套用鏡像選項；後續階段會繼承此設定。
 RUN case "$USE_TW_MIRROR" in \
