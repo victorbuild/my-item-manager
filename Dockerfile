@@ -51,7 +51,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 # Node.js 只負責打包前端；正式映像檔只需要打包結果，不需要 Node.js 或 node_modules。
 # 先安裝鎖定版本的相依套件，讓只修改前端程式碼時可以沿用套件安裝快取。
-FROM node:22-bookworm-slim AS frontend
+FROM node:24-bookworm-slim AS frontend
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
