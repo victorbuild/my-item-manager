@@ -14,7 +14,7 @@
 </head>
 <body class=" bg-[#f5f5f5] text-black min-h-screen">
 
-<main id="app" class="max-w-md mx-auto"></main>
+<div id="app"></div>
 
 </body>
 </html>
