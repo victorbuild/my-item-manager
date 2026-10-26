@@ -1,4 +1,26 @@
 @import 'tailwindcss';
+@import './design-tokens.css';
+
+/* 避免連點操作時觸發雙擊放大，保留捲動及手動雙指縮放。 */
+html {
+    touch-action: manipulation;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+    select,
+    textarea {
+        font-size: max(16px, 1rem);
+    }
+}
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

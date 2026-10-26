@@ -1,4 +1,5 @@
 <script setup>
+import DateInput from '../../Components/DateInput.vue'
 import { getDateMin, getDateMax } from '../../utils/itemDates'
 import Multiselect from 'vue-multiselect'
 import 'vue-multiselect/dist/vue-multiselect.css'
@@ -852,42 +853,42 @@ const stopScanner = async () => {
                 <input v-model.number="form.price" type="number" step="0.01" class="w-full p-2 border rounded" @keydown.enter.prevent />
             </div>
             <div>
-                <label class="block font-medium">💰 購買日期 <span class="text-red-500">*</span></label>
-                <input v-model="form.purchased_at" type="date" class="w-full p-2 border rounded" :min="getDateMin(form, 'purchased_at')" :max="getDateMax(form, 'purchased_at')" required />
+                <label for="date-purchased_at" class="block font-medium">購買日期 <span class="text-red-500">*</span></label>
+                <DateInput label="購買日期" id="date-purchased_at" v-model="form.purchased_at" class="w-full min-w-0" :min="getDateMin(form, 'purchased_at')" :max="getDateMax(form, 'purchased_at')" required />
             </div>
             <div>
-                <label class="block font-medium">📦 到貨日期</label>
-                <input v-model="form.received_at" type="date" class="w-full p-2 border rounded" 
+                <label for="date-received_at" class="block font-medium">到貨日期</label>
+                <DateInput label="到貨日期" id="date-received_at" v-model="form.received_at" class="w-full min-w-0"
                     :min="getDateMin(form, 'received_at')" :max="getDateMax(form, 'received_at')" />
             </div>
             <div>
-                <label class="block font-medium">🚀 開始使用日期</label>
-                <input v-model="form.used_at" type="date" class="w-full p-2 border rounded" 
+                <label for="date-used_at" class="block font-medium">開始使用日期</label>
+                <DateInput label="開始使用日期" id="date-used_at" v-model="form.used_at" class="w-full min-w-0"
                     :min="getDateMin(form, 'used_at')" :max="getDateMax(form, 'used_at')" />
             </div>
             <div>
-                <label class="block font-medium">🗑️ 報廢日期</label>
-                <input v-model="form.discarded_at" type="date" class="w-full p-2 border rounded" 
+                <label for="date-discarded_at" class="block font-medium">報廢日期</label>
+                <DateInput label="報廢日期" id="date-discarded_at" v-model="form.discarded_at" class="w-full min-w-0"
                     :min="getDateMin(form, 'discarded_at')" :max="getDateMax(form, 'discarded_at')" />
             </div>
             <div>
-                <label class="block font-medium">
-                    🧊 有效期限
+                <label for="date-expiration_date" class="block font-medium">
+                    有效期限
                     <button @click="showManufactureDateModal = true" type="button"
                         class="text-sm text-blue-500 hover:underline ml-2">
                         （使用製造日期換算）
                     </button>
                 </label>
-                <input v-model="form.expiration_date" type="date" class="w-full p-2 border rounded" max="9999-12-31" />
+                <DateInput label="有效期限" id="date-expiration_date" v-model="form.expiration_date" class="w-full min-w-0" max="9999-12-31" />
             </div>
             <div v-if="showManufactureDateModal"
                 class="fixed top-0 left-0 w-screen h-screen bg-gray-900/90 flex items-center justify-center z-50">
-                <div class="bg-white p-6 rounded-lg w-96 shadow-xl">
+                <div class="bg-white p-6 rounded-lg w-full max-w-sm max-h-[90dvh] overflow-y-auto mx-4 shadow-xl">
                     <h3 class="text-lg font-semibold mb-4">製造日期換算有效期限</h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium mb-1">製造日期</label>
-                            <input v-model="manufactureDate" type="date" class="w-full p-2 border rounded" />
+                            <label for="manufacture-date" class="block text-sm font-medium mb-1">製造日期</label>
+                            <DateInput label="製造日期" id="manufacture-date" v-model="manufactureDate" class="w-full min-w-0" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium mb-1">有效期限長度</label>

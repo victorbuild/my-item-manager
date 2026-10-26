@@ -1,0 +1,59 @@
+/* 共用 UI 語意色彩；預設品牌為午夜海軍藍。 */
+:root {
+  color-scheme: light;
+  --brand: #1E3A5F;
+  --brand-hover: #142B49;
+  --brand-soft: #EEF3F8;
+  --brand-ink: #1E3A5F;
+  --on-brand: #FFFFFF;
+  --canvas: #F8FAFC;
+  --surface: #FFFFFF;
+  --text: #0F172A;
+  --text-muted: #475569;
+  --border-subtle: #E2E8F0;
+  --border-control: #7C8AA0;
+  --success: #15803D;
+  --success-soft: #F0FDF4;
+  --warning: #92400E;
+  --warning-soft: #FFFBEB;
+  --danger: #B91C1C;
+  --danger-soft: #FEF2F2;
+  --info: #1D4ED8;
+  --info-soft: #EFF6FF;
+  --disabled: #E2E8F0;
+  --shadow-dialog: 0 20px 60px #0F172A26;
+  --shadow-toast: 0 8px 30px #0F172A18;
+  --backdrop: #0F172A88;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+}
+
+:root[data-theme="navy"] {
+  --brand: #1E3A5F;
+  --brand-hover: #142B49;
+  --brand-soft: #EEF3F8;
+  --brand-ink: #1E3A5F;
+  --on-brand: #FFFFFF;
+}
+:root[data-theme="coral"] {
+  --brand: #C2410C;
+  --brand-hover: #9A3412;
+  --brand-soft: #FFF4ED;
+  --brand-ink: #9A3412;
+  --on-brand: #FFFFFF;
+}
+
+:root[data-theme="blue"] {
+  --brand: #2563EB;
+  --brand-hover: #1D4ED8;
+  --brand-soft: #EFF6FF;
+  --brand-ink: #1D4ED8;
+  --on-brand: #FFFFFF;
+}

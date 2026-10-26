@@ -44,66 +44,56 @@
                     />
                 </div>
 
-                <div class="space-y-2">
-                    <div>
-                        📅 購買日期：
-                        <input type="date" class="p-1 border rounded" 
-                            :value="tempDates.purchased_at !== null && tempDates.purchased_at !== undefined ? tempDates.purchased_at : (item.purchased_at?.slice(0, 10) || '')"
+                <div class="space-y-6">
+                    <div class="min-w-0 space-y-2">
+                        <label for="date-purchased_at" class="item-field-label">購買日期</label>
+                        <DateInput label="購買日期" id="date-purchased_at" class="w-full min-w-0"
+                            :model-value="tempDates.purchased_at !== null && tempDates.purchased_at !== undefined ? tempDates.purchased_at : (item.purchased_at?.slice(0, 10) || '')"
                             :min="getDateMin(effectiveDates, 'purchased_at')"
                             :max="getDateMax(effectiveDates, 'purchased_at')"
-                            @input="(e) => handleDateInput('purchased_at', e.target.value)"
+                            @update:model-value="(value) => handleDateInput('purchased_at', value)"
                             @blur="validateDate('purchased_at')"
                             @keyup.enter="saveItemDate('purchased_at')" />
                     </div>
-                    <div>
-                        📦 到貨日期：
-                        <input type="date" class="p-1 border rounded" 
-                            :value="tempDates.received_at !== null && tempDates.received_at !== undefined ? tempDates.received_at : (item.received_at?.slice(0, 10) || '')"
+                    <div class="min-w-0 space-y-2">
+                        <label for="date-received_at" class="item-field-label">到貨日期</label>
+                        <DateInput label="到貨日期" id="date-received_at" class="w-full min-w-0"
+                            :model-value="tempDates.received_at !== null && tempDates.received_at !== undefined ? tempDates.received_at : (item.received_at?.slice(0, 10) || '')"
                             :min="getDateMin(effectiveDates, 'received_at')"
                             :max="getDateMax(effectiveDates, 'received_at')"
-                            @input="(e) => handleDateInput('received_at', e.target.value)"
+                            @update:model-value="(value) => handleDateInput('received_at', value)"
                             @blur="validateDate('received_at')"
                             @keyup.enter="saveItemDate('received_at')" />
                     </div>
-                    <div>
-                        🚀 開始使用日期：
-                        <input type="date" class="p-1 border rounded" 
-                            :value="tempDates.used_at !== null && tempDates.used_at !== undefined ? tempDates.used_at : (item.used_at?.slice(0, 10) || '')"
+                    <div class="min-w-0 space-y-2">
+                        <label for="date-used_at" class="item-field-label">開始使用日期</label>
+                        <DateInput label="開始使用日期" id="date-used_at" class="w-full min-w-0"
+                            :model-value="tempDates.used_at !== null && tempDates.used_at !== undefined ? tempDates.used_at : (item.used_at?.slice(0, 10) || '')"
                             :min="getDateMin(effectiveDates, 'used_at')"
                             :max="getDateMax(effectiveDates, 'used_at')"
-                            @input="(e) => handleDateInput('used_at', e.target.value)"
+                            @update:model-value="(value) => handleDateInput('used_at', value)"
                             @blur="validateDate('used_at')"
                             @keyup.enter="saveItemDate('used_at')" />
                     </div>
-                    <div>
-                        🗑️ 報廢日期：
-                        <input type="date" class="p-1 border rounded" 
-                            :value="tempDates.discarded_at !== null && tempDates.discarded_at !== undefined ? tempDates.discarded_at : (item.discarded_at?.slice(0, 10) || '')"
+                    <div class="min-w-0 space-y-2">
+                        <label for="date-discarded_at" class="item-field-label">報廢日期</label>
+                        <DateInput label="報廢日期" id="date-discarded_at" class="w-full min-w-0"
+                            :model-value="tempDates.discarded_at !== null && tempDates.discarded_at !== undefined ? tempDates.discarded_at : (item.discarded_at?.slice(0, 10) || '')"
                             :min="getDateMin(effectiveDates, 'discarded_at')"
                             :max="getDateMax(effectiveDates, 'discarded_at')"
-                            @input="(e) => handleDateInput('discarded_at', e.target.value)"
+                            @update:model-value="(value) => handleDateInput('discarded_at', value)"
                             @blur="validateDate('discarded_at')"
                             @keyup.enter="saveItemDate('discarded_at')" />
                     </div>
-                    <div v-if="hasDateChanges" class="mt-2">
-                        <button @click="saveAllDates" 
-                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow">
-                            💾 儲存日期變更
-                        </button>
-                        <button @click="cancelDateChanges" 
-                            class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 shadow">
-                            ❌ 取消變更
-                        </button>
+                    <div v-if="hasDateChanges" class="mt-2 flex flex-wrap gap-3">
+                        <AppButton @click="saveAllDates">儲存日期變更</AppButton>
+                        <AppButton variant="secondary" @click="cancelDateChanges">取消變更</AppButton>
                     </div>
-                    <hr>
-                    <div class="mt-3">
-                        <label class="block text-sm font-medium text-gray-600">📝 棄用備註</label>
-                        <textarea v-model="discardNote" rows="3" class="w-full p-2 border rounded"
+                    <div class="space-y-2">
+                        <label for="discard-note" class="item-field-label">棄用備註</label>
+                        <textarea id="discard-note" v-model="discardNote" rows="3" class="item-note-input"
                             placeholder="你想對這件物品說些什麼..."></textarea>
-                        <button @click="saveDiscardNote"
-                            class="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow">
-                            ✅ 儲存備註
-                        </button>
+                        <AppButton class="mt-2" @click="saveDiscardNote">儲存備註</AppButton>
                     </div>
 
                 </div>
@@ -162,6 +152,8 @@
 </template>
 
 <script setup>
+import DateInput from '../../Components/DateInput.vue'
+import AppButton from '../../Components/AppButton.vue'
 import { getMaxItemDate, getDateMin, getDateMax } from '../../utils/itemDates'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -229,15 +221,12 @@ const saveDiscardNote = async () => {
 const fetchItem = async () => {
     try {
         const res = await axios.get(`/api/items/${route.params.id}`)
+        const hasUnsavedNote = item.value && discardNote.value !== (item.value.discard_note || '')
         item.value = res.data.data
-        discardNote.value = res.data.data?.discard_note || ''
-        // 重置臨時日期狀態
-        tempDates.value = {
-            purchased_at: null,
-            received_at: null,
-            used_at: null,
-            discarded_at: null,
+        if (!hasUnsavedNote) {
+            discardNote.value = res.data.data?.discard_note || ''
         }
+        // 日期草稿由日期儲存或取消流程清除，重新讀取不影響其他區域的編輯。
     } catch (error) {
         if (error.response?.status === 404) {
             router.push({ name: 'NotFound' })
@@ -321,12 +310,14 @@ const isValidDate = (dateString) => {
     const [year, month, day] = dateString.split('-').map(Number)
     
     // 基本範圍檢查
-    if (year < 1900 || year > 2100) return false
+    if (year < 1 || year > 9999) return false
     if (month < 1 || month > 12) return false
     if (day < 1 || day > 31) return false
     
     // 使用本地時間創建日期對象（避免時區問題）
-    const date = new Date(year, month - 1, day)
+    const date = new Date(0)
+    date.setFullYear(year, month - 1, day)
+    date.setHours(0, 0, 0, 0)
     
     // 驗證日期是否正確（避免月份溢出等問題，如 2025-11-31）
     return date.getFullYear() === year &&
@@ -698,6 +689,34 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.item-field-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--text);
+}
+.item-note-input {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+.item-note-input::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+}
+.item-note-input:focus-visible {
+    outline: 2px solid var(--brand-ink);
+    outline-offset: 2px;
+}
+
 body {
     background-color: #f5f5f5;
 }
