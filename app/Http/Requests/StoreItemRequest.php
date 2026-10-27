@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 
@@ -11,7 +10,7 @@ class StoreItemRequest extends FormRequest
     use ValidatesItemDates;
 
     /**
-     * Determine if the user is authorized to make this request.
+     * 確認使用者已登入並可提出此請求。
      */
     public function authorize(): bool
     {
@@ -19,9 +18,9 @@ class StoreItemRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * 取得物品資料與圖片關聯的驗證規則。
      *
-     * @return array<string, ValidationRule|array|string>
+     * @return array<string, string|array<int, string|\Closure>>
      */
     public function rules(): array
     {
@@ -34,10 +33,22 @@ class StoreItemRequest extends FormRequest
             ...$this->itemDateRules(),
             'expiration_date' => 'nullable|date_format:Y-m-d|before_or_equal:9999-12-31',
             'images' => 'nullable|array|max:9',
-            'images.*.uuid' => 'required|uuid',
+            'images.*.uuid' => 'required|uuid|distinct:ignore_case',
             'images.*.status' => 'required|in:new',
             'barcode' => 'nullable|string|max:255',
             'product_id' => 'nullable|exists:products,id',
+        ];
+    }
+
+    /**
+     * 取得重複圖片的驗證提示。
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'images.*.uuid.distinct' => '同一張圖片不可重複加入同一件物品。',
         ];
     }
 }

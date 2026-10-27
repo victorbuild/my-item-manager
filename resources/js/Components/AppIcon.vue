@@ -1,12 +1,12 @@
 <script setup>
 import { computed } from 'vue'
-import { BookOpen, CalendarDays, ChartColumn, Check, CircleCheck, Gem, Image, Lightbulb, Package, Pencil, Scale, Trash2, TriangleAlert, UserRound, X } from '@lucide/vue'
+import { Clock3, Upload, ChevronLeft, BookOpen, CalendarDays, ChartColumn, Check, CircleCheck, Gem, Image, Lightbulb, Package, Pencil, Scale, Trash2, TriangleAlert, UserRound, X } from '@lucide/vue'
 
 const props = defineProps({
     name: { type: String, required: true },
     size: { type: Number, default: 20 },
 })
-const icons = { book: BookOpen, calendar: CalendarDays, chart: ChartColumn, check: Check, success: CircleCheck, gem: Gem, image: Image, hint: Lightbulb, package: Package, edit: Pencil, balance: Scale, delete: Trash2, warning: TriangleAlert, user: UserRound, close: X }
+const icons = { clock: Clock3, upload: Upload, back: ChevronLeft, book: BookOpen, calendar: CalendarDays, chart: ChartColumn, check: Check, success: CircleCheck, gem: Gem, image: Image, hint: Lightbulb, package: Package, edit: Pencil, balance: Scale, delete: Trash2, warning: TriangleAlert, user: UserRound, close: X }
 const icon = computed(() => icons[props.name] || Package)
 </script>
 

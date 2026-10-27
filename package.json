@@ -21,6 +21,7 @@
         "date-fns": "^4.4.0",
         "dayjs": "^1.11.13",
         "html5-qrcode": "^2.3.8",
+        "sortablejs": "^1.15.7",
         "sweetalert2": "^11.26.17",
         "vue": "^3.5.42",
         "vue-multiselect": "^3.2.0",

@@ -1,6 +1,14 @@
 @import 'tailwindcss';
 @import './design-tokens.css';
 
+/* 路由頁面與導覽共用內容外框，頁面不再各自設定最大寬度。 */
+.page-layout {
+    width: 100%;
+    min-width: 0;
+    max-width: var(--layout-content-max);
+    margin-inline: auto;
+}
+
 /* 避免連點操作時觸發雙擊放大，保留捲動及手動雙指縮放。 */
 html {
     touch-action: manipulation;

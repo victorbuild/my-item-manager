@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="item-max-quantity" content="{{ (int) config('app.max_item_quantity', 100) }}">
     <title>Item Manager</title>
 
     <!-- 字體 -->
