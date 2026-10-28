@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ItemImage;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class StoreItemRequest extends FormRequest
 {
@@ -20,7 +22,7 @@ class StoreItemRequest extends FormRequest
     /**
      * 取得物品資料與圖片關聯的驗證規則。
      *
-     * @return array<string, string|array<int, string|\Closure>>
+     * @return array<string, string|array<int, string|\Closure|\Illuminate\Validation\Rules\Exists>>
      */
     public function rules(): array
     {
@@ -33,7 +35,13 @@ class StoreItemRequest extends FormRequest
             ...$this->itemDateRules(),
             'expiration_date' => 'nullable|date_format:Y-m-d|before_or_equal:9999-12-31',
             'images' => 'nullable|array|max:9',
-            'images.*.uuid' => 'required|uuid|distinct:ignore_case',
+            'images.*.uuid' => [
+                'bail',
+                'required',
+                'uuid',
+                'distinct:ignore_case',
+                Rule::exists(ItemImage::class, 'uuid')->where('user_id', $this->user()?->id),
+            ],
             'images.*.status' => 'required|in:new',
             'barcode' => 'nullable|string|max:255',
             'product_id' => 'nullable|exists:products,id',
@@ -48,6 +56,7 @@ class StoreItemRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'images.*.uuid.exists' => '找不到此圖片，請重新選擇。',
             'images.*.uuid.distinct' => '同一張圖片不可重複加入同一件物品。',
         ];
     }

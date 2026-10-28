@@ -259,7 +259,7 @@ class ItemControllerTest extends TestCase
         // 建立真實的 ItemImage 物件以取得有效的 UUID
         $images = [];
         for ($i = 1; $i <= 10; $i++) {
-            $image = \App\Models\ItemImage::factory()->create();
+            $image = ItemImage::factory()->create(['user_id' => $this->user->id]);
             $images[] = [
                 'uuid' => $image->uuid,
                 'status' => 'new',
@@ -301,8 +301,14 @@ class ItemControllerTest extends TestCase
             'user_id' => $this->user->id,
         ]);
 
-        $image1 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
-        $image2 = ItemImage::factory()->create(['status' => ItemImage::STATUS_DRAFT]);
+        $image1 = ItemImage::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => ItemImage::STATUS_DRAFT,
+        ]);
+        $image2 = ItemImage::factory()->create([
+            'user_id' => $this->user->id,
+            'status' => ItemImage::STATUS_DRAFT,
+        ]);
 
         $updateData = [
             'name' => '更新後的名稱',
@@ -340,8 +346,8 @@ class ItemControllerTest extends TestCase
             'user_id' => $this->user->id,
         ]);
 
-        $image1 = ItemImage::factory()->create(['usage_count' => 1]);
-        $image2 = ItemImage::factory()->create(['usage_count' => 1]);
+        $image1 = ItemImage::factory()->create(['user_id' => $this->user->id, 'usage_count' => 1]);
+        $image2 = ItemImage::factory()->create(['user_id' => $this->user->id, 'usage_count' => 1]);
 
         // 先附加圖片
         $item->images()->attach($image1->uuid, ['sort_order' => 1]);

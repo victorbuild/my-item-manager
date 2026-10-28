@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Item;
+use App\Models\ItemImage;
 use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,13 @@ class UpdateItemRequest extends FormRequest
             'is_discarded' => 'boolean',
             'notes' => 'nullable|string',
             'images' => 'nullable|array',
-            'images.*.uuid' => 'required|uuid|distinct:ignore_case',
+            'images.*.uuid' => [
+                'bail',
+                'required',
+                'uuid',
+                'distinct:ignore_case',
+                Rule::exists(ItemImage::class, 'uuid')->where('user_id', $this->user()?->id),
+            ],
             'images.*.status' => 'required|in:new,original,removed',
         ];
     }
@@ -59,6 +66,7 @@ class UpdateItemRequest extends FormRequest
     {
         return [
             'product_id.exists' => '找不到此產品，請重新選擇。',
+            'images.*.uuid.exists' => '找不到此圖片，請重新選擇。',
             'images.*.uuid.distinct' => '同一張圖片不可重複加入同一件物品。',
         ];
     }
