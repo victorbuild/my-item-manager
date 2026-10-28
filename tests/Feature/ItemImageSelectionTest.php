@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Item;
 use App\Models\ItemImage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,32 @@ class ItemImageSelectionTest extends TestCase
         $this->assertDatabaseCount('items', 0);
         $this->assertDatabaseCount('item_image_item', 0);
         $this->assertSame(0, $image->fresh()->usage_count);
+    }
+
+    /** 更新不得以重複圖片請求改寫欄位或圖片計數。 */
+    #[Test]
+    public function it_should_preserve_existing_data_when_update_contains_duplicate_images(): void
+    {
+        $user = User::factory()->create();
+        $item = Item::factory()->create(['user_id' => $user->id, 'name' => '原名稱']);
+        $image = ItemImage::factory()->create([
+            'user_id' => $user->id,
+            'status' => ItemImage::STATUS_USED,
+            'usage_count' => 1,
+        ]);
+        $item->images()->attach($image->uuid, ['sort_order' => 1]);
+
+        $this->actingAs($user)->putJson("/api/items/{$item->short_id}", [
+            'name' => '不應儲存',
+            'images' => [
+                ['uuid' => $image->uuid, 'status' => 'original'],
+                ['uuid' => $image->uuid, 'status' => 'new'],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['images.0.uuid', 'images.1.uuid']);
+
+        $this->assertSame('原名稱', $item->fresh()->name);
+        $this->assertSame(1, $item->images()->count());
+        $this->assertSame(1, $image->fresh()->usage_count);
     }
 
     /** 同一張媒體圖片仍可正常關聯到同批建立的不同物品。 */

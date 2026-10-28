@@ -27,9 +27,9 @@
         <h2 id="basic-section-title">基本資料與日期</h2>
         <div>
                 <label for="create-name" class="block font-medium">名稱 <span class="text-[var(--danger)]">*</span></label>
-                <input id="create-name" :aria-invalid="Boolean(formErrors.name)" :aria-describedby="formErrors.name ? 'create-name-error' : undefined" v-model="form.name" type="text"
+                <ItemNameInput id="create-name" :aria-invalid="Boolean(formErrors.name)" :aria-describedby="formErrors.name ? 'create-name-error' : undefined" v-model="form.name"
                     :class="['w-full p-2 border rounded', formErrors.name ? 'border-[var(--danger)]' : '']"
-                    required @keydown.enter.prevent />
+                    required />
                 <p id="create-name-error" v-if="formErrors.name" class="text-sm text-[var(--danger)] mt-1">{{ formErrors.name }}</p>
             </div>
         <div>
@@ -194,101 +194,12 @@
         <h2 id="product-section-title">關聯產品</h2>
         <div class="supplementary-content">
 
-        <!-- 產品選擇 Multiselect -->
-        <div class="space-y-2">
+        <div>
             <label for="create-product" class="block font-medium">選擇產品</label>
-            <Multiselect v-bind="multiselectLocale" id="create-product" v-model="selectedProduct" :options="products" :searchable="true"
-                :custom-label="option => option.name" :track-by="'id'" placeholder="請輸入或選擇產品"
-                :internal-search="false" @search-change="searchProduct" @select="onProductSelect">
-                <template #noOptions>請輸入產品名稱搜尋。</template>
-                <template #noResult>找不到符合的產品，請嘗試其他關鍵字。</template>
-            </Multiselect>
-            <p class="product-link-help text-sm text-[var(--text-muted)]">可直接新增物品，也可關聯產品帶入資料。</p>
+            <ProductLinkSelect id="create-product" v-model="selectedProduct" @creation-pending="value => productCreationPending = value" @draft-change="value => productDraft = value" />
         </div>
 
-        <!-- 如果選到 isNew，顯示建立表單 -->
-        <AppModal :model-value="creatingProduct" title="建立新產品" :busy="isCreatingProduct" @update:model-value="cancelCreateProduct">
-        <div class="space-y-2"><label for="new-product-name" class="block font-medium">產品名稱 <span class="text-[var(--danger)]">*</span></label>
-<input id="new-product-name" aria-required="true" v-model="newProduct.name" type="text" class="w-full p-2 border rounded" placeholder="產品名稱" />
-<label for="new-product-brand" class="block font-medium">品牌</label>
-<input id="new-product-brand" v-model="newProduct.brand" type="text" class="w-full p-2 border rounded" placeholder="品牌" />
-<div class="space-y-2">
-                <label for="new-product-category" class="block font-medium">分類</label>
-                <Multiselect v-bind="multiselectLocale" id="new-product-category" v-model="newProduct.category" :options="categories" :searchable="true"
-                    :custom-label="opt => opt.name" :track-by="'id'" placeholder="選擇分類"
-                    :allow-empty="true" :close-on-select="true"
-                    @search-change="onSearch" @select="onSelect">
-                    <template #noOptions>目前沒有分類，可輸入名稱建立。</template>
-                    <template #noResult>找不到符合的分類，請嘗試其他關鍵字。</template>
-                </Multiselect>
-            </div>
-<label for="new-product-model" class="block font-medium">型號</label>
-<input id="new-product-model" v-model="newProduct.model" type="text" class="w-full p-2 border rounded" placeholder="型號" />
-<label for="new-product-spec" class="block font-medium">規格</label>
-<input id="new-product-spec" v-model="newProduct.spec" type="text" class="w-full p-2 border rounded" placeholder="規格（如顏色、容量等）" />
-<div class="space-y-1">
-                <label for="new-product-barcode" class="block font-medium">條碼</label>
-                <div class="flex gap-2 items-center">
-                    <input id="new-product-barcode" v-model="newProduct.barcode" type="text" placeholder="輸入或掃描條碼"
-                        class="flex-1 p-2 border rounded" />
-                    <button type="button" @click="startBarcodeScan('productBarcode')"
-                        class="text-[var(--brand-ink)] hover:text-[var(--brand-hover)] underline text-sm whitespace-nowrap">
-                        掃描
-                    </button>
-                </div>
-            </div>
-<div v-if="showScanner"
-                class="fixed inset-0 z-50 bg-[var(--text)] overflow-hidden scanner-container">
-                <div class="w-full h-full relative">
-                    <div id="scanner" class="scanner-fullscreen"></div>
-                    <!-- 自定義掃描框指示器 -->
-                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                        <div class="border-2 border-white rounded-lg"
-                            style="width: 80%; max-width: 500px; aspect-ratio: 2.5/1; position: relative;">
-                            <!-- 四個角的指示器 -->
-                            <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[var(--success)] rounded-tl-lg"></div>
-                            <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[var(--success)] rounded-tr-lg"></div>
-                            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[var(--success)] rounded-bl-lg"></div>
-                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[var(--success)] rounded-br-lg"></div>
-                            <!-- 檢測到條碼時的綠色覆蓋層 -->
-                            <div v-if="barcodeDetected"
-                                class="absolute inset-0 bg-[var(--success-soft)] rounded-lg flex items-center justify-center">
-                                <div class="bg-[var(--success)] text-[var(--on-brand)] px-4 py-2 rounded-lg font-semibold">
-                                    已檢測到條碼
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="absolute top-4 right-4 flex gap-2 z-20">
-                        <button type="button" @click="stopScanner"
-                            class="px-4 py-2 bg-[var(--danger)] text-[var(--on-brand)] rounded-lg hover:bg-[var(--danger)] ">
-                            關閉
-                        </button>
-                    </div>
-                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-[var(--on-brand)] text-center z-20">
-                        <p class="text-lg font-semibold mb-2">將條碼對準掃描框</p>
-                        <p class="text-sm text-[var(--text-muted)]">請保持條碼水平對齊</p>
-                    </div>
-                </div>
-            </div></div>
-        <template #footer>
-            <AppButton variant="secondary" :disabled="isCreatingProduct" @click="cancelCreateProduct">取消</AppButton>
-            <AppButton :disabled="isCreatingProduct" :aria-busy="isCreatingProduct" @click="confirmCreateProduct">{{ isCreatingProduct ? '建立中…' : '建立產品' }}</AppButton>
-        </template>
-    </AppModal>
-
-        <!-- 成功選到產品後顯示卡片 -->
-        <div v-if="selectedProduct && !creatingProduct"
-            class="bg-[var(--surface)] border rounded p-4 mt-4  space-y-1 text-sm text-[var(--text-muted)]">
-            <div class="text-lg font-bold">{{ selectedProduct.name }}</div>
-
-            <div v-if="selectedProduct.brand">品牌：{{ selectedProduct.brand }}</div>
-            <div v-if="selectedProduct.category">分類：{{ selectedProduct.category.name }}</div>
-            <div v-if="selectedProduct.model">型號：{{ selectedProduct.model }}</div>
-            <div v-if="selectedProduct.spec">規格：{{ selectedProduct.spec }}</div>
-            <div v-if="selectedProduct.barcode">條碼：{{ selectedProduct.barcode }}</div>
-            <div>目前已有物品數量：{{ selectedProduct.owned_items_count ?? 0 }}</div>
-        </div>
+        <ProductSummary v-if="selectedProduct" :product="selectedProduct" />
 
         </div>
     </section>
@@ -410,6 +321,9 @@
 
 <script setup>
 import AppIcon from '../../Components/AppIcon.vue'
+import ItemNameInput from '../../Components/ItemNameInput.vue'
+import ProductSummary from '../../Components/ProductSummary.vue'
+import ProductLinkSelect from '../../Components/ProductLinkSelect.vue'
 import AppButton from '../../Components/AppButton.vue'
 import AppModal from '../../Components/AppModal.vue'
 import { useSortablePhotos } from '../../composables/useSortablePhotos'
@@ -420,43 +334,22 @@ import DateInput from '../../Components/DateInput.vue'
 import { getItemSaveBlockReason } from '../../utils/itemSaveState'
 import { requiresQuantityConfirmation, isQuantityConfirmed } from '../../utils/itemCreationSummary'
 import { getTodayDate, getDateMin, getDateMax } from '../../utils/itemDates'
-import Multiselect from 'vue-multiselect'
-import 'vue-multiselect/dist/vue-multiselect.css'
-import { ref, onMounted, onBeforeUnmount, nextTick, watchEffect, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed, watch } from 'vue'
 import { onBeforeRouteLeave, useRouter } from 'vue-router'
 import { createUnsavedChangesGuard } from '../../utils/unsavedChanges'
 import { preventImplicitSubmit } from '../../utils/formKeyboard'
 import { getAvailableItemMedia, getNewItemMedia, getUniqueItemImagePayload, imageUuidKey } from '../../utils/itemImageSelection'
 import { formatDateText, parseDateText, getDateTextError } from '../../utils/dateTextInput'
 import axios from '../../axios'
-import { Html5Qrcode } from 'html5-qrcode'
 import Swal from 'sweetalert2'
 import { isDngFile, isSupportedImageFile, prepareImageForUpload } from '../../utils/imageUpload'
-
-const multiselectLocale = {
-    selectLabel: '按 Enter 選取',
-    selectedLabel: '已選取',
-    deselectLabel: '按 Enter 移除',
-    selectGroupLabel: '按 Enter 選取群組',
-    deselectGroupLabel: '按 Enter 取消選取群組',
-    tagPlaceholder: '按 Enter 建立',
-    limitText: count => `另有 ${count} 個選項`,
-}
-const categories = ref([])
-const selectedCategory = ref(null)
-const searchQuery = ref('')
-const creating = ref(false)
-const creatingCategory = ref(false)
 
 const router = useRouter()
 let pageActive = true
 
 // 日期上限（今天後一個月）
 
-const showScanner = ref(false)
 const isSubmitting = ref(false)
-const scanTarget = ref(null) // 記錄掃描目標：'productBarcode' 或 'itemBarcode'
-const barcodeDetected = ref(false) // 是否檢測到條碼
 
 const fileInput = ref(null)
 const uploadList = ref([])
@@ -713,112 +606,8 @@ const removeImage = (index) => {
 const getImagesForApi = () => getUniqueItemImagePayload(uploadList.value)
 
 const selectedProduct = ref(null)
-const products = ref([])
-
-// Debounce 工具函數
-const debounce = (func, delay) => {
-    let timeoutId
-    return (...args) => {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => func.apply(null, args), delay)
-    }
-}
-
-// 實際的搜尋函數
-const _searchProduct = async (query) => {
-    if (!query || query.trim() === '') {
-        products.value = []
-        return
-    }
-    
-    try {
-        const res = await axios.get('/api/products', { params: { q: query } })
-        products.value = res.data.data
-
-        if (!products.value.find(p => p.name === query)) {
-            products.value.unshift({
-                id: '__create__',
-                name: `點選建立新產品：「${query}」`,
-                _rawName: query,
-                isNew: true,
-            })
-        }
-    } catch (e) {
-        console.error('搜尋產品失敗', e)
-    }
-}
-
-// 使用 debounce 包裝的搜尋函數（500ms 延遲）
-const searchProduct = debounce(_searchProduct, 500)
-
-
-const creatingProduct = ref(false)
-const isCreatingProduct = ref(false)
-const newProduct = ref({
-    name: '',
-    brand: '',
-    category: null,
-    model: '',
-    spec: '',
-    barcode: ''
-})
-
-const onProductSelect = (option) => {
-    if (option.isNew) {
-        creatingProduct.value = true
-        newProduct.value.name = option._rawName
-    } else {
-        selectedProduct.value = option
-        creatingProduct.value = false
-    }
-}
-
-const confirmCreateProduct = async () => {
-    if (isCreatingProduct.value) return
-    isCreatingProduct.value = true
-    try {
-        const res = await axios.post('/api/products', {
-            name: newProduct.value.name,
-            brand: newProduct.value.brand,
-            category_id: newProduct.value.category?.id || null,
-            model: newProduct.value.model,
-            spec: newProduct.value.spec,
-            barcode: newProduct.value.barcode,
-        })
-
-        selectedProduct.value = res.data.data
-        creatingProduct.value = false
-        newProduct.value = {
-            name: '',
-            brand: '',
-            category: null,
-            model: '',
-            spec: '',
-            barcode: ''
-        }
-        
-        // 重新搜尋產品列表以更新
-        await searchProduct(selectedProduct.value.name)
-    } catch (e) {
-        console.error('建立產品失敗', e)
-        if (e.response?.data?.message) {
-            alert(`建立產品失敗：${e.response.data.message}`)
-        } else {
-            alert('建立產品失敗，請確認欄位是否正確')
-        }
-    } finally {
-        isCreatingProduct.value = false
-    }
-}
-
-
-const cancelCreateProduct = () => {
-    if (isCreatingProduct.value) return
-    if (showScanner.value) stopScanner()
-    creatingProduct.value = false
-    selectedProduct.value = null
-}
-
+const productCreationPending = ref(false)
+const productDraft = ref(null)
 
 const form = ref({
     name: '',
@@ -868,88 +657,12 @@ const saveBlockReason = computed(() => {
         name: form.value.name, purchasedAt: form.value.purchased_at,
         summary: creationSummary.value, confirmation: confirmedQuantity.value,
         images: uploadList.value, hasDateDrafts: dateFields.some(field => dateDrafts.value[field] != null),
-        dateError, productPending: creatingProduct.value || Boolean(selectedProduct.value?.isNew),
+        dateError, productPending: productCreationPending.value,
     })
 })
 const saveDisabled = computed(() => isSubmitting.value || Boolean(saveBlockReason.value))
 const formatAmount = value => value == null ? '未填寫' : value.toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 watch(() => [form.value.quantity, form.value.price, priceMode.value, totalAmount.value], () => { confirmedQuantity.value = '' }, { flush: 'sync' })
-// 實際的分類搜尋函數
-const _searchCategory = async (query) => {
-    searchQuery.value = query
-    // 這邊呼叫 GET API 搜尋
-    try {
-        const res = await axios.get('/api/categories', { params: { q: query } })
-        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
-
-        // 如果沒有完全相符的分類，加入「新增分類」選項
-        if (query && !categories.value.find(c => c.name === query)) {
-            categories.value.unshift({
-                id: '__create__',
-                name: `點選以建立新分類：「${query}」`,
-                _rawName: query,
-                isNew: true
-            })
-        }
-    } catch (err) {
-        console.error('搜尋分類失敗', err)
-    }
-}
-
-// 使用 debounce 包裝的分類搜尋函數（500ms 延遲）
-const onSearch = debounce(_searchCategory, 500)
-
-const onSelect = async (option) => {
-    if (option && option.isNew) {
-        // 顯示確認對話框
-        const categoryName = option._rawName || option.name.replace('點選以建立新分類：「', '').replace('」', '')
-        const confirmed = confirm(`是否要新增分類「${categoryName}」？`)
-        
-        if (confirmed) {
-            await createCategory(categoryName)
-        } else {
-            // 取消選擇，回到未選擇狀態
-            newProduct.value.category = null
-        }
-    } else if (option) {
-        newProduct.value.category = option
-    }
-}
-
-const createCategory = async (categoryName) => {
-    if (!categoryName || !categoryName.trim()) {
-        alert('請輸入分類名稱')
-        return
-    }
-    
-    if (creatingCategory.value) return
-    creatingCategory.value = true
-    
-    try {
-        const res = await axios.post('/api/categories', { name: categoryName.trim() })
-        const newCategory = res.data.items[0]
-        
-        // 添加到分類列表
-        if (!categories.value.find(c => c.id === newCategory.id)) {
-            categories.value.push(newCategory)
-        }
-        
-        // 自動選中新建的分類
-        newProduct.value.category = newCategory
-    } catch (e) {
-        console.error('新增分類失敗', e)
-        if (e.response?.data?.message) {
-            alert(`新增分類失敗：${e.response.data.message}`)
-        } else {
-            alert('新增分類失敗，請確認分類名稱是否正確')
-        }
-        // 失敗時清空選擇
-        newProduct.value.category = null
-    } finally {
-        creatingCategory.value = false
-    }
-}
-
 onMounted(async () => {
     window.addEventListener('dragenter', handleWindowDragEnter)
     window.addEventListener('dragover', handleWindowDragOver)
@@ -967,12 +680,6 @@ onMounted(async () => {
     }
 
 
-    try {
-        const res = await axios.get('/api/categories')
-        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
-    } catch (error) {
-        console.error('讀取分類失敗', error)
-    }
 })
 
 onBeforeUnmount(() => {
@@ -980,38 +687,11 @@ onBeforeUnmount(() => {
     uploadControllers.forEach(controller => controller.abort())
     uploadList.value.forEach(image => { if (image.preview?.startsWith('blob:')) URL.revokeObjectURL(image.preview) })
     leaveGuard.dispose()
-    if (html5QrCode) stopScanner()
     window.removeEventListener('dragenter', handleWindowDragEnter)
     window.removeEventListener('dragover', handleWindowDragOver)
     window.removeEventListener('dragleave', handleWindowDragLeave)
     window.removeEventListener('drop', handleWindowDrop)
 })
-
-const uploadImage = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    const formData = new FormData()
-    formData.append('image', file)
-
-    try {
-        const res = await axios.post('/api/item-images', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        })
-
-        uploadList.value.push({
-            id: null,
-            file,
-            preview: URL.createObjectURL(file),
-            progress: 0,
-            status: 'done',
-            url: res.data.url
-        })
-    } catch (error) {
-        console.error('上傳失敗', error.response?.data ?? error)
-        alert('上傳失敗，請檢查檔案格式或大小')
-    }
-}
 
 const blurNumberOnWheel = event => {
     const input = event.target
@@ -1035,7 +715,7 @@ const submitForm = async (stay = false) => {
         document.getElementById('confirm-quantity')?.focus()
         return
     }
-    if (creatingProduct.value || selectedProduct.value?.isNew) {
+    if (productCreationPending.value) {
         alert('請先完成或取消建立產品。')
         return
     }
@@ -1052,7 +732,6 @@ const submitForm = async (stay = false) => {
         quantity: summary.quantity,
         price: summary.unitPrice,
         images,
-        category_id: selectedCategory.value?.id ?? null,
         product_id: selectedProduct.value?.id ?? null,
         source_product_id: selectedProduct.value?.is_bundle ? selectedProduct.value.id : null,
     }
@@ -1135,94 +814,18 @@ const resetForm = () => {
     formErrors.value = {}
     resetPricing()
     confirmedQuantity.value = ''
-    selectedCategory.value = null
     selectedProduct.value = null
-    creatingProduct.value = false
+    productCreationPending.value = false
+    productDraft.value = null
     uploadList.value.forEach(image => { if (image.preview?.startsWith('blob:')) URL.revokeObjectURL(image.preview) })
     uploadList.value = []
     imageFeedback.value = ''
     quantityLimitExceeded.value = false
     selectedMediaImages.value = []
-    newProduct.value = { name: '', brand: '', category: null, model: '', spec: '', barcode: '' }
     manufactureDate.value = ''
     expirationValue.value = 0
     expirationUnit.value = 'years'
     leaveGuard.markSaved()
-}
-
-let html5QrCode
-
-const startBarcodeScan = async (target) => {
-    scanTarget.value = target
-    barcodeDetected.value = false
-    showScanner.value = true
-    await nextTick()
-    html5QrCode = new Html5Qrcode("scanner")
-
-    try {
-        // 計算橫向掃描框尺寸（適合手機直立使用）
-        // 使用視窗寬度的 80%，高度為寬度的 40%（2.5:1 的比例）
-        const viewportWidth = window.innerWidth
-        const viewportHeight = window.innerHeight
-        const scanBoxWidth = Math.min(viewportWidth * 0.8, 500)
-        const scanBoxHeight = scanBoxWidth * 0.4 // 2.5:1 的比例
-
-        await html5QrCode.start(
-            { 
-                facingMode: "environment"
-            },
-            { 
-                fps: 10, 
-                qrbox: { width: scanBoxWidth, height: scanBoxHeight },
-                aspectRatio: 1.0,
-                disableFlip: false
-            },
-            async (decodedText, result) => {
-                // 檢測到條碼時顯示視覺反饋
-                barcodeDetected.value = true
-                
-                // 短暫延遲後停止掃描並顯示確認
-                setTimeout(async () => {
-                    await stopScanner()
-                    
-                    // 顯示確認對話框
-                    const confirmed = confirm(`掃描到的條碼：${decodedText}\n\n是否要使用這個條碼？`)
-                    
-                if (confirmed) {
-                    // 根據目標填入對應的輸入框
-                    if (target === 'productBarcode') {
-                        newProduct.value.barcode = decodedText
-                    }
-                }
-                }, 500) // 給用戶 0.5 秒看到綠色反饋
-            },
-            (errorMessage) => {
-                // 掃描錯誤時的處理（不顯示錯誤訊息避免干擾）
-                barcodeDetected.value = false
-            }
-        )
-    } catch (err) {
-        alert("無法啟動相機掃描，請確認瀏覽器權限")
-        console.error(err)
-        showScanner.value = false
-        scanTarget.value = null
-        barcodeDetected.value = false
-    }
-}
-
-const stopScanner = async () => {
-    if (html5QrCode) {
-        try {
-            await html5QrCode.stop()
-            html5QrCode.clear()
-        } catch (err) {
-            console.error('停止掃描器時出錯', err)
-        }
-        html5QrCode = null
-    }
-    showScanner.value = false
-    scanTarget.value = null
-    barcodeDetected.value = false
 }
 
 const showManufactureDateModal = ref(false)
@@ -1276,8 +879,7 @@ const takeDraftSnapshot = () => {
         receivedWithPurchase: receivedWithPurchase.value,
         images: uploadList.value.map(image => image.uuid || `pending:${image.id}`),
         selectedProduct: selectedProduct.value?.id ?? null,
-        selectedCategory: selectedCategory.value?.id ?? null,
-        newProduct: { ...newProduct.value, category: newProduct.value.category?.id ?? null },
+        productDraft: productDraft.value,
         selectedMedia: [...selectedMediaImages.value],
         manufactureDate: manufactureDate.value,
         expirationValue: expirationValue.value,
@@ -1319,7 +921,7 @@ h2, h3 { margin: 0; font-size: 18px; line-height: 1.5; font-weight: 600; }
 .create-page label { font-size: 14px; font-weight: 500; line-height: 1.5; }
 .create-page label { margin-bottom: 8px; }
 .create-page input:not([type=file]):not([type=radio]):not([type=checkbox]), .create-page textarea, .create-page select { width: 100%; min-width: 0; min-height: 44px; padding: 10px var(--control-input-padding, 12px); border: 1px solid var(--border-control); border-radius: var(--radius-control); background: var(--surface); color: var(--text); font-size: 16px; font-weight: 400; line-height: 1.5; }
-.create-page textarea { resize: vertical; }
+.create-page textarea:not(.item-name-input) { resize: vertical; }
 .create-page input[aria-invalid=true], .create-page textarea[aria-invalid=true] { border-color: var(--danger); }
 .create-page input::placeholder, .create-page textarea::placeholder { color: var(--text-muted); opacity: 1; }
 .create-page p { line-height: 1.5; }
@@ -1327,7 +929,7 @@ h2, h3 { margin: 0; font-size: 18px; line-height: 1.5; font-weight: 600; }
 .create-page button:disabled { cursor: not-allowed; }
 a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
 .photo-heading, .expiry-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-.photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 8px; row-gap: 24px; margin-top: 12px; }
 @media (min-width: 480px) {
     .photo-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
@@ -1350,21 +952,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .text-action { padding: 8px 0; color: var(--brand-ink); text-decoration: underline; text-underline-offset: 3px; }
 .expiry-heading label { margin-bottom: 0; }
 .form-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.product-link-help { margin: 8px 0 0; }
-/* 兩套下拉套件共用根 class；此頁只由 __tags 繪製控制項邊框。 */
-.create-page :deep(.multiselect) { display: block; min-width: 0; min-height: 44px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; color: var(--text); }
-.create-page :deep(.multiselect__tags) { min-height: 44px; padding: 10px 40px 0 12px; border-color: var(--border-control); border-radius: var(--radius-control); background: var(--surface); font-size: 16px; }
-.create-page :deep(.multiselect__input), .create-page :deep(.multiselect__single) { min-width: 0; margin-bottom: 10px; padding: 0; color: var(--text); background: var(--surface); font-size: 16px; line-height: 24px; }
-.create-page :deep(.multiselect__input) { min-height: 24px; border: 0; border-radius: 0; }
-.create-page :deep(.multiselect__placeholder) { color: var(--text-muted); padding: 0; margin-bottom: 10px; font-size: 16px; line-height: 24px; }
-.create-page :deep(.multiselect__content-wrapper) { border-color: var(--border-control); background: var(--surface); color: var(--text); }
-.create-page :deep(.multiselect__option) { min-height: 44px; white-space: normal; line-height: 1.5; overflow-wrap: anywhere; }
-.create-page :deep(.multiselect__option--highlight), .create-page :deep(.multiselect__option--highlight::after), .create-page :deep(.multiselect__tag) { background: var(--brand); color: var(--on-brand); }
-.create-page :deep(.multiselect__option--selected::after) { background: var(--brand-soft); color: var(--brand-ink); }
-.create-page :deep(.multiselect__select::before) { border-top-color: var(--text-muted); }
-.create-page :deep(.multiselect__option--selected) { background: var(--brand-soft); color: var(--brand-ink); }
-.create-page :deep(.multiselect__option--selected.multiselect__option--highlight), .create-page :deep(.multiselect__option--selected.multiselect__option--highlight::after) { background: var(--brand-hover); color: var(--on-brand); }
-.create-page :deep(.multiselect:focus-within) { outline: 2px solid var(--brand-ink); outline-offset: 2px; border-radius: var(--radius-control); }
 
 @media (min-width: 768px) {
     .create-page { padding: 32px 24px; }
