@@ -51,3 +51,22 @@ test('Enter on an invalid date stays in the field and never emits a stored value
         })
     }
 })
+
+test('calendar portals into its native dialog and uses body for ordinary pages', async () => {
+    const scope = effectScope()
+    let vm
+    scope.run(() => { vm = component.setup({ modelValue: '', label: '到貨日期' }, { expose() {}, emit() {} }) })
+    try {
+        const dialog = { tagName: 'DIALOG' }
+        vm.container.value = { closest: selector => selector === '[data-reka-modal], dialog' ? dialog : null, querySelector: () => null }
+        await nextTick()
+        assert.deepEqual(vm.teleportTarget.value, dialog)
+        const rekaDialog = { dataset: { rekaModal: '' } }
+        vm.container.value = { closest: () => rekaDialog, querySelector: () => null }
+        await nextTick()
+        assert.deepEqual(vm.teleportTarget.value, rekaDialog)
+        vm.container.value = { closest: () => null, querySelector: () => null }
+        await nextTick()
+        assert.equal(vm.teleportTarget.value, 'body')
+    } finally { scope.stop() }
+})

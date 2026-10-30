@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import AppIcon from './AppIcon.vue'
+import ItemStatusBadge from './ItemStatusBadge.vue'
 import { getTodayDate } from '../utils/itemDates'
 
 const props = defineProps({
@@ -9,14 +10,6 @@ const props = defineProps({
 const emit = defineEmits(['open'])
 const imageFailed = ref(false)
 watch(() => props.item.main_image?.thumb_url, () => { imageFailed.value = false })
-const statuses = {
-    pre_arrival: { label: '未到貨', tone: 'info' },
-    unused: { label: '未使用', tone: 'neutral' },
-    in_use: { label: '使用中', tone: 'success' },
-    unused_discarded: { label: '未使用就棄用', tone: 'neutral' },
-    used_discarded: { label: '使用後棄用', tone: 'neutral' },
-}
-const status = computed(() => statuses[props.item.status] || { label: props.item.status || '未設定狀態', tone: 'neutral' })
 const expiration = computed(() => {
     const date = props.item.expiration_date
     if (!date) return { label: '未設定期限', tone: '' }
@@ -36,7 +29,7 @@ const expiration = computed(() => {
         <div class="heading-content">
             <router-link class="item-name" :to="`/items/${item.short_id}`">{{ item.name }}</router-link>
             <div class="item-tags">
-                <span :class="['status-badge', status.tone]">{{ status.label }}</span>
+                <ItemStatusBadge :status="item.status" />
                 <span v-if="item.expiration_date" :class="['status-badge', 'expiry-tag', expiration.tone]">有效期限 {{ expiration.label }}</span>
             </div>
         </div>
@@ -54,9 +47,6 @@ const expiration = computed(() => {
 .item-name:hover { color: var(--brand-ink); text-decoration: underline; }
 .item-tags { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 4px; }
 .status-badge { display: inline-block; border-radius: 100px; padding: 2px 8px; font-size: 14px; line-height: 1.5; }
-.neutral { background: var(--canvas); color: var(--text-muted); }
-.info { background: var(--info-soft); color: var(--info); }
-.success { background: var(--success-soft); color: var(--success); }
 .expiry-tag { background: var(--canvas); color: var(--text-muted); overflow-wrap: anywhere; }
 .danger { background: var(--danger-soft); color: var(--danger); }
 .warning { background: var(--warning-soft); color: var(--warning); }

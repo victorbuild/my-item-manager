@@ -24,6 +24,10 @@
   --shadow-dialog: 0 20px 60px #0F172A26;
   --shadow-toast: 0 8px 30px #0F172A18;
   --backdrop: #0F172A88;
+  --illustration-skin: #E8B68E;
+  --illustration-earth: #E5D6BB;
+  --illustration-wood: #B7865C;
+  --illustration-paper: #FFF7E6;
   --layout-content-max: 1200px;
   --radius-control: 8px;
   --radius-panel: 12px;

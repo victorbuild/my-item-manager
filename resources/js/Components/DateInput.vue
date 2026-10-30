@@ -20,6 +20,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'blur', 'draft-change'])
 const container = ref(null)
 const datePicker = ref(null)
+const teleportTarget = ref('body')
+// 原生 dialog 位於 top layer，日曆必須掛在同一個 dialog 內才能顯示與操作。
+watchPostEffect(() => { teleportTarget.value = container.value?.closest('[data-reka-modal], dialog') || 'body' })
 const typedValue = ref(null)
 const textTouched = ref(false)
 const textError = computed(() => typedValue.value == null ? '' : getDateTextError(typedValue.value, props.min, props.max))
@@ -145,7 +148,7 @@ const ariaLabels = computed(() => ({
             placeholder="YYYY-MM-DD"
             auto-apply
             arrow-navigation
-            teleport
+            :teleport="teleportTarget"
             @update:model-value="updateValue"
             @text-input="onTextInput"
             @cleared="updateValue('')"
