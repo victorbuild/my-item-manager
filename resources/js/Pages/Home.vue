@@ -1,31 +1,6 @@
 <template>
     <div class="min-h-screen p-4">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">首頁</h1>
-            <div>
-                <template v-if="isLoggedIn">
-                    <div class="flex items-center space-x-2">
-                        <div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white">
-                            👤
-                        </div>
-                        <span class="text-sm text-gray-700">{{ user?.name }}</span>
-                        <button @click="logout" class="text-sm text-red-600 hover:underline">登出</button>
-                    </div>
-                </template>
-                <template v-else>
-                    <router-link
-                        to="/login"
-                        class="text-sm text-blue-600 hover:underline mr-4"
-                    >登入
-                    </router-link>
-                    <router-link
-                        to="/register"
-                        class="text-sm text-blue-600 hover:underline"
-                    >註冊
-                    </router-link>
-                </template>
-            </div>
-        </div>
+        <h1 class="text-2xl font-bold mb-6">首頁</h1>
 
         <!-- 三個月內過期商品區塊 -->
         <div v-if="isLoggedIn && (expiringItems.length > 0 || loadingExpiring)" class="mb-6">
@@ -189,11 +164,12 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+import { useCurrentUser } from '../composables/useCurrentUser';
 import axios from 'axios';
 
-const isLoggedIn = ref(false);
-const user = ref(null);
+const { isLoggedIn, user, load } = useCurrentUser();
+let expiringController;
 const expiringItems = ref([]);
 const loadingExpiring = ref(false);
 
@@ -249,42 +225,35 @@ const formatDate = (date) => {
 const fetchExpiringItems = async () => {
     if (!isLoggedIn.value) return
     
+    expiringController?.abort()
+    const controller = new AbortController()
+    expiringController = controller
+    const userId = user.value?.id
     loadingExpiring.value = true
     try {
         const res = await axios.get('/api/items/expiring-soon', {
+            signal: controller.signal,
             params: {
                 days: 90, // 三個月
                 per_page: 5, // 只顯示前 5 個
             },
         })
-        expiringItems.value = res.data.data || []
+        if (expiringController === controller && user.value?.id === userId) expiringItems.value = res.data.data || []
     } catch (error) {
+        if (controller.signal.aborted || expiringController !== controller || user.value?.id !== userId) return
         console.error('載入過期商品失敗:', error)
         expiringItems.value = []
     } finally {
-        loadingExpiring.value = false
+        if (expiringController === controller) loadingExpiring.value = false
     }
 }
 
-onMounted(async () => {
-    try {
-        const res = await axios.get('/api/user');
-        isLoggedIn.value = true;
-        user.value = res.data.data;
-        // 登入後載入過期商品
-        await fetchExpiringItems();
-    } catch {
-        isLoggedIn.value = false;
-    }
-});
-
-const logout = async () => {
-    try {
-        await axios.post('/logout');
-        localStorage.removeItem('loggedIn');
-        location.reload();
-    } catch (e) {
-        console.error('登出失敗', e);
-    }
-};
+onMounted(() => load());
+watch(user, value => {
+    expiringController?.abort();
+    expiringItems.value = [];
+    loadingExpiring.value = false;
+    if (value) fetchExpiringItems();
+}, { immediate: true });
+onBeforeUnmount(() => { expiringController?.abort(); expiringController = undefined; });
 </script>
