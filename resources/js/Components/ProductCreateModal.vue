@@ -14,6 +14,9 @@ const inputPrefix = `create-product-${useId().replace(/[^a-z0-9-]/gi, '')}`
 const blankProduct = () => ({ name: '', brand: '', category_id: '', model: '', spec: '', barcode: '' })
 const product = ref(blankProduct())
 const categories = ref([])
+const selectedCategory = ref(null)
+const categoryQuery = ref('')
+const categoryResolvedQuery = ref('')
 const categoryError = ref('')
 const categoryLoading = ref(false)
 const isCreating = ref(false)
@@ -25,24 +28,66 @@ const formErrors = ref({})
 const submitError = ref('')
 const scannerOpen = ref(false)
 const scannerError = ref('')
-const categoryOptions = computed(() => categories.value.map(category => ({ value: String(category.id), label: category.name })))
+const categoryOptions = computed(() => {
+    const options = categories.value.map(category => ({ value: String(category.id), label: category.name }))
+    const selected = selectedCategory.value
+    if (selected && !options.some(option => option.value === String(selected.id))) options.unshift({ value: String(selected.id), label: selected.name })
+    return options
+})
+const canOfferCategoryCreation = computed(() => {
+    const name = categoryQuery.value.trim()
+    if (!name || name.length > 255 || categoryResolvedQuery.value !== name || categoryLoading.value || categoryError.value || categoryCreateOpen.value || isCreatingCategory.value || isCreating.value) return false
+    return ![...categories.value, selectedCategory.value].some(category => category?.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase())
+})
+const openCategoryCreate = async () => {
+    if (!canOfferCategoryCreation.value) return
+    categoryName.value = categoryQuery.value.trim()
+    categoryCreateError.value = ''
+    categoryCreateOpen.value = true
+    await nextTick()
+    if (typeof document !== 'undefined') document.getElementById(`${inputPrefix}-category-name`)?.focus()
+}
+watch(() => product.value.category_id, id => {
+    selectedCategory.value = categories.value.find(category => String(category.id) === String(id)) || (String(selectedCategory.value?.id) === String(id) ? selectedCategory.value : null)
+}, { flush: 'sync' })
 const canCreate = computed(() => product.value.name.trim().length > 0 && product.value.name.length <= 255 && !isCreating.value && !scannerOpen.value && !categoryCreateOpen.value && !isCreatingCategory.value)
 let active = true
 let categoryController
+let categoryTimer
+const stopCategorySearch = () => {
+    clearTimeout(categoryTimer)
+    categoryController?.abort()
+    categoryController = undefined
+    categoryLoading.value = false
+}
 let scanner
 let scanGeneration = 0
-const loadCategories = async () => {
-    categoryController?.abort()
+const loadCategories = async (search = categoryQuery.value) => {
+    stopCategorySearch()
+    if (!active || !props.modelValue || !search.trim()) return
     const controller = new AbortController()
     categoryController = controller
     categoryLoading.value = true
     categoryError.value = ''
     try {
-        const response = await axios.get('/api/categories', { signal: controller.signal })
-        if (active && categoryController === controller) categories.value = response.data.data || []
+        const response = await axios.get('/api/categories', { params: { q: search.trim(), per_page: 20 }, signal: controller.signal })
+        if (active && props.modelValue && categoryController === controller) {
+            categories.value = response.data.data || []
+            categoryResolvedQuery.value = search.trim()
+        }
     } catch (error) {
-        if (active && categoryController === controller && error.code !== 'ERR_CANCELED') categoryError.value = '分類載入失敗，請重試。'
-    } finally { if (active && categoryController === controller) categoryLoading.value = false }
+        if (active && props.modelValue && categoryController === controller && error.code !== 'ERR_CANCELED') categoryError.value = '分類載入失敗，請重試。'
+    } finally { if (active && props.modelValue && categoryController === controller) categoryLoading.value = false }
+}
+const searchCategories = value => {
+    categoryQuery.value = (value || '').trim()
+    stopCategorySearch()
+    categoryError.value = ''
+    categoryResolvedQuery.value = ''
+    categories.value = []
+    if (!categoryQuery.value || !props.modelValue) return
+    categoryLoading.value = true
+    categoryTimer = setTimeout(() => loadCategories(), 250)
 }
 const createCategory = async () => {
     const name = categoryName.value.trim()
@@ -123,7 +168,13 @@ const createProduct = async () => {
     } finally { if (active) isCreating.value = false }
 }
 watch(() => props.modelValue, open => {
-    if (!open) { emit('draft-change', null); return }
+    if (!open) { stopCategorySearch(); emit('draft-change', null); return }
+    stopCategorySearch()
+    categories.value = []
+    selectedCategory.value = null
+    categoryQuery.value = ''
+    categoryResolvedQuery.value = ''
+    categoryError.value = ''
     product.value = { ...blankProduct(), name: props.initialName }
     formErrors.value = {}
     submitError.value = ''
@@ -131,10 +182,9 @@ watch(() => props.modelValue, open => {
     categoryCreateOpen.value = false
     categoryName.value = ''
     categoryCreateError.value = ''
-    loadCategories()
 }, { immediate: true })
 watch(product, value => { if (props.modelValue) emit('draft-change', { ...value }) }, { deep: true, flush: 'sync' })
-onBeforeUnmount(() => { active = false; categoryController?.abort(); stopScanner() })
+onBeforeUnmount(() => { active = false; stopCategorySearch(); stopScanner() })
 </script>
 
 <template>
@@ -148,19 +198,20 @@ onBeforeUnmount(() => { active = false; categoryController?.abort(); stopScanner
             <div><label :for="`${inputPrefix}-brand`">品牌</label><input :id="`${inputPrefix}-brand`" v-model="product.brand" type="text" maxlength="255" :aria-invalid="Boolean(formErrors.brand)" /><p v-if="formErrors.brand" class="field-error">{{ formErrors.brand }}</p></div>
             <div>
                 <label :id="`${inputPrefix}-category-label`" :for="`${inputPrefix}-category`">分類</label>
-                <SingleSelect :id="`${inputPrefix}-category`" v-model="product.category_id" :options="categoryOptions" label="分類" :placeholder="categoryLoading ? '分類載入中…' : '選擇分類'" />
+                <SingleSelect :id="`${inputPrefix}-category`" v-model="product.category_id" :options="categoryOptions" label="分類" placeholder="輸入分類名稱搜尋" :loading="categoryLoading" :filter-results="false"
+                    :create-label="canOfferCategoryCreation ? `新增分類「${categoryQuery}」` : ''" @create="openCategoryCreate"
+                    :no-options-text="categoryLoading ? '分類搜尋中…' : categoryQuery ? '找不到符合的分類' : '請輸入分類名稱搜尋'" @search-change="searchCategories" />
                 <div class="category-actions">
-                    <button type="button" class="text-action" @click="categoryCreateOpen = true">新增分類</button>
                     <button v-if="product.category_id" type="button" class="text-action" @click="product.category_id = ''">清除分類</button>
                 </div>
                 <div v-if="categoryCreateOpen" class="category-create">
                     <label :for="`${inputPrefix}-category-name`">分類名稱</label>
-                    <input :id="`${inputPrefix}-category-name`" v-model="categoryName" type="text" maxlength="255" />
+                    <input :id="`${inputPrefix}-category-name`" v-model="categoryName" type="text" maxlength="255" :disabled="isCreatingCategory" :aria-invalid="Boolean(categoryCreateError)" />
                     <p v-if="categoryCreateError" class="field-error" role="alert">{{ categoryCreateError }}</p>
-                    <div class="category-actions"><AppButton variant="secondary" :disabled="isCreatingCategory" @click="categoryCreateOpen = false">取消</AppButton><AppButton :disabled="!categoryName.trim() || isCreatingCategory" @click="createCategory">{{ isCreatingCategory ? '建立中…' : '建立分類' }}</AppButton></div>
+                    <div class="category-actions"><AppButton variant="secondary" :disabled="isCreatingCategory" @click="categoryCreateOpen = false">取消</AppButton><AppButton :disabled="!categoryName.trim() || categoryName.trim().length > 255 || isCreatingCategory" @click="createCategory">{{ isCreatingCategory ? '建立中…' : '建立分類' }}</AppButton></div>
                 </div>
                 <p v-if="formErrors.category_id" class="field-error">{{ formErrors.category_id }}</p>
-                <div v-if="categoryError" class="field-error" role="alert">{{ categoryError }} <button type="button" class="text-action" @click="loadCategories">重試</button></div>
+                <div v-if="categoryError" class="field-error" role="alert">{{ categoryError }} <button type="button" class="text-action" @click="loadCategories()">重試</button></div>
             </div>
             <div><label :for="`${inputPrefix}-model`">型號</label><input :id="`${inputPrefix}-model`" v-model="product.model" type="text" maxlength="255" :aria-invalid="Boolean(formErrors.model)" /><p v-if="formErrors.model" class="field-error">{{ formErrors.model }}</p></div>
             <div><label :for="`${inputPrefix}-spec`">規格</label><input :id="`${inputPrefix}-spec`" v-model="product.spec" type="text" maxlength="255" :aria-invalid="Boolean(formErrors.spec)" /><p v-if="formErrors.spec" class="field-error">{{ formErrors.spec }}</p></div>
