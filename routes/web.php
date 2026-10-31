@@ -9,8 +9,8 @@ Route::get('/login', function () {
 })->name('login');
 
 // SPA 認證路由
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login-ip');
 Route::post('/logout', [AuthController::class, 'logout']);
 
 // VUE SPA

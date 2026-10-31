@@ -4,6 +4,7 @@ use App\Exceptions\UnprocessableEntityException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
@@ -66,9 +67,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     '找不到指定的資源',
                     null,
                 ],
-                $e instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException => [
+                $e instanceof ThrottleRequestsException => [
                     Response::HTTP_TOO_MANY_REQUESTS,
-                    $e->getMessage() ?: '嘗試次數過多，請稍後再試',
+                    $request->is('register')
+                        ? '註冊嘗試過於頻繁，請於 ' . ($e->getHeaders()['Retry-After'] ?? 60) . ' 秒後再試。'
+                        : ($request->is('login') && isset($e->getHeaders()['Retry-After'])
+                            ? '登入嘗試過於頻繁，請於 ' . $e->getHeaders()['Retry-After'] . ' 秒後再試。'
+                            : ($e->getMessage() ?: '嘗試次數過多，請稍後再試')),
                     null,
                 ],
                 $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException => [
@@ -112,6 +117,10 @@ return Application::configure(basePath: dirname(__DIR__))
             //     return response()->xml($responseData, $statusCode);
             // }
 
-            return response()->json($responseData, $statusCode);
+            return response()->json(
+                $responseData,
+                $statusCode,
+                $e instanceof ThrottleRequestsException ? $e->getHeaders() : []
+            );
         });
     })->create();

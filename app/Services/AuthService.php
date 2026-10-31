@@ -103,7 +103,9 @@ class AuthService
             $seconds = RateLimiter::availableIn($key);
 
             throw new ThrottleRequestsException(
-                "嘗試次數過多，請 {$seconds} 秒後再試"
+                "嘗試次數過多，請 {$seconds} 秒後再試",
+                null,
+                ['Retry-After' => $seconds]
             );
         }
     }

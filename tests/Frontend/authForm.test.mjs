@@ -80,3 +80,20 @@ test('leaving the authentication page prevents a late successful response from r
         assert.equal(calls.some(call => call.path), false)
     }, { post: () => new Promise(resolve => { release = resolve }) })
 })
+
+test('registration rate limiting preserves all inputs and shows the server retry time', async () => {
+    await run('register', async ({ vm, calls }) => {
+        Object.assign(vm.form, { name: '會員', email: 'member@example.test', password: 'retry-password', password_confirmation: 'retry-password' })
+        let focused = false
+        vm.errorSummary.value = { focus() { focused = true } }
+        await vm.submit()
+        assert.equal(vm.errorMessage.value, '註冊嘗試過於頻繁，請於 60 秒後再試。')
+        assert.equal(vm.form.name, '會員')
+        assert.equal(vm.form.email, 'member@example.test')
+        assert.equal(vm.form.password, 'retry-password')
+        assert.equal(vm.form.password_confirmation, 'retry-password')
+        assert.equal(vm.submitting.value, false)
+        assert.equal(focused, true)
+        assert.equal(calls.some(call => call.path), false)
+    }, { post: async () => { throw { response: { status: 429, headers: { 'retry-after': '60' }, data: { success: false, message: '註冊嘗試過於頻繁，請於 60 秒後再試。' } } } } })
+})
