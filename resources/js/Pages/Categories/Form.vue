@@ -1,36 +1,37 @@
 <template>
-    <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto space-y-6">
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold">{{ isEdit ? '✏️ 編輯分類' : '➕ 建立分類' }}</h1>
+    <div class="aligned-page management-page bg-[var(--canvas)] min-h-screen p-4 mx-auto space-y-6">
+        <div class="product-heading">
+            <h1 class="text-2xl font-bold">{{ isEdit ? '編輯分類' : '建立分類' }}</h1>
             <router-link
                 to="/categories"
-                class="text-sm bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded"
+                class="product-secondary"
             >
-                ⬅ 返回
+                返回列表
             </router-link>
         </div>
 
-        <div class="bg-white p-6 rounded shadow space-y-4">
+        <div class="bg-[var(--surface)] p-6 rounded-xl border border-[var(--border-subtle)] space-y-4">
             <div>
-                <label class="block font-medium">📂 分類名稱 *</label>
-                <input v-model="form.name" type="text" class="w-full p-2 border rounded" required />
+                <label for="category-name" class="block font-medium mb-2 text-sm">分類名稱 <span class="text-[var(--danger)]">*</span></label>
+                <input id="category-name" v-model="form.name" maxlength="255" type="text" class="w-full p-2 border rounded" required />
             </div>
 
-            <div class="flex gap-4 pt-2">
-                <button @click="submitForm" class="bg-blue-600 text-white px-4 py-2 rounded shadow">
-                    {{ isEdit ? '✅ 更新' : '✅ 建立' }}
-                </button>
-                <router-link to="/categories" class="text-gray-500 underline">取消</router-link>
+            <div class="flex flex-wrap justify-end items-center gap-3 pt-2">
+                <AppButton variant="secondary" @click="router.push('/categories')">取消</AppButton>
+                <AppButton @click="submitForm">{{ isEdit ? '更新分類' : '建立分類' }}</AppButton>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
+import '../../../css/aligned-pages.css'
+import '../../../css/management-pages.css'
+import AppButton from '../../Components/AppButton.vue'
 import { ref, onMounted } from 'vue'
 import axios from '../../axios'
 import { useRouter, useRoute } from 'vue-router'
-import Swal from 'sweetalert2'
+import { appDialog as Swal } from '../../utils/appDialog'
 
 const router = useRouter()
 const route = useRoute()

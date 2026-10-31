@@ -1,102 +1,78 @@
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue'
+import '../../../css/aligned-pages.css'
+import '../../../css/management-pages.css'
+import { appDialog } from '../../utils/appDialog'
+import { confirmProductDeletion } from '../../utils/productDeletion'
+import { ref } from 'vue'
+import { X } from '@lucide/vue'
+import { useProducts } from '../../composables/useProducts'
 import axios from '../../axios'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
 
-const products = ref([])
-const search = ref('')
-const pagination = ref({
-    current_page: 1,
-    last_page: 1,
-    per_page: 10,
-    total: 0
-})
-const loading = ref(true)
+const { search, appliedSearch, products, pagination, loading, error, submitSearch, clearSearch, goToPage, reload } = useProducts(route, router, axios)
 
-watchEffect(() => {
-    if (route.query.q && typeof route.query.q === 'string') {
-        search.value = route.query.q
-    }
-})
+const searchInput = ref(null)
+const clearSearchInput = () => {
+    clearSearch()
+    searchInput.value?.focus()
+}
 
-const fetchProducts = async (page = 1) => {
-    loading.value = true
-
-    // 更新網址
-    router.replace({
-        query: {
-            ...route.query,
-            q: search.value || undefined,
-            page: page !== 1 ? page : undefined
-        }
-    })
-
+const deleting = ref(false)
+const confirmDelete = async (product) => {
+    if (deleting.value) return
+    deleting.value = true
     try {
-        const res = await axios.get('/api/products', {
-            params: {
-                page,
-                q: search.value
-            }
-        })
-        products.value = res.data.data
-        pagination.value = res.data.meta
-    } catch (e) {
-        console.error('無法取得產品資料', e)
-    } finally {
-        loading.value = false
-    }
-}
-
-// 新增刪除功能
-const confirmDelete = async (shortId) => {
-    if (confirm('確定要刪除這個產品嗎？只有沒有關聯物品的產品才能刪除。')) {
-        try {
-            await axios.delete(`/api/products/${shortId}`)
-            fetchProducts(pagination.value.current_page)
-        } catch (e) {
-            if (e.response && e.response.data && e.response.data.message) {
-                alert(e.response.data.message)
-            } else {
-                alert('刪除失敗')
-            }
+        if (await confirmProductDeletion(axios, appDialog, product)) {
+            await reload()
         }
+    } finally {
+        deleting.value = false
     }
 }
 
-onMounted(() => {
-    fetchProducts()
-})
 </script>
 
 <template>
-    <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">🏷️ 產品清單</h1>
+    <div class="aligned-page management-page bg-[var(--canvas)] min-h-screen p-4 mx-auto">
+        <div class="product-heading mb-6">
+            <h1 class="text-2xl font-bold">產品清單</h1>
             <router-link to="/products/create"
-                class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
+                class="product-secondary">
                 新增產品
             </router-link>
         </div>
 
-        <div class="mb-4 flex gap-2">
-            <input v-model="search" type="text" placeholder="搜尋產品名稱"
-                class="flex-1 p-2 border border-gray-300 rounded" />
-            <button @click="fetchProducts(1)" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                🔍 搜尋
+        <form class="mb-4 flex gap-2" @submit.prevent="submitSearch">
+            <div class="product-search-input">
+                <input ref="searchInput" v-model="search" type="text" placeholder="搜尋產品名稱" aria-label="搜尋產品名稱"
+                    class="w-full p-2 border border-[var(--border-control)] rounded" />
+                <button v-if="search" type="button" class="product-search-clear" aria-label="清除搜尋" title="清除搜尋" @click="clearSearchInput">
+                    <X :size="20" :stroke-width="1.75" aria-hidden="true" />
+                </button>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-[var(--brand)] text-[var(--on-brand)] rounded hover:bg-[var(--brand)]">
+                搜尋
             </button>
-            <button v-if="search" @click="search = ''; fetchProducts(1)" class="text-sm text-gray-500 underline ml-2">
-                ❌ 清除
-            </button>
-        </div>
+        </form>
 
-        <div v-if="loading" class="text-center text-gray-500">載入中...</div>
+        <div v-if="loading" class="text-center text-[var(--text-muted)]">載入中...</div>
+
+        <p v-else-if="error" role="alert" class="text-[var(--danger)]">{{ error }} <button type="button" class="underline" @click="reload">重試</button></p>
+
+        <section v-else-if="!products.length" class="product-empty" aria-labelledby="products-empty-title">
+            <h2 id="products-empty-title">{{ appliedSearch ? '找不到符合的產品' : '尚未建立產品' }}</h2>
+            <p v-if="appliedSearch">沒有符合「{{ appliedSearch }}」的產品，試試其他名稱，或清除搜尋查看全部產品。</p>
+            <p v-else>建立產品，方便整理品牌、分類及關聯物品。</p>
+            <button v-if="appliedSearch" type="button" class="product-secondary" @click="clearSearch">清除搜尋</button>
+            <router-link v-else to="/products/create" class="product-secondary">新增產品</router-link>
+        </section>
 
         <ul v-else class="space-y-4">
             <li v-for="product in products" :key="product.id"
-                class="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-2 transition hover:shadow-lg">
+                class="bg-[var(--surface)] rounded-xl border border-[var(--border-subtle)] p-6 flex flex-col gap-2">
 
                 <div v-if="product.latest_owned_item?.main_image?.preview_url"
                     class="relative w-full h-40 rounded-lg overflow-hidden">
@@ -109,31 +85,31 @@ onMounted(() => {
                         class="relative z-10 h-full object-contain mx-auto" alt="主圖片" />
                 </div>
                 <div>
-                    <div class="text-sm text-yellow-700 font-semibold mb-1">
-                        📦 擁有 {{ product.owned_items_count }} 個
+                    <div class="text-sm text-[var(--text-muted)] font-medium mb-1">
+                        擁有 {{ product.owned_items_count }} 個
                     </div>
-                    <div class="font-semibold text-xl text-gray-800 break-words max-w-full">
+                    <div class="font-semibold text-xl text-[var(--text)] break-words max-w-full">
                         {{ product.name }}
                     </div>
-                    <div class="text-sm text-gray-500 mt-1">
-                        🏷 品牌：{{ product.brand || '未填寫' }}<br />
-                        📂 分類：{{ product.category?.name || '未分類' }}
+                    <div class="text-sm text-[var(--text-muted)] mt-1">
+                        品牌：{{ product.brand || '未填寫' }}<br />
+                        分類：{{ product.category?.name || '未分類' }}
                     </div>
                 </div>
 
                 <div v-if="product.latest_owned_item" class="mt-3">
                     <router-link :to="`/items/${product.latest_owned_item.short_id}`"
-                        class="inline-block text-sm text-green-700 hover:text-green-900 underline">
-                        🔗 前往最新物品（序號：{{ product.latest_owned_item.serial_number || '-' }}）
+                        class="inline-block text-sm text-[var(--brand-ink)] hover:text-[var(--brand-hover)] underline">
+                        前往最新物品（序號：{{ product.latest_owned_item.serial_number || '-' }}）
                     </router-link>
                 </div>
 
-                <div class="flex justify-end gap-4 text-sm mt-4">
-                    <router-link :to="`/products/${product.short_id}`" class="text-gray-600 hover:text-gray-800">🔍
+                <div class="product-actions">
+                    <router-link :to="`/products/${product.short_id}`" class="text-[var(--text-muted)] hover:text-[var(--text)]">
                         查看</router-link>
-                    <router-link :to="`/products/${product.short_id}/edit`" class="text-blue-600 hover:text-blue-800">✏️
+                    <router-link :to="`/products/${product.short_id}/edit`" class="text-[var(--brand-ink)] hover:text-[var(--brand-ink)]">
                         編輯</router-link>
-                    <button @click="confirmDelete(product.short_id)" class="text-red-500 hover:text-red-700">🗑️
+                    <button @click="confirmDelete(product)" :disabled="deleting" class="text-[var(--danger)] hover:text-[var(--danger)]">
                         刪除</button>
                 </div>
             </li>
@@ -141,18 +117,18 @@ onMounted(() => {
     </div>
 
     <!-- 分頁按鈕 -->
-    <div class="flex justify-center items-center gap-4 mt-6">
-        <button @click="fetchProducts(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
-            class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
-            ← 上一頁
+    <div v-if="!loading && !error && products.length && pagination.last_page > 1" class="aligned-pagination flex flex-wrap justify-center items-center gap-4 mt-6">
+        <button @click="goToPage(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
+            class="px-4 py-2 bg-[var(--disabled)] rounded disabled:opacity-50">
+            上一頁
         </button>
 
         <span class="text-sm">第 {{ pagination.current_page }} 頁 / 共 {{ pagination.last_page }} 頁</span>
 
-        <button @click="fetchProducts(pagination.current_page + 1)"
+        <button @click="goToPage(pagination.current_page + 1)"
             :disabled="pagination.current_page === pagination.last_page"
-            class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
-            下一頁 →
+            class="px-4 py-2 bg-[var(--disabled)] rounded disabled:opacity-50">
+            下一頁
         </button>
     </div>
 </template>

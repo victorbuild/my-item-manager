@@ -2,6 +2,8 @@
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
+import { appDialog } from '../../utils/appDialog'
+import { confirmItemDeletion } from '../../utils/itemDeletion'
 import AppButton from '../../Components/AppButton.vue'
 import AppIcon from '../../Components/AppIcon.vue'
 import ItemStatusBadge from '../../Components/ItemStatusBadge.vue'
@@ -20,7 +22,10 @@ const today = ref(getTodayDate())
 const editor = ref(null), draftDate = ref(''), draftNote = ref(''), initialDraft = ref('')
 const saving = ref(false), deleting = ref(false), submitError = ref(''), serverErrors = ref({})
 const typedDate = ref(null)
-const deleteOpen = ref(false), deleteError = ref('')
+let ownsDeleteDialog = false
+const dismissDeleteDialog = () => {
+    if (ownsDeleteDialog) { ownsDeleteDialog = false; appDialog.close() }
+}
 const discardConfirmationOpen = ref(false)
 let resolveDiscard, discardPromise
 const finishDiscardConfirmation = accepted => {
@@ -87,7 +92,7 @@ const fetchItem = async () => {
     loadController?.abort()
     loadController = new AbortController()
     loading.value = true; loadError.value = ''; item.value = null
-    deleteOpen.value = false; deleteError.value = ''; finishDiscardConfirmation(false)
+    dismissDeleteDialog(); finishDiscardConfirmation(false)
     resetEditor(); previewIndex.value = null; activeImage.value = 0; failedImages.value = {}; notice.value = ''
     try {
         const response = await axios.get(`/api/items/${route.params.id}`, { signal: loadController.signal })
@@ -119,21 +124,21 @@ const saveEditor = async () => {
     } finally { if (alive) saving.value = false }
 }
 const deleteItem = async () => {
-    if (saving.value || deleting.value || !deleteOpen.value) return
+    if (saving.value || deleting.value || !item.value) return
     deleting.value = true
-    deleteError.value = ''
+    ownsDeleteDialog = true
     const token = generation
     try {
-        await axios.delete(`/api/items/${item.value.short_id}`)
-        if (alive && generation === token) await router.push('/items')
-    } catch { if (alive && generation === token) deleteError.value = '刪除失敗，請稍後重試。' }
-    finally { deleting.value = false }
+        const confirmed = await confirmItemDeletion(axios, appDialog, item.value, () => alive && generation === token)
+        ownsDeleteDialog = false
+        if (confirmed && alive && generation === token) await router.push('/items')
+    } finally { ownsDeleteDialog = false; deleting.value = false }
 }
 const money = value => value == null || value === '' ? '未填寫' : Number(value).toLocaleString('zh-TW', { maximumFractionDigits: 2 })
 const errorText = field => serverErrors.value[field]?.[0] || ''
 const refreshToday = () => { today.value = getTodayDate() }
 const todayTimer = setInterval(refreshToday, 60000)
-onBeforeUnmount(() => { alive = false; generation++; loadController?.abort(); clearInterval(todayTimer); leaveGuard.dispose(); finishDiscardConfirmation(false) })
+onBeforeUnmount(() => { dismissDeleteDialog(); alive = false; generation++; loadController?.abort(); clearInterval(todayTimer); leaveGuard.dispose(); finishDiscardConfirmation(false) })
 </script>
 
 <template>
@@ -203,7 +208,7 @@ onBeforeUnmount(() => { alive = false; generation++; loadController?.abort(); cl
                     </section>
                 </div>
             </div>
-            <footer class="page-footer"><p class="helper">棄用會保留紀錄；刪除會移除整件物品。</p><button type="button" class="delete-link" :disabled="deleting" @click="deleteError = ''; deleteOpen = true">{{ deleting ? '刪除中…' : '刪除物品' }}</button></footer>
+            <footer class="page-footer"><p class="helper">棄用會保留紀錄；刪除會移除整件物品。</p><button type="button" class="delete-link" :disabled="deleting" @click="deleteItem">{{ deleting ? '刪除中…' : '刪除物品' }}</button></footer>
         </template>
         <RekaModal v-model="editorOpen" :title="editorTitle" :busy="saving" compact>
             <form ref="editorForm" class="quick-form" @submit.prevent="saveEditor">
@@ -232,11 +237,6 @@ onBeforeUnmount(() => { alive = false; generation++; loadController?.abort(); cl
         <RekaModal :model-value="discardConfirmationOpen" title="放棄尚未儲存的變更？" description="目前輸入的內容尚未儲存，放棄後將無法復原。" @update:model-value="value => { if (!value) finishDiscardConfirmation(false) }">
             <p>你可以繼續填寫，或放棄這次變更。</p>
             <template #footer><AppButton variant="secondary" @click="finishDiscardConfirmation(false)">繼續填寫</AppButton><AppButton @click="finishDiscardConfirmation(true)">放棄變更</AppButton></template>
-        </RekaModal>
-        <RekaModal v-model="deleteOpen" title="刪除物品？" description="如果只是不再使用，記錄棄用可以保留日期與回憶。" :busy="deleting">
-            <p class="preserve-text">確定永久刪除「{{ item?.name }}」？</p>
-            <p v-if="deleteError" class="error" role="alert">{{ deleteError }}</p>
-            <template #footer><AppButton variant="secondary" :disabled="deleting" @click="deleteOpen = false">取消</AppButton><AppButton class="confirm-delete" :disabled="deleting" @click="deleteItem">{{ deleting ? '刪除中…' : '確認刪除' }}</AppButton></template>
         </RekaModal>
         <RekaModal v-model="previewOpen" title="圖片預覽" wide>
             <template v-if="previewIndex !== null && images[previewIndex]">
@@ -301,8 +301,6 @@ dd { margin: 0; overflow-wrap: anywhere; }
 summary { min-height: 44px; align-content: center; cursor: pointer; color: var(--brand-ink); }
 .page-footer { margin-top: 24px; flex-wrap: wrap; }
 .delete-link { color: var(--danger); }
-.confirm-delete { background: var(--danger); border-color: var(--danger); }
-.confirm-delete:hover:not(:disabled) { background: var(--danger); border-color: var(--danger); }
 .delete-link:disabled { color: var(--text-muted); cursor: not-allowed; }
 .empty-state { min-height: 320px; display: grid; place-content: center; gap: 16px; text-align: center; }
 .quick-form { display: grid; gap: 8px; }

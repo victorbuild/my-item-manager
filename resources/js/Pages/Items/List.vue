@@ -3,6 +3,7 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
 import AppButton from '../../Components/AppButton.vue'
+import AppPagination from '../../Components/AppPagination.vue'
 import ItemCard from '../../Components/ItemCard.vue'
 import ItemInfoPanel from '../../Components/ItemInfoPanel.vue'
 import SingleSelect from '../../Components/SingleSelect.vue'
@@ -234,11 +235,7 @@ onBeforeUnmount(() => {
             <ul v-else class="items-grid" aria-label="物品" :aria-busy="loading" :inert="loading">
                 <li v-for="item in items" :key="item.id"><ItemCard :item="item" @open="selectedItem = $event" /></li>
             </ul>
-            <nav v-if="!error && pagination.total > 0" class="pagination" aria-label="物品分頁">
-                <AppButton variant="secondary" :disabled="loading || pagination.current_page <= 1" @click="changePage(pagination.current_page - 1)">上一頁</AppButton>
-                <span>第 {{ pagination.current_page }} 頁／共 {{ pagination.last_page }} 頁</span>
-                <AppButton variant="secondary" :disabled="loading || pagination.current_page >= pagination.last_page" @click="changePage(pagination.current_page + 1)">下一頁</AppButton>
-            </nav>
+            <AppPagination v-if="!error && pagination.total > 0" :current-page="pagination.current_page" :last-page="pagination.last_page" :disabled="loading" label="物品分頁" @change="changePage" />
         </div>
         <ItemInfoPanel :item="selectedItem" @close="selectedItem = null" />
     </main>
@@ -246,7 +243,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .items-page { container: items-list / inline-size; min-height: 100vh; background: var(--canvas); color: var(--text); }
-.items-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 24px 16px 32px; }
+.items-container { width: 100%; margin: 0 auto; padding: 24px 16px 32px; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 h1 { margin: 0; font-size: 24px; line-height: 1.3; font-weight: 600; }
 .create-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border: 1px solid var(--border-control); border-radius: var(--radius-control); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; }
@@ -288,8 +285,6 @@ h1 { margin: 0; font-size: 24px; line-height: 1.3; font-weight: 600; }
 .message-panel { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px 16px; text-align: center; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-panel); }
 .message-panel h2 { margin: 0; font-size: 18px; font-weight: 600; }
 .message-panel p { margin: 0; color: var(--text-muted); }
-.pagination { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin-top: 24px; }
-.pagination span { font-size: 14px; color: var(--text-muted); }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
 @container items-list (min-width: 768px) {
     .items-container { padding-top: 32px; }

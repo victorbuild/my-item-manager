@@ -5,19 +5,19 @@ import { parse, compileScript } from '@vue/compiler-sfc'
 import { computed, nextTick, reactive, ref, watch, effectScope } from 'vue'
 import { preventImplicitSubmit } from '../../resources/js/utils/formKeyboard.js'
 
-const { descriptor } = parse(readFileSync(new URL('../../resources/js/Components/ProductCreateModal.vue', import.meta.url), 'utf8'))
+const { descriptor } = parse(readFileSync(new URL('../../resources/js/Components/ProductForm.vue', import.meta.url), 'utf8'))
 const source = compileScript(descriptor, { id: 'product-create-test' }).content.replace(/^import .*\n/gm, '').replace('export default', 'return')
 const tick = () => new Promise(resolve => setImmediate(resolve))
-const setup = (post, get = async () => ({ data: { data: [{ id: 1, name: '分類' }] } })) => {
+const setup = (post, get = async () => ({ data: { data: [{ id: 1, name: '分類' }] } }), overrides = {}) => {
     const calls = [], emitted = [], getCalls = []
     let cleanup
     const bindings = {
         computed, nextTick, ref, watch, useId: () => 'test', onBeforeUnmount: fn => { cleanup = fn }, Html5Qrcode: class {},
         AppModal: {}, AppButton: {}, ItemNameInput: {}, SingleSelect: {}, preventImplicitSubmit,
-        axios: { get: async (url, config) => { getCalls.push({ url, config }); return get(url, config) }, post: async (url, payload) => { calls.push({ url, payload }); return post(payload, url) } },
+        axios: { put: async (url, payload) => { calls.push({ url, payload, method: 'put' }); return post(payload, url) }, get: async (url, config) => { getCalls.push({ url, config }); return get(url, config) }, post: async (url, payload) => { calls.push({ url, payload }); return post(payload, url) } },
     }
     const component = new Function(...Object.keys(bindings), source)(...Object.values(bindings))
-    const props = reactive({ modelValue: true, initialName: '新產品' })
+    const props = reactive({ modelValue: true, initialName: '新產品', ...overrides })
     const scope = effectScope()
     let vm
     scope.run(() => { vm = component.setup(props, { expose() {}, emit: (...values) => emitted.push(values) }) })
@@ -220,5 +220,38 @@ test('failed category creation preserves confirmation and does not replace the s
         assert.equal(context.vm.categoryName.value, '模型')
         assert.equal(context.vm.categoryCreateError.value, '分類名稱已存在')
         assert.equal(context.vm.product.value.category_id, '1')
+    } finally { context.dispose() }
+})
+
+test('shared editor preserves the existing category and updates only the chosen product', async () => {
+    const context = setup(async payload => ({ data: { data: payload } }), undefined, {
+        mode: 'edit', productId: 'existing-product',
+        initialProduct: { name: '原產品', brand: '品牌', category: { id: 42, name: '既有分類' }, model: '型號', spec: '規格', barcode: '1234' },
+    })
+    try {
+        assert.equal(context.vm.product.value.category_id, '42')
+        assert.ok(context.vm.categoryOptions.value.some(option => option.label === '既有分類'))
+        context.vm.product.value.name = '更新的產品'
+        await context.vm.createProduct()
+        assert.equal(context.calls[0].method, 'put')
+        assert.equal(context.calls[0].url, '/api/products/existing-product')
+        assert.equal(context.calls[0].payload.category_id, 42)
+        assert.equal(context.calls[0].payload.barcode, '1234')
+        assert.ok(context.emitted.some(([event]) => event === 'saved'))
+        assert.equal(context.emitted.some(([event]) => event === 'created'), false)
+    } finally { context.dispose() }
+})
+
+test('shared edit failure retains inputs and permits retry without emitting saved', async () => {
+    const context = setup(async () => { throw { response: { status: 422, data: { errors: { name: ['名稱錯誤'] } } } } }, undefined, {
+        mode: 'edit', productId: 'existing-product', initialProduct: { name: '原產品' },
+    })
+    try {
+        context.vm.product.value.name = '保留此內容'
+        await context.vm.createProduct()
+        assert.equal(context.vm.product.value.name, '保留此內容')
+        assert.equal(context.vm.formErrors.value.name, '名稱錯誤')
+        assert.equal(context.vm.canCreate.value, true)
+        assert.equal(context.emitted.some(([event]) => event === 'saved'), false)
     } finally { context.dispose() }
 })

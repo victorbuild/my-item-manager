@@ -1,36 +1,30 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import '../../../css/aligned-pages.css'
+import AppIcon from '../../Components/AppIcon.vue'
+import ItemThumbnail from '../../Components/ItemThumbnail.vue'
+import { useExpiringItems } from '../../composables/useExpiringItems'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '../../axios'
 
 const route = useRoute()
 const router = useRouter()
 
-const items = ref([])
-const pagination = ref({
-    current_page: 1,
-    last_page: 1,
-})
-
-const days = ref(route.query.days ? parseInt(route.query.days) : 30)
-const loading = ref(false)
-const debugInfo = ref(null)
-const rangeStatistics = ref({})
+const { days, items, pagination, loading, error, debugInfo, rangeStatistics, selectDays, goToPage } = useExpiringItems(route, router, axios)
 
 // 日期範圍選項
 const dateRangeOptions = [
-    { days: 7, label: '本週', icon: '📅' },
-    { days: 30, label: '本月', icon: '🗓️' },
-    { days: 90, label: '三個月', icon: '📊' },
-    { days: 180, label: '半年', icon: '📈' },
-    { days: 365, label: '一年', icon: '📉' },
-    { days: 1095, label: '三年', icon: '📚' },
+    { days: 7, label: '本週' },
+    { days: 30, label: '本月' },
+    { days: 90, label: '三個月' },
+    { days: 180, label: '半年' },
+    { days: 365, label: '一年' },
+    { days: 1095, label: '三年' },
 ]
 
 // 計算範圍標籤
 const getRangeLabel = (dayValue) => {
     const option = dateRangeOptions.find(opt => opt.days === dayValue)
-    return option ? `${option.icon} ${option.label}` : `${dayValue} 天`
+    return option ? option.label : `${dayValue} 天`
 }
 
 // 取得範圍的統計數量
@@ -41,13 +35,13 @@ const getRangeCount = (dayValue) => {
 // 狀態翻譯和顏色
 const getStatusInfo = (status) => {
     const statusMap = {
-        'pre_arrival': { label: '📦 未到貨', color: 'bg-orange-100 text-orange-800' },
-        'unused': { label: '📚 未使用', color: 'bg-blue-100 text-blue-800' },
-        'in_use': { label: '✅ 使用中', color: 'bg-green-100 text-green-800' },
-        'unused_discarded': { label: '⚠️ 未使用就棄用', color: 'bg-red-100 text-red-800' },
-        'used_discarded': { label: '🗑️ 使用後棄用', color: 'bg-gray-100 text-gray-800' }
+        'pre_arrival': { label: '未到貨', color: 'bg-[var(--info-soft)] text-[var(--info)]' },
+        'unused': { label: '未使用', color: 'bg-[var(--canvas)] text-[var(--text-muted)]' },
+        'in_use': { label: '使用中', color: 'bg-[var(--success-soft)] text-[var(--success)]' },
+        'unused_discarded': { label: '未使用就棄用', color: 'bg-[var(--canvas)] text-[var(--text-muted)]' },
+        'used_discarded': { label: '使用後棄用', color: 'bg-[var(--canvas)] text-[var(--text-muted)]' }
     }
-    return statusMap[status] || { label: status, color: 'bg-gray-100 text-gray-800' }
+    return statusMap[status] || { label: status, color: 'bg-[var(--brand-soft)] text-[var(--text)]' }
 }
 
 // 計算距離過期還有幾天
@@ -64,42 +58,41 @@ const getDaysUntilExpiration = (expirationDate) => {
 
 // 取得過期警告顏色
 const getExpirationColor = (daysUntil) => {
-    if (daysUntil === null) return 'text-gray-600'
-    if (daysUntil < 0) return 'text-red-600 font-bold'
-    if (daysUntil <= 3) return 'text-red-500 font-semibold'
-    if (daysUntil <= 7) return 'text-orange-500 font-semibold'
-    return 'text-yellow-600'
+    if (daysUntil === null) return 'text-[var(--text-muted)]'
+    if (daysUntil <= 7) return 'text-[var(--danger)] font-semibold'
+    if (daysUntil <= 90) return 'text-[var(--warning)] font-semibold'
+    return 'text-[var(--text)]'
 }
 
 // 取得過期警告標籤
 const getExpirationLabel = (daysUntil) => {
     if (daysUntil === null) return ''
-    if (daysUntil < 0) return '⚠️ 已過期'
-    if (daysUntil === 0) return '⚠️ 今天過期'
-    if (daysUntil === 1) return '⚠️ 明天過期'
-    if (daysUntil <= 3) return `⚠️ ${daysUntil} 天後過期`
-    if (daysUntil <= 7) return `⏰ ${daysUntil} 天後過期`
+    if (daysUntil < 0) return '已過期'
+    if (daysUntil === 0) return '今天過期'
+    if (daysUntil === 1) return '明天過期'
+    if (daysUntil <= 3) return `${daysUntil} 天後過期`
+    if (daysUntil <= 7) return `${daysUntil} 天後過期`
     if (daysUntil >= 365) {
         const years = Math.floor(daysUntil / 365)
         const remainingDays = daysUntil % 365
         if (remainingDays === 0) {
-            return `📅 ${years} 年後過期`
+            return `${years} 年後過期`
         }
         const months = Math.floor(remainingDays / 30)
         if (months === 0) {
-            return `📅 ${years} 年 ${remainingDays} 天後過期`
+            return `${years} 年 ${remainingDays} 天後過期`
         }
-        return `📅 ${years} 年 ${months} 個月後過期`
+        return `${years} 年 ${months} 個月後過期`
     }
     if (daysUntil >= 30) {
         const months = Math.floor(daysUntil / 30)
         const remainingDays = daysUntil % 30
         if (remainingDays === 0) {
-            return `📅 ${months} 個月後過期`
+            return `${months} 個月後過期`
         }
-        return `📅 ${months} 個月 ${remainingDays} 天後過期`
+        return `${months} 個月 ${remainingDays} 天後過期`
     }
-    return `📅 ${daysUntil} 天後過期`
+    return `${daysUntil} 天後過期`
 }
 
 const formatPrice = (val) => {
@@ -116,71 +109,18 @@ const formatDate = (date) => {
     })
 }
 
-const fetchItems = async (page = 1) => {
-    loading.value = true
-    
-    // 更新 URL 參數
-    const query = {
-        ...(days.value !== 30 ? { days: days.value } : {}),
-        ...(page > 1 ? { page } : {}),
-    }
-    
-    // 更新瀏覽器 URL
-    router.push({
-        path: '/expiring-items',
-        query: query
-    })
-    
-    try {
-        const res = await axios.get('/api/items/expiring-soon', {
-            params: {
-                page,
-                days: days.value,
-                per_page: 20,
-            },
-        })
-        items.value = res.data.data
-        pagination.value = res.data.meta
-        
-        // 更新範圍統計
-        if (res.data.range_statistics) {
-            rangeStatistics.value = res.data.range_statistics
-        }
-        
-        // 更新總數（用於智能提示）
-        if (res.data.total_all_with_expiration_date !== undefined) {
-            debugInfo.value = {
-                total_all_with_expiration_date: res.data.total_all_with_expiration_date
-            }
-        } else {
-            debugInfo.value = null
-        }
-    } catch (error) {
-        console.error('載入資料失敗:', error)
-    } finally {
-        loading.value = false
-    }
-}
-
-const updateDays = () => {
-    fetchItems(1)
-}
-
-onMounted(() => {
-    fetchItems(Number(route.query.page) || 1)
-})
 </script>
 
 <template>
-    <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto">
+    <div class="aligned-page bg-[var(--canvas)] min-h-screen p-4 mx-auto">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">⏰ 近期過期商品</h1>
+            <h1 class="text-2xl font-bold">近期過期物品</h1>
         </div>
 
         <!-- 日期範圍選擇 -->
         <div class="mb-6">
             <div class="mb-3">
-                <label class="text-sm text-gray-700 font-medium block mb-2">
+                <label class="text-sm text-[var(--text-muted)] font-medium block mb-2">
                     選擇查看範圍：
                 </label>
                 <!-- 快速選擇按鈕組 -->
@@ -188,22 +128,22 @@ onMounted(() => {
                     <button
                         v-for="option in dateRangeOptions"
                         :key="option.days"
-                        @click="days = option.days; updateDays()"
+                        @click="selectDays(option.days)"
                         :class="[
                             'px-4 py-2 rounded-lg text-sm font-medium transition-all relative',
                             days === option.days
-                                ? 'bg-blue-500 text-white shadow-md scale-105'
-                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-blue-300'
+                                ? 'bg-[var(--brand)] text-[var(--on-brand)] border border-[var(--border-subtle)]'
+                                : 'bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--border-control)] hover:bg-[var(--canvas)] hover:border-[var(--border-control)]'
                         ]"
                     >
-                        <span>{{ option.icon }} {{ option.label }}</span>
+                        <span>{{ option.label }}</span>
                         <span 
                             v-if="getRangeCount(option.days) > 0"
                             :class="[
                                 'ml-2 px-1.5 py-0.5 rounded-full text-xs font-bold',
                                 days === option.days
-                                    ? 'bg-white text-blue-500'
-                                    : 'bg-blue-100 text-blue-600'
+                                    ? 'bg-[var(--surface)] text-[var(--brand-ink)]'
+                                    : 'bg-[var(--brand-soft)] text-[var(--brand-ink)]'
                             ]"
                         >
                             {{ getRangeCount(option.days) }}
@@ -213,27 +153,27 @@ onMounted(() => {
             </div>
             
             <!-- 當前選擇和統計 -->
-            <div class="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+            <div class="flex items-center justify-between bg-[var(--surface)] rounded-lg p-3 border border-[var(--border-subtle)]">
                 <div class="flex items-center gap-2">
-                    <span class="text-sm text-gray-600">目前查看：</span>
-                    <span class="text-sm font-semibold text-blue-600">{{ getRangeLabel(days) }}</span>
+                    <span class="text-sm text-[var(--text-muted)]">目前查看：</span>
+                    <span class="text-sm font-semibold text-[var(--brand-ink)]">{{ getRangeLabel(days) }}</span>
                 </div>
                 <div v-if="pagination.total !== null" class="text-sm">
-                    <span class="text-gray-600">共</span>
-                    <span class="font-bold text-blue-600 mx-1">{{ pagination.total }}</span>
-                    <span class="text-gray-600">筆商品</span>
+                    <span class="text-[var(--text-muted)]">共</span>
+                    <span class="font-bold text-[var(--brand-ink)] mx-1">{{ pagination.total }}</span>
+                    <span class="text-[var(--text-muted)]">筆物品</span>
                 </div>
             </div>
 
             <!-- 智能提示 -->
             <div v-if="debugInfo && debugInfo.total_all_with_expiration_date > 0 && pagination.total === 0" 
-                 class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                 class="mt-3 p-3 bg-[var(--warning-soft)] border border-[var(--warning)] rounded-lg">
                 <div class="flex items-start gap-2">
-                    <span class="text-yellow-600 text-lg">💡</span>
+                    <span class="text-[var(--warning)] text-lg"><AppIcon name="hint" /></span>
                     <div class="flex-1">
-                        <div class="text-sm font-semibold text-yellow-800 mb-1">提示</div>
-                        <div class="text-xs text-yellow-700">
-                            目前範圍內沒有商品，但您有 <strong>{{ debugInfo.total_all_with_expiration_date }}</strong> 筆商品有設定過期日期。
+                        <div class="text-sm font-semibold text-[var(--warning)] mb-1">提示</div>
+                        <div class="text-xs text-[var(--warning)]">
+                            目前範圍內沒有物品，但您有 <strong>{{ debugInfo.total_all_with_expiration_date }}</strong> 筆物品有設定過期日期。
                             建議選擇更大的範圍查看。
                         </div>
                     </div>
@@ -241,40 +181,32 @@ onMounted(() => {
             </div>
         </div>
 
-        <div v-if="loading" class="text-center text-gray-500 py-8">載入中...</div>
+        <div v-if="loading" class="text-center text-[var(--text-muted)] py-8">載入中...</div>
 
-        <div v-else-if="items.length === 0" class="text-center text-gray-500 py-8">
-            <div class="text-6xl mb-4">🎉</div>
+        <p v-else-if="error" role="alert" class="text-[var(--danger)] py-4">{{ error }}</p>
+
+        <div v-else-if="items.length === 0" class="text-center text-[var(--text-muted)] py-8">
+            <div class="text-6xl mb-4"></div>
             <p class="text-lg font-semibold mb-2">太好了！</p>
-            <p class="text-sm">在「{{ getRangeLabel(days) }}」範圍內沒有即將過期的商品。</p>
+            <p class="text-sm">在「{{ getRangeLabel(days) }}」範圍內沒有即將過期的物品。</p>
         </div>
 
         <ul v-else class="space-y-4">
             <li
                 v-for="item in items"
                 :key="item.id"
-                class="bg-white rounded-2xl shadow-md p-4 flex flex-col gap-2 transition hover:shadow-lg"
+                class="bg-[var(--surface)] rounded-xl border border-[var(--border-subtle)] p-4 flex flex-col gap-2 transition hover:border-[var(--border-control)]"
             >
                 <!-- 名稱和資訊 -->
                 <div class="flex items-start gap-3">
                     <!-- 主圖 -->
-                    <div v-if="item.main_image" class="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                        <img 
-                            :src="item.main_image.thumb_url" 
-                            :alt="item.name"
-                            class="w-full h-full object-cover"
-                            @error="$event.target.style.display='none'"
-                        />
-                    </div>
-                    <div v-else class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <span class="text-gray-400 text-xl">📦</span>
-                    </div>
-                    
+                    <ItemThumbnail :src="item.main_image?.thumb_url || ''" />
+
                     <!-- 物品資訊 -->
                     <div class="flex-1 min-w-0">
                         <router-link 
                             :to="`/items/${item.short_id}`" 
-                            class="font-semibold text-base text-gray-800 hover:text-gray-600 active:text-gray-600 break-words leading-tight cursor-pointer transition-colors"
+                            class="font-semibold text-base text-[var(--text)] hover:text-[var(--text-muted)] active:text-[var(--text-muted)] break-words leading-tight cursor-pointer transition-colors"
                             title="點擊查看詳情"
                         >
                             {{ item.name }}
@@ -288,13 +220,13 @@ onMounted(() => {
                                 >
                                     {{ getExpirationLabel(getDaysUntilExpiration(item.expiration_date)) }}
                                 </span>
-                                <span class="text-sm text-gray-500">
+                                <span class="text-sm text-[var(--text-muted)]">
                                     （過期日期：{{ formatDate(item.expiration_date) }}）
                                 </span>
                             </div>
                         </div>
 
-                        <div class="text-sm text-gray-500 mt-1">
+                        <div class="text-sm text-[var(--text-muted)] mt-1">
                             <!-- 狀態標籤 -->
                             <div class="flex items-center justify-between mt-1">
                                 <div class="flex items-center gap-2">
@@ -309,10 +241,11 @@ onMounted(() => {
                                 <div class="flex gap-2">
                                     <router-link 
                                         :to="`/items/${item.short_id}/edit`" 
-                                        class="w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 flex items-center justify-center text-blue-600 hover:text-blue-800 transition-colors"
-                                        title="編輯"
+                                        class="min-h-11 px-3 inline-flex items-center justify-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--canvas)] transition-colors"
+                                        title="編輯" aria-label="編輯"
                                     >
-                                        <span class="text-sm">✏️</span>
+                                        <AppIcon name="edit" />
+                                        <span>編輯</span>
                                     </router-link>
                                 </div>
                             </div>
@@ -325,21 +258,21 @@ onMounted(() => {
         <!-- 分頁按鈕 -->
         <div v-if="pagination.last_page > 1" class="flex justify-center items-center gap-4 mt-6">
             <button
-                @click="fetchItems(pagination.current_page - 1)"
+                @click="goToPage(pagination.current_page - 1)"
                 :disabled="pagination.current_page === 1"
-                class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                class="px-4 py-2 bg-[var(--disabled)] rounded disabled:opacity-50"
             >
-                ← 上一頁
+                上一頁
             </button>
 
             <span class="text-sm">第 {{ pagination.current_page }} 頁 / 共 {{ pagination.last_page }} 頁</span>
 
             <button
-                @click="fetchItems(pagination.current_page + 1)"
+                @click="goToPage(pagination.current_page + 1)"
                 :disabled="pagination.current_page === pagination.last_page"
-                class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                class="px-4 py-2 bg-[var(--disabled)] rounded disabled:opacity-50"
             >
-                下一頁 →
+                下一頁
             </button>
         </div>
     </div>

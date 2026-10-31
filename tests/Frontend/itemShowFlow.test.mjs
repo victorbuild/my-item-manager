@@ -7,6 +7,7 @@ import { getDateMin, getDateMax, getTodayDate } from '../../resources/js/utils/i
 import { getDateTextError } from '../../resources/js/utils/dateTextInput.js'
 import { createUnsavedChangesGuard } from '../../resources/js/utils/unsavedChanges.js'
 import { ITEM_SHOW_DATES, getItemNextAction, getItemShowMetrics } from '../../resources/js/utils/itemShowState.js'
+import { confirmItemDeletion } from '../../resources/js/utils/itemDeletion.js'
 const { descriptor } = parse(readFileSync(new URL('../../resources/js/Pages/Items/Show.vue', import.meta.url), 'utf8'))
 const source = compileScript(descriptor, { id: 'show-flow' }).content.replace(/^import .*\n/gm, '').replace('export default', 'return')
 const tick = () => new Promise(resolve => setImmediate(resolve))
@@ -14,14 +15,16 @@ const fixture = () => ({ short_id: 'a', name: '物品', purchased_at: '2026-10-0
 const run = async (verify, patch) => {
     const oldWindow = globalThis.window, cleanups = [], gates = [], requests = []
     globalThis.window = { addEventListener() {}, removeEventListener() {}, confirm: () => false }
+    let confirmDelete = false
+    const appDialog = { close() {}, isLoading: () => false, showValidationMessage() {}, fire: async options => confirmDelete ? { isConfirmed: true, value: await options.preConfirm() } : { isConfirmed: false } }
     const route = reactive({ params: { id: 'a' } })
-    const bindings = { computed, ref, watch, nextTick, defineAsyncComponent: () => ({}), onBeforeUnmount: fn => cleanups.push(fn), onBeforeRouteLeave: fn => gates.push(fn), onBeforeRouteUpdate: fn => gates.push(fn), useRoute: () => route, useRouter: () => ({ push() {} }), AppButton: {}, AppIcon: {}, ItemStatusBadge: {}, ItemStatusScene: {}, RekaModal: {}, DateInput: {}, getDateMin, getDateMax, getTodayDate, getDateTextError, createUnsavedChangesGuard, ITEM_SHOW_DATES, getItemNextAction, getItemShowMetrics,
+    const bindings = { appDialog, confirmItemDeletion, computed, ref, watch, nextTick, defineAsyncComponent: () => ({}), onBeforeUnmount: fn => cleanups.push(fn), onBeforeRouteLeave: fn => gates.push(fn), onBeforeRouteUpdate: fn => gates.push(fn), useRoute: () => route, useRouter: () => ({ push() {} }), AppButton: {}, AppIcon: {}, ItemStatusBadge: {}, ItemStatusScene: {}, RekaModal: {}, DateInput: {}, getDateMin, getDateMax, getTodayDate, getDateTextError, createUnsavedChangesGuard, ITEM_SHOW_DATES, getItemNextAction, getItemShowMetrics,
         axios: { isCancel: () => false, get: async () => ({ data: { data: fixture() } }), delete: async url => { requests.push({ url, method: 'DELETE' }) }, patch: async (url, payload) => { requests.push({ url, payload }); return patch ? patch(url, payload) : { data: { data: { ...fixture(), ...payload } } } } } }
     const component = new Function(...Object.keys(bindings), source)(...Object.values(bindings))
     const scope = effectScope()
     let vm
     scope.run(() => { vm = component.setup({}, { expose() {} }) })
-    try { await tick(); vm.editorForm.value = { reportValidity: () => true, querySelector: () => null }; await verify({ vm, gates, requests, route }) }
+    try { await tick(); vm.editorForm.value = { reportValidity: () => true, querySelector: () => null }; await verify({ vm, gates, requests, route, confirmDeletion: () => { confirmDelete = true } }) }
     finally { cleanups.forEach(fn => fn()); scope.stop(); globalThis.window = oldWindow }
 }
 test('viewing never writes; starting use confirms a visible date and patches only that field', async () => {
@@ -130,10 +133,10 @@ test('an existing arrival date equal to purchase can be saved and an unchanged d
 })
 
 test('deleting requires the dedicated confirmation dialog and never occurs merely by opening it', async () => {
-    await run(async ({ vm, requests }) => {
+    await run(async ({ vm, requests, confirmDeletion }) => {
         await vm.deleteItem()
         assert.equal(requests.length, 0)
-        vm.deleteOpen.value = true
+        confirmDeletion()
         assert.equal(requests.length, 0)
         await vm.deleteItem()
         assert.deepEqual(requests[0], { url: '/api/items/a', method: 'DELETE' })

@@ -1,42 +1,43 @@
 <template>
-    <div class="min-h-screen p-4">
+    <div class="aligned-page min-h-screen p-4">
         <h1 class="text-2xl font-bold mb-6">首頁</h1>
 
-        <!-- 三個月內過期商品區塊 -->
+        <!-- 首頁近期到期摘要 -->
         <div v-if="isLoggedIn && (expiringItems.length > 0 || loadingExpiring)" class="mb-6">
-            <div class="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200 shadow-sm">
+            <div class="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border-subtle)]">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-lg font-bold text-orange-800 flex items-center gap-2">
-                        ⏰ 三個月內過期商品
-                    </h2>
+                    <div>
+                        <h2 class="text-lg font-semibold text-[var(--text)]">近期到期</h2>
+                        <p class="text-sm text-[var(--text-muted)] mt-1">未來 90 天</p>
+                    </div>
                     <router-link 
                         to="/expiring-items?days=90" 
-                        class="text-sm text-orange-600 hover:text-orange-800 underline"
+                        class="text-sm text-[var(--brand-ink)] hover:text-[var(--brand-hover)] underline"
                     >
-                        查看全部 →
+                        查看全部
                     </router-link>
                 </div>
                 
-                <div v-if="loadingExpiring" class="text-center text-gray-500 py-4">
+                <div v-if="loadingExpiring" class="text-center text-[var(--text-muted)] py-4">
                     載入中...
                 </div>
                 
-                <div v-else-if="expiringItems.length === 0" class="text-center text-gray-500 py-4">
-                    <p class="text-sm">🎉 太好了！三個月內沒有即將過期的商品。</p>
+                <div v-else-if="expiringItems.length === 0" class="text-center text-[var(--text-muted)] py-4">
+                    <p class="text-sm">未來 90 天沒有即將到期的物品。</p>
                 </div>
                 
                 <ul v-else class="space-y-2">
                     <li 
                         v-for="item in expiringItems" 
                         :key="item.id"
-                        class="bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition"
+                        class="bg-[var(--surface)] rounded-lg p-3 border border-[var(--border-subtle)] hover:border-[var(--border-control)] transition"
                     >
                         <router-link 
                             :to="`/items/${item.short_id}`"
                             class="flex items-center gap-3"
                         >
                             <!-- 圖片 -->
-                            <div v-if="item.main_image" class="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                            <div v-if="item.main_image" class="w-12 h-12 rounded-lg overflow-hidden bg-[var(--disabled)] flex-shrink-0">
                                 <img 
                                     :src="item.main_image.thumb_url" 
                                     :alt="item.name"
@@ -44,23 +45,23 @@
                                     @error="$event.target.style.display='none'"
                                 />
                             </div>
-                            <div v-else class="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                                <span class="text-gray-400">📦</span>
+                            <div v-else class="w-12 h-12 rounded-lg bg-[var(--disabled)] flex items-center justify-center flex-shrink-0">
+                                <span class="text-[var(--text-muted)]"><AppIcon name="package" /></span>
                             </div>
                             
-                            <!-- 商品資訊 -->
+                            <!-- 物品資訊 -->
                             <div class="flex-1 min-w-0">
-                                <div class="font-semibold text-sm text-gray-800 truncate">
+                                <div class="font-semibold text-sm text-[var(--text)] truncate">
                                     {{ item.name }}
                                 </div>
-                                <div v-if="item.expiration_date" class="mt-1">
+                                <div v-if="item.expiration_date" class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
                                     <span 
-                                        :class="['text-xs font-medium', getExpirationColor(getDaysUntilExpiration(item.expiration_date))]"
+                                        :class="['text-sm font-medium', getExpirationColor(getDaysUntilExpiration(item.expiration_date))]"
                                     >
                                         {{ getExpirationLabel(getDaysUntilExpiration(item.expiration_date)) }}
                                     </span>
-                                    <span class="text-xs text-gray-500 ml-2">
-                                        ({{ formatDate(item.expiration_date) }})
+                                    <span class="text-sm text-[var(--text-muted)]">
+                                        {{ item.expiration_date }} 到期
                                     </span>
                                 </div>
                             </div>
@@ -72,33 +73,33 @@
 
         <!-- 物品管理區塊 -->
         <div class="mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-3">物品管理</h2>
+            <h2 class="text-lg font-bold text-[var(--text)] mb-3">物品管理</h2>
             <ul class="space-y-3">
                 <li>
                     <router-link
                         to="/items"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-blue-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--brand-soft)] transition"
                     >
-                        📦 我的物品<br/>
-                        <span class="text-sm text-gray-500">我實際擁有的東西，例如這本書或這雙鞋</span>
+                        我的物品<br/>
+                        <span class="text-sm text-[var(--text-muted)]">我實際擁有的東西，例如這本書或這雙鞋</span>
                     </router-link>
                 </li>
                 <li>
                     <router-link
                         to="/expiring-items"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-orange-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--warning-soft)] transition"
                     >
-                        ⏰ 近期過期商品<br/>
-                        <span class="text-sm text-gray-500">查看即將過期的使用中商品</span>
+                        近期過期物品<br/>
+                        <span class="text-sm text-[var(--text-muted)]">查看即將過期的使用中物品</span>
                     </router-link>
                 </li>
                 <li>
                     <router-link
                         to="/discarded"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-red-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--danger-soft)] transition"
                     >
-                        🗑️ 已棄用物品<br/>
-                        <span class="text-sm text-gray-500">已經棄用的物品清單</span>
+                        已棄用物品<br/>
+                        <span class="text-sm text-[var(--text-muted)]">已經棄用的物品清單</span>
                     </router-link>
                 </li>
             </ul>
@@ -106,24 +107,24 @@
 
         <!-- 產品管理區塊 -->
         <div class="mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-3">產品管理</h2>
+            <h2 class="text-lg font-bold text-[var(--text)] mb-3">產品管理</h2>
             <ul class="space-y-3">
                 <li>
                     <router-link
                         to="/products"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-indigo-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--brand-soft)] transition"
                     >
-                        🏷️ 產品定義<br/>
-                        <span class="text-sm text-gray-500">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
+                        產品定義<br/>
+                        <span class="text-sm text-[var(--text-muted)]">定義產品資訊（例如 書、電腦、鞋子），作為物品的模板</span>
                     </router-link>
                 </li>
                 <li>
                     <router-link
                         to="/categories"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-green-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--success-soft)] transition"
                     >
-                        🏷️ 分類管理<br/>
-                        <span class="text-sm text-gray-500">新增、編輯、刪除您的分類</span>
+                        分類管理<br/>
+                        <span class="text-sm text-[var(--text-muted)]">新增、編輯、刪除您的分類</span>
                     </router-link>
                 </li>
             </ul>
@@ -131,15 +132,15 @@
 
         <!-- 媒體管理區塊 -->
         <div class="mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-3">媒體管理</h2>
+            <h2 class="text-lg font-bold text-[var(--text)] mb-3">媒體管理</h2>
             <ul class="space-y-3">
                 <li>
                     <router-link
                         to="/media"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-pink-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--brand-soft)] transition"
                     >
-                        🖼️ 媒體櫃<br/>
-                        <span class="text-sm text-gray-500">管理您的圖片媒體，查看和比對圖片與物品的關聯</span>
+                        媒體櫃<br/>
+                        <span class="text-sm text-[var(--text-muted)]">管理您的圖片媒體，查看和比對圖片與物品的關聯</span>
                     </router-link>
                 </li>
             </ul>
@@ -147,15 +148,15 @@
 
         <!-- 統計分析區塊 -->
         <div class="mb-6">
-            <h2 class="text-lg font-bold text-gray-800 mb-3">統計分析</h2>
+            <h2 class="text-lg font-bold text-[var(--text)] mb-3">統計分析</h2>
             <ul class="space-y-3">
                 <li>
                     <router-link
                         to="/statistics"
-                        class="block px-4 py-3 bg-white rounded-lg shadow hover:bg-purple-50 transition"
+                        class="block px-4 py-3 bg-[var(--surface)] rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--brand-soft)] transition"
                     >
-                        📊 統計分析<br/>
-                        <span class="text-sm text-gray-500">查看物品管理統計資料與分析</span>
+                        統計分析<br/>
+                        <span class="text-sm text-[var(--text-muted)]">查看物品管理統計資料與分析</span>
                     </router-link>
                 </li>
             </ul>
@@ -164,6 +165,8 @@
 </template>
 
 <script setup>
+import '../../css/aligned-pages.css'
+import AppIcon from '../Components/AppIcon.vue'
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useCurrentUser } from '../composables/useCurrentUser';
 import axios from 'axios';
@@ -188,38 +191,17 @@ const getDaysUntilExpiration = (expirationDate) => {
 // 取得過期警告標籤
 const getExpirationLabel = (daysUntil) => {
     if (daysUntil === null) return ''
-    if (daysUntil < 0) return '⚠️ 已過期'
-    if (daysUntil === 0) return '⚠️ 今天過期'
-    if (daysUntil === 1) return '⚠️ 明天過期'
-    if (daysUntil <= 3) return `⚠️ ${daysUntil} 天後過期`
-    if (daysUntil <= 7) return `⏰ ${daysUntil} 天後過期`
-    if (daysUntil >= 30) {
-        const months = Math.floor(daysUntil / 30)
-        const remainingDays = daysUntil % 30
-        if (remainingDays === 0) {
-            return `📅 ${months} 個月後過期`
-        }
-        return `📅 ${months} 個月 ${remainingDays} 天後過期`
-    }
-    return `📅 ${daysUntil} 天後過期`
+    if (daysUntil < 0) return `已過期 ${Math.abs(daysUntil)} 天`
+    if (daysUntil === 0) return '今天到期'
+    return `剩 ${daysUntil} 天`
 }
 
-// 取得過期警告顏色
+// 到期提醒分級：90 天內琥珀色，7 天內及已過期紅色。
 const getExpirationColor = (daysUntil) => {
-    if (daysUntil === null) return 'text-gray-600'
-    if (daysUntil < 0) return 'text-red-600 font-bold'
-    if (daysUntil <= 3) return 'text-red-500 font-semibold'
-    if (daysUntil <= 7) return 'text-orange-500 font-semibold'
-    return 'text-yellow-600'
-}
-
-const formatDate = (date) => {
-    if (!date) return '-'
-    return new Date(date).toLocaleDateString('zh-TW', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    })
+    if (daysUntil === null) return 'text-[var(--text-muted)]'
+    if (daysUntil <= 7) return 'text-[var(--danger)] font-semibold'
+    if (daysUntil <= 90) return 'text-[var(--warning)] font-semibold'
+    return 'text-[var(--text)]'
 }
 
 const fetchExpiringItems = async () => {
@@ -234,14 +216,14 @@ const fetchExpiringItems = async () => {
         const res = await axios.get('/api/items/expiring-soon', {
             signal: controller.signal,
             params: {
-                days: 90, // 三個月
+                days: 90, // 未來 90 天
                 per_page: 5, // 只顯示前 5 個
             },
         })
         if (expiringController === controller && user.value?.id === userId) expiringItems.value = res.data.data || []
     } catch (error) {
         if (controller.signal.aborted || expiringController !== controller || user.value?.id !== userId) return
-        console.error('載入過期商品失敗:', error)
+        console.error('載入過期物品失敗:', error)
         expiringItems.value = []
     } finally {
         if (expiringController === controller) loadingExpiring.value = false
