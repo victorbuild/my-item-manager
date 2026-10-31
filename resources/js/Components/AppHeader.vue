@@ -52,7 +52,12 @@ const logout = async () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuPortal>
                         <DropdownMenuContent class="app-account-menu" align="end" :side-offset="8" :collision-padding="16">
-                            <DropdownMenuLabel class="app-account-menu-label"><span>已登入</span><strong>{{ user?.name || '會員' }}</strong></DropdownMenuLabel>
+                            <DropdownMenuLabel class="app-account-menu-label">
+                                <span class="app-account-menu-avatar"><AppIcon name="user" :size="18" /></span>
+                                <span class="app-account-menu-identity">
+                                    <strong>{{ user?.name || '會員' }}</strong>
+                                </span>
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator class="app-account-menu-separator" />
                             <DropdownMenuItem class="app-account-menu-item" :disabled="signingOut" @select="logout"><LogOut :size="18" aria-hidden="true" />登出</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -80,12 +85,12 @@ const logout = async () => {
 .back-button { width: 44px; padding: 0; color: var(--text-muted); }
 .brand-link { padding: 8px 0; font-size: 16px; font-weight: 600; white-space: nowrap; }
 .account-link { padding: 8px 12px; font-size: 14px; }
-.account-trigger { width: 44px; min-width: 44px; height: 44px; padding: 0; }
+.account-trigger { width: 44px; min-width: 44px; height: 44px; padding: 0; border-radius: 50%; }
 .account-avatar { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-ink); }
 .account-loading { font-size: 14px; color: var(--text-muted); }
-.back-button:hover, .account-link:hover, .account-trigger:hover { background: var(--brand-soft); color: var(--brand-ink); }
+.back-button:hover, .account-link:hover { background: var(--brand-soft); color: var(--brand-ink); }
 .brand-link:hover { color: var(--brand-ink); }
-.account-trigger[data-state="open"] { background: var(--brand-soft); }
+.account-trigger:hover .account-avatar, .account-trigger[data-state="open"] .account-avatar { background: var(--brand); color: var(--on-brand); }
 .back-button:focus-visible, .brand-link:focus-visible, .account-link:focus-visible, .account-trigger:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
 .account-trigger:disabled, .account-link:disabled { color: var(--text-muted); cursor: wait; }
 .header-message { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-block: 0; padding: 0 16px 8px; color: var(--danger); font-size: 14px; }
@@ -95,11 +100,12 @@ const logout = async () => {
 
 <!-- 選單透過 Portal 掛到 body；使用專屬全域類別，不依賴父元件的 scoped 樣式。 -->
 <style>
-.app-account-menu { z-index: 60; width: 248px; max-width: calc(100vw - 32px); padding: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-panel); background: var(--surface); color: var(--text); box-shadow: var(--shadow-dialog); }
-.app-account-menu-label { display: grid; gap: 4px; padding: 8px 12px; font-size: 14px; overflow-wrap: anywhere; }
-.app-account-menu-label span { color: var(--text-muted); }
-.app-account-menu-label strong { font-weight: 500; }
-.app-account-menu-separator { height: 1px; margin: 8px 0; background: var(--border-subtle); }
-.app-account-menu-item { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border-radius: var(--radius-control); color: var(--text); font-size: 14px; cursor: pointer; }
+.app-account-menu { z-index: 60; width: 224px; max-width: calc(100vw - 32px); padding: 6px; border: 1px solid var(--border-subtle); border-radius: var(--radius-panel); background: var(--surface); color: var(--text); box-shadow: var(--shadow-dialog); }
+.app-account-menu-label { display: flex; align-items: center; gap: 8px; padding: 8px; }
+.app-account-menu-avatar { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-ink); }
+.app-account-menu-identity { display: grid; gap: 2px; min-width: 0; }
+.app-account-menu-identity strong { color: var(--text); font-size: 14px; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
+.app-account-menu-separator { height: 1px; margin: 4px 0; background: var(--border-subtle); }
+.app-account-menu-item { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px; border-radius: var(--radius-control); color: var(--text); font-size: 14px; cursor: pointer; }
 .app-account-menu-item[data-highlighted] { outline: 2px solid var(--brand-ink); outline-offset: -2px; background: var(--brand-soft); }
 </style>
