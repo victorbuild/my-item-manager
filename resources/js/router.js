@@ -1,22 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from './Pages/Home.vue'
-import ItemList from './Pages/Items/List.vue'
-import ItemCreate from './Pages/Items/Create.vue'
-import ItemShow from './Pages/Items/Show.vue'
-import ItemEdit from './Pages/Items/Edit.vue'
-import NotFound from './Pages/NotFound.vue'
-import Login from './Pages/LoginView.vue'
-import Register from './Pages/RegisterView.vue'
-import ProductList from './Pages/Products/List.vue'
-import ProductForm from './Pages/Products/Form.vue'
-import ProductShow from './Pages/Products/Show.vue'
-import DiscardedItemList from './Pages/DiscardedItems/List.vue'
-import ExpiringItemList from './Pages/ExpiringItems/List.vue'
-import Statistics from './Pages/Statistics.vue'
-import CategoryList from './Pages/Categories/List.vue'
-import CategoryForm from './Pages/Categories/Form.vue'
-import CategoryShow from './Pages/Categories/Show.vue'
-import MediaList from './Pages/Media/List.vue'
+const Home = () => import('./Pages/Home.vue')
+const ItemList = () => import('./Pages/Items/List.vue')
+const ItemCreate = () => import('./Pages/Items/Create.vue')
+const ItemShow = () => import('./Pages/Items/Show.vue')
+const ItemEdit = () => import('./Pages/Items/Edit.vue')
+const NotFound = () => import('./Pages/NotFound.vue')
+const Login = () => import('./Pages/LoginView.vue')
+const Register = () => import('./Pages/RegisterView.vue')
+const ProductList = () => import('./Pages/Products/List.vue')
+const ProductForm = () => import('./Pages/Products/Form.vue')
+const ProductShow = () => import('./Pages/Products/Show.vue')
+const DiscardedItemList = () => import('./Pages/DiscardedItems/List.vue')
+const ExpiringItemList = () => import('./Pages/ExpiringItems/List.vue')
+const Statistics = () => import('./Pages/Statistics.vue')
+const CategoryList = () => import('./Pages/Categories/List.vue')
+const CategoryForm = () => import('./Pages/Categories/Form.vue')
+const CategoryShow = () => import('./Pages/Categories/Show.vue')
+const MediaList = () => import('./Pages/Media/List.vue')
 
 const routes = [
     {
