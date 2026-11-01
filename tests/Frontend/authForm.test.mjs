@@ -97,3 +97,22 @@ test('registration rate limiting preserves all inputs and shows the server retry
         assert.equal(calls.some(call => call.path), false)
     }, { post: async () => { throw { response: { status: 429, headers: { 'retry-after': '60' }, data: { success: false, message: '註冊嘗試過於頻繁，請於 60 秒後再試。' } } } } })
 })
+
+test('registration leads to email verification instead of the management home', async () => {
+    await run('register', async ({ vm, calls }) => {
+        await vm.submit()
+        assert.equal(calls.at(-1).path, '/verify-email')
+    })
+})
+test('unverified login leads to email verification', async () => {
+    await run('login', async ({ vm, calls }) => {
+        await vm.submit()
+        assert.equal(calls.at(-1).path, '/verify-email')
+    }, { post: async () => ({ data: { data: { email_verified: false } } }) })
+})
+test('login ignores external verification redirects', async () => {
+    await run('login', async ({ vm, calls }) => {
+        await vm.submit()
+        assert.equal(calls.at(-1).path, '/')
+    }, { post: async () => ({ data: { data: { email_verified: true, verification_redirect: 'https://example.invalid/' } } }) })
+})

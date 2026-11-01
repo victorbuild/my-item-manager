@@ -31,6 +31,11 @@ class AuthRateLimitServiceProvider extends ServiceProvider
             ];
         });
 
+        RateLimiter::for('verification-ip', fn (Request $request): array => [
+            Limit::perMinute(30)->by('verification-ip-minute:' . $request->ip()),
+            Limit::perHour(180)->by('verification-ip-hour:' . $request->ip()),
+        ]);
+
         RateLimiter::for('login-ip', fn (Request $request): array => [
             Limit::perMinute(config('auth_rate_limits.login.per_minute'))
                 ->by('login-ip-minute:' . $request->ip()),

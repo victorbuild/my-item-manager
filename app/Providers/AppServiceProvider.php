@@ -23,6 +23,8 @@ use App\Repositories\UserRepository;
 use App\Services\ItemService;
 use App\Services\RecaptchaService;
 use App\Strategies\Sort\SortStrategyFactory;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -80,6 +82,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         URL::forceScheme('https');
+        VerifyEmail::toMailUsing(fn (mixed $notifiable, string $url): MailMessage => (new MailMessage())
+            ->subject('驗證您的電子郵件')
+            ->greeting('您好！')
+            ->line('請使用註冊的帳號登入，再點選下方按鈕完成電子郵件驗證。')
+            ->action('驗證電子郵件', $url)
+            ->line('驗證連結將於 60 分鐘後失效。若不是您建立的帳號，請忽略此信。')
+            ->salutation('物品管理系統'));
         Gate::policy(Item::class, ItemPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);

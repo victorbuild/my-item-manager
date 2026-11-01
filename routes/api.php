@@ -6,25 +6,32 @@ use App\Http\Controllers\Api\ItemImageController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EmailVerificationController;
+use App\Http\Middleware\RequireVerifiedEmail;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
-    Route::get('/categories', [CategoryController::class, 'index']);
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::get('/categories/{category}', [CategoryController::class, 'show']);
-    Route::put('/categories/{category}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware('throttle:verification-ip');
 
-    Route::apiResource('/products', ProductController::class);
-    Route::get('/items/expiring-soon', [ItemController::class, 'expiringSoon']);
-    Route::get('/items/statistics/overview', [ItemController::class, 'statistics']);
-    Route::apiResource('items', ItemController::class);
-    Route::post('/item-images', [ItemImageController::class, 'store']);
+    Route::middleware(RequireVerifiedEmail::class)->group(function () {
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::post('/categories', [CategoryController::class, 'store']);
+        Route::get('/categories/{category}', [CategoryController::class, 'show']);
+        Route::put('/categories/{category}', [CategoryController::class, 'update']);
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
 
-    // 媒體庫
-    Route::get('/media', [MediaController::class, 'index']);
-    Route::get('/media/unused', [MediaController::class, 'unused']); // 未使用的圖片（用於選擇）
-    Route::get('/media/{uuid}', [MediaController::class, 'show']);
-    Route::delete('/media/{uuid}', [MediaController::class, 'destroy']);
+        Route::apiResource('/products', ProductController::class);
+        Route::get('/items/expiring-soon', [ItemController::class, 'expiringSoon']);
+        Route::get('/items/statistics/overview', [ItemController::class, 'statistics']);
+        Route::apiResource('items', ItemController::class);
+        Route::post('/item-images', [ItemImageController::class, 'store']);
+
+        // 媒體庫
+        Route::get('/media', [MediaController::class, 'index']);
+        Route::get('/media/unused', [MediaController::class, 'unused']); // 未使用的圖片（用於選擇）
+        Route::get('/media/{uuid}', [MediaController::class, 'show']);
+        Route::delete('/media/{uuid}', [MediaController::class, 'destroy']);
+    });
 });

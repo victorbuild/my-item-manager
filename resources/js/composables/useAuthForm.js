@@ -25,11 +25,16 @@ export const useAuthForm = mode => {
             if (!active) return
             const payload = { email: form.email.trim(), password: form.password, recaptcha_token: token }
             if (mode === 'register') Object.assign(payload, { name: form.name.trim(), password_confirmation: form.password_confirmation })
-            await axios.post(`/${mode}`, payload, { signal: controller.signal })
+            const response = await axios.post(`/${mode}`, payload, { signal: controller.signal })
             if (!active) return
             try { localStorage.setItem('loggedIn', 'true') } catch { /* session 成功不依賴 localStorage 可用性。 */ }
             form.password = ''; form.password_confirmation = ''
-            await router.push('/')
+            const redirect = response?.data?.data?.verification_redirect
+            if (typeof redirect === 'string' && /^\/email\/verify\/\d+\/[a-f0-9]+\?/.test(redirect)) {
+                window.location.assign(redirect)
+                return
+            }
+            await router.push(mode === 'register' || response?.data?.data?.email_verified === false ? '/verify-email' : '/')
         } catch (failure) {
             if (!active) return
             errors.value = Object.fromEntries(Object.entries(failure.response?.data?.errors || {}).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]))

@@ -18,6 +18,7 @@ const goBack = () => {
 watch(() => route.path, (path, previous) => {
     menuOpen.value = false
     logoutError.value = ''
+    if (signingOut.value) return
     load({ force: ['/login', '/register'].includes(path) || ['/login', '/register'].includes(previous) })
 }, { immediate: true })
 const logout = async () => {
@@ -25,7 +26,8 @@ const logout = async () => {
     signingOut.value = true; logoutError.value = ''
     try {
         // 先讓既有 route guard 決定是否放棄草稿，通過後才結束 session。
-        if (route.path !== '/' && await router.push('/')) return
+        const destination = route.path === '/verify-email' || user.value?.email_verified_at === null ? '/login' : '/'
+        if (route.path !== destination && await router.push(destination)) return
         await axios.post('/logout')
         clear()
         try { localStorage.removeItem('loggedIn') } catch { /* 儲存空間不可用不影響伺服器登出。 */ }

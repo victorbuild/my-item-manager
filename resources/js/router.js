@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useCurrentUser } from './composables/useCurrentUser'
 const Home = () => import('./Pages/Home.vue')
 const ItemList = () => import('./Pages/Items/List.vue')
 const ItemCreate = () => import('./Pages/Items/Create.vue')
@@ -19,6 +20,7 @@ const CategoryShow = () => import('./Pages/Categories/Show.vue')
 const MediaList = () => import('./Pages/Media/List.vue')
 
 const routes = [
+    { path: '/verify-email', name: 'VerifyEmail', component: () => import('./Pages/VerifyEmail.vue') },
     {
         path: '/',
         name: 'Home',
@@ -121,10 +123,18 @@ const routes = [
     }
 ]
 
-export default createRouter({
+const router = createRouter({
     history: createWebHistory(),
     routes,
     scrollBehavior(to, from, savedPosition) {
         return { left: 0, top: 0 }
     }
 })
+
+router.beforeEach(async to => {
+    if (['/login', '/register', '/verify-email'].includes(to.path)) return
+    const user = await useCurrentUser().load()
+    if (user && !user.email_verified_at) return '/verify-email'
+})
+
+export default router
