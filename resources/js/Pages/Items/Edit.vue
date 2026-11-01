@@ -345,7 +345,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .text-action { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: var(--brand-ink); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .summary-item { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .summary-thumbnail { width: 64px; height: 64px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-control); background: var(--canvas); color: var(--text-muted); overflow: hidden; }
-.summary-thumbnail img { width: 100%; height: 100%; object-fit: cover; dynamic-range-limit: standard; }
+.summary-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
 .summary-name { min-width: 0; margin: 0; font-size: 16px; font-weight: 500; overflow-wrap: anywhere; }
 .summary-details { display: grid; gap: 12px; margin: 0; font-size: 14px; line-height: 1.5; }
 .summary-details > div { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; }
@@ -354,7 +354,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .form-actions { display: grid; gap: 12px; }
 .save-notice { min-height: 1.5em; margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .restore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.restore-actions img { width: 32px; height: 32px; object-fit: contain; margin-right: 8px; dynamic-range-limit: standard; }
+.restore-actions img { width: 32px; height: 32px; object-fit: contain; margin-right: 8px; }
 .converter-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--backdrop); }
 .converter-panel { display: grid; gap: 24px; width: 100%; max-width: 400px; max-height: 90dvh; overflow-y: auto; padding: 24px; border-radius: var(--radius-panel); background: var(--surface); }
 .converter-length { display: grid; grid-template-columns: minmax(0, 1fr) 80px; gap: 8px; }

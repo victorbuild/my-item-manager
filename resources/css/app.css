@@ -1,6 +1,12 @@
 @import 'tailwindcss';
 @import './design-tokens.css';
 
+/* 統一媒體顯示亮度，避免 HDR 高光干擾表單與文字閱讀；不修改原始檔案。 */
+img,
+video {
+    dynamic-range-limit: standard;
+}
+
 /* 路由頁面與導覽共用內容外框，頁面不再各自設定最大寬度。 */
 .page-layout {
     width: 100%;

@@ -204,8 +204,6 @@ onBeforeUnmount(() => {
 .photo-tile .photo-preview-trigger { display: block; width: 100%; height: 100%; min-height: 0; padding: 0; border: 0; border-radius: inherit; background: transparent; overflow: hidden; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .photo-full-preview { display: block; width: 100%; max-height: 75dvh; object-fit: contain; }
 .photo-preview { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
-/* 將 HDR 預覽限制為標準亮度，避免照片與一般介面的亮度落差。 */
-.photo-preview, .photo-full-preview { dynamic-range-limit: standard; }
 .photo-tile { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
 .photo-sortable-chosen { z-index: 20; }
 .photo-sortable-chosen .photo-preview-trigger { transform: scale(1.04); opacity: 0.75; box-shadow: var(--shadow-toast); }
