@@ -1,0 +1,22 @@
+.app-dialog-overlay.swal2-container { background: var(--backdrop); padding: 16px; }
+.app-dialog.swal2-popup { width: 440px; max-width: 100%; padding: 24px; border-radius: var(--radius-panel); background: var(--surface); color: var(--text); box-shadow: var(--shadow-dialog); font-family: inherit; }
+.app-dialog .app-dialog-title { padding: 0; font-size: 20px; font-weight: 600; color: var(--text); }
+.app-dialog .app-dialog-content { margin: 16px 0 0; color: var(--text-muted); font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.app-dialog .swal2-icon.swal2-warning { color: var(--warning); border-color: var(--warning); }
+.app-dialog .app-dialog-actions { width: 100%; justify-content: flex-end; gap: 12px; margin: 24px 0 0; }
+.app-dialog-actions button { min-height: 44px; padding: 10px 16px; border: 1px solid transparent; border-radius: var(--radius-control); font-size: 14px; font-weight: 500; cursor: pointer; }
+.app-dialog-actions .app-dialog-confirm { background: var(--brand); color: var(--on-brand); }
+.app-dialog-actions .app-dialog-cancel { background: var(--surface); border-color: var(--border-control); color: var(--text); order: -1; }
+.app-dialog-actions button:hover:not(:disabled) { filter: brightness(.95); }
+.app-dialog-actions button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.app-dialog-actions button:disabled { background: var(--disabled); color: var(--text-muted); cursor: not-allowed; }
+.app-dialog .app-dialog-error { background: var(--danger-soft); color: var(--danger); border-radius: var(--radius-control); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .app-dialog.swal2-popup { animation: none !important; } }
+
+.app-dialog-actions .app-dialog-confirm-danger { background: var(--danger); }
+
+.app-dialog .swal2-icon.swal2-error { border-color: var(--danger); color: var(--danger); }
+.app-dialog .swal2-icon.swal2-error [class^='swal2-x-mark-line'] { background: var(--danger); }
+.app-dialog .swal2-icon.swal2-success { border-color: var(--success); color: var(--success); }
+.app-dialog .swal2-icon.swal2-success [class^='swal2-success-line'] { background: var(--success); }
+.app-dialog .swal2-success-ring { border-color: var(--success); }

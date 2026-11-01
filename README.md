@@ -73,7 +73,7 @@ npm run dev
 
 - PHP >= 8.4
 - Composer
-- Node.js >= 18.x
+- Node.js 24.x（版本記錄於 `.nvmrc`；使用 nvm 時執行 `nvm use`）
 - PostgreSQL >= 14（或 SQLite）
 
 ### 安裝步驟

@@ -1,184 +1,91 @@
 <script setup>
-import { ref, onMounted, watchEffect } from 'vue'
+import '../../../css/aligned-pages.css'
+import '../../../css/management-pages.css'
+import AppPagination from '../../Components/AppPagination.vue'
+import { ref } from 'vue'
+import { useCategories } from '../../composables/useCategories'
+import { X } from '@lucide/vue'
 import axios from '../../axios'
 import { useRoute, useRouter } from 'vue-router'
-import Swal from 'sweetalert2'
+import { appDialog } from '../../utils/appDialog'
+import { confirmCategoryDeletion } from '../../utils/categoryDeletion'
 
 const route = useRoute()
 const router = useRouter()
 
-const categories = ref([])
-const search = ref('')
-const pagination = ref({
-    current_page: 1,
-    last_page: 1,
-    per_page: 10,
-    total: 0
-})
-const loading = ref(true)
+const { search, appliedSearch, categories, pagination, loading, error, submitSearch, clearSearch, goToPage, reload } = useCategories(route, router, axios)
+const searchInput = ref(null)
+const clearSearchInput = () => { clearSearch(); searchInput.value?.focus() }
 
-watchEffect(() => {
-    if (route.query.q && typeof route.query.q === 'string') {
-        search.value = route.query.q
-    }
-    if (route.query.page && typeof route.query.page === 'string') {
-        const page = parseInt(route.query.page, 10)
-        if (page !== pagination.value.current_page) {
-            fetchCategories(page)
-        }
-    }
-})
-
-// Debounce 工具函數
-const debounce = (func, delay) => {
-    let timeoutId
-    return (...args) => {
-        clearTimeout(timeoutId)
-        timeoutId = setTimeout(() => func.apply(null, args), delay)
-    }
-}
-
-// 實際的搜尋函數
-const _performSearch = () => {
-    fetchCategories(1)
-}
-
-// 使用 debounce 包裝的搜尋函數（500ms 延遲）
-const performSearch = debounce(_performSearch, 500)
-
-const fetchCategories = async (page = 1) => {
-    loading.value = true
-
-    // 更新網址
-    router.replace({
-        query: {
-            ...route.query,
-            q: search.value || undefined,
-            page: page !== 1 ? page : undefined
-        }
-    })
-
+const deleting = ref(false)
+const confirmDelete = async category => {
+    if (deleting.value) return
+    deleting.value = true
     try {
-        const res = await axios.get('/api/categories', {
-            params: {
-                page,
-                per_page: 10,
-                q: search.value || undefined
-            }
-        })
-        categories.value = Array.isArray(res.data?.data) ? res.data.data : []
-        pagination.value = res.data.meta
-    } catch (e) {
-        console.error('無法取得分類資料', e)
+        if (await confirmCategoryDeletion(axios, appDialog, category)) await reload()
     } finally {
-        loading.value = false
+        deleting.value = false
     }
 }
 
-const confirmDelete = async (categoryId) => {
-    const result = await Swal.fire({
-        title: '確定要刪除這個分類嗎？',
-        text: '只有沒有關聯產品的分類才能刪除。',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: '確定刪除',
-        cancelButtonText: '取消',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6'
-    })
-
-    if (result.isConfirmed) {
-        try {
-            const res = await axios.delete(`/api/categories/${categoryId}`)
-            if (res.status === 204) {
-                await Swal.fire({
-                    icon: 'success',
-                    title: '成功',
-                    text: '分類已刪除',
-                    confirmButtonText: '確定'
-                })
-                fetchCategories(pagination.value.current_page)
-            }
-        } catch (e) {
-            await Swal.fire({
-                icon: 'error',
-                title: '錯誤',
-                text: e.response?.data?.message || '刪除失敗',
-                confirmButtonText: '確定'
-            })
-        }
-    }
-}
-
-onMounted(() => {
-    const page = route.query.page ? parseInt(route.query.page, 10) : 1
-    const searchQuery = route.query.q || ''
-    search.value = searchQuery
-    fetchCategories(page)
-})
 </script>
 
 <template>
-    <div class="bg-[#f5f5f5] min-h-screen p-4 max-w-2xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">📂 分類清單</h1>
+    <div class="aligned-page management-page categories-page bg-[var(--canvas)] min-h-screen p-4 mx-auto">
+        <div class="product-heading mb-6">
+            <h1 class="text-2xl font-bold">分類清單</h1>
             <router-link to="/categories/create"
-                class="bg-blue-500 text-white px-4 py-2 rounded shadow hover:bg-blue-600">
+                class="product-secondary">
                 新增分類
             </router-link>
         </div>
 
         <!-- 搜尋框 -->
-        <div class="mb-4 flex gap-2">
-            <input v-model="search" type="text" placeholder="搜尋分類名稱"
-                class="flex-1 p-2 border border-gray-300 rounded" 
-                @input="performSearch" />
-            <button v-if="search" @click="search = ''; fetchCategories(1)" 
-                class="text-sm text-gray-500 underline px-3 py-2 border border-gray-300 rounded hover:bg-gray-50">
-                ❌ 清除
-            </button>
-        </div>
+        <form class="mb-4 flex gap-2" @submit.prevent="submitSearch">
+            <div class="product-search-input">
+                <input ref="searchInput" v-model="search" type="text" placeholder="搜尋分類名稱" aria-label="搜尋分類名稱"
+                    class="w-full p-2 border border-[var(--border-control)] rounded" />
+                <button v-if="search" type="button" class="product-search-clear" aria-label="清除搜尋" title="清除搜尋" @click="clearSearchInput">
+                    <X :size="20" :stroke-width="1.75" aria-hidden="true" />
+                </button>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-[var(--brand)] text-[var(--on-brand)] rounded">搜尋</button>
+        </form>
 
-        <div v-if="loading" class="text-center text-gray-500">載入中...</div>
+        <div v-if="loading" class="text-center text-[var(--text-muted)]">載入中...</div>
 
-        <ul v-else class="space-y-4">
+        <p v-else-if="error" role="alert" class="text-[var(--danger)]">{{ error }} <button type="button" class="underline" @click="reload">重試</button></p>
+        <section v-else-if="!categories.length" class="product-empty" aria-labelledby="categories-empty-title">
+            <h2 id="categories-empty-title">{{ appliedSearch ? '找不到符合的分類' : '尚未建立分類' }}</h2>
+            <p>{{ appliedSearch ? `沒有符合「${appliedSearch}」的分類，請試試其他名稱。` : '建立分類，方便整理產品與物品。' }}</p>
+            <button v-if="appliedSearch" type="button" class="product-secondary" @click="clearSearchInput">清除搜尋</button>
+            <router-link v-else to="/categories/create" class="product-secondary">新增分類</router-link>
+        </section>
+        <ul v-else class="space-y-3">
             <li v-for="category in categories" :key="category.id"
-                class="bg-white rounded-2xl shadow-md p-6 flex flex-col gap-2 transition hover:shadow-lg">
+                class="category-row bg-[var(--surface)] rounded-xl border border-[var(--border-subtle)]">
                 <div>
-                    <div class="font-semibold text-xl text-gray-800 break-words max-w-full">
-                        {{ category.name }} ({{ category.items_count || 0 }})
+                    <div class="font-semibold text-base text-[var(--text)] break-words max-w-full">
+                        {{ category.name }}
                     </div>
-                    <div class="text-sm text-gray-500 mt-1">
-                        📦 產品數：{{ category.products_count || 0 }}<br />
-                        🏷️ 物品數：{{ category.items_count || 0 }}
+                    <div class="text-sm text-[var(--text-muted)] mt-1">
+                        產品數：{{ category.products_count || 0 }} ·
+                        物品數：{{ category.items_count || 0 }}
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-4 text-sm mt-4">
-                    <router-link :to="`/categories/${category.id}`" class="text-gray-600 hover:text-gray-800">🔍
+                <div class="product-actions">
+                    <router-link :to="`/categories/${category.id}`" class="text-[var(--text-muted)] hover:text-[var(--text)]">
                         查看</router-link>
-                    <router-link :to="`/categories/${category.id}/edit`" class="text-blue-600 hover:text-blue-800">✏️
+                    <router-link :to="`/categories/${category.id}/edit`" class="text-[var(--brand-ink)] hover:text-[var(--brand-ink)]">
                         編輯</router-link>
-                    <button @click="confirmDelete(category.id)" class="text-red-500 hover:text-red-700">🗑️
+                    <button @click="confirmDelete(category)" :disabled="deleting" class="text-[var(--danger)] hover:text-[var(--danger)]">
                         刪除</button>
                 </div>
             </li>
         </ul>
 
         <!-- 分頁按鈕 -->
-        <div v-if="!loading && pagination.last_page > 1" class="flex justify-center items-center gap-4 mt-6">
-            <button @click="fetchCategories(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
-                class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
-                ← 上一頁
-            </button>
-
-            <span class="text-sm">第 {{ pagination.current_page }} 頁 / 共 {{ pagination.last_page }} 頁</span>
-
-            <button @click="fetchCategories(pagination.current_page + 1)"
-                :disabled="pagination.current_page === pagination.last_page"
-                class="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
-                下一頁 →
-            </button>
-        </div>
+        <AppPagination v-if="!loading && !error && categories.length && pagination.last_page > 1" :current-page="pagination.current_page" :last-page="pagination.last_page" label="分類分頁" @change="goToPage" />
     </div>
 </template>

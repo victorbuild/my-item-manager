@@ -13,6 +13,9 @@ instance.interceptors.response.use(
         if (error.response?.status === 401) {
             router.push('/login') // 或 { name: 'LoginView' }，取決於你的 route name
         }
+        if (error.response?.status === 403 && error.response?.data?.code === 'email_verification_required') {
+            router.push('/verify-email')
+        }
         return Promise.reject(error)
     }
 )

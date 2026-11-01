@@ -167,9 +167,10 @@ class ItemImageService
     {
         $image = $this->itemImageRepository->findByUuid($uuid);
         if ($image) {
+            // Eloquent decrement 會同步更新模型，先保存目標值以避免重複扣減。
+            $remainingUsage = max(0, $image->usage_count - 1);
             $this->itemImageRepository->decrementUsageCount($image);
-            // 直接減少物件的 usage_count，避免需要 refresh()
-            $image->usage_count = max(0, $image->usage_count - 1);
+            $image->usage_count = $remainingUsage;
             if ($image->usage_count <= 0) {
                 $this->itemImageRepository->updateStatus($image, ItemImage::STATUS_DRAFT);
             }

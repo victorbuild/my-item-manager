@@ -1,0 +1,55 @@
+/* 既有管理頁的視覺一致化；不改動資料流程與版型結構。 */
+.aligned-page {
+    min-width: 0;
+    padding: 24px 16px;
+    background: var(--canvas);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.5;
+}
+.aligned-page h1 { font-size: 24px; font-weight: 600; line-height: 1.35; }
+.aligned-page h2 { font-size: 18px; font-weight: 600; }
+.aligned-page :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+}
+.aligned-page :is(input, textarea)::placeholder { color: var(--text-muted); }
+.aligned-page button,
+.aligned-page a[class*='px-'] {
+    min-height: 44px;
+    border-radius: var(--radius-control);
+}
+.aligned-page button { min-width: 44px; }
+.aligned-page :is(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+.aligned-page :is(button, input, select, textarea):disabled {
+    cursor: not-allowed;
+    background: var(--disabled);
+    color: var(--text-muted);
+    opacity: 1;
+}
+.aligned-page :is(h1, h2, li, p) { overflow-wrap: anywhere; }
+.aligned-page .flex-1 { min-width: 0; }
+@media (min-width: 768px) {
+    .aligned-page { padding-block: 32px; }
+    .aligned-page h1 { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .aligned-page *, .aligned-page *::before, .aligned-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+.aligned-pagination { padding: 0 16px 24px; color: var(--text); }
+.aligned-pagination button { min-height: 44px; border-radius: var(--radius-control); }
+.aligned-pagination button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.aligned-pagination button:disabled { background: var(--disabled); color: var(--text-muted); opacity: 1; cursor: not-allowed; }

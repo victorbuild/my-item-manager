@@ -9,10 +9,7 @@ on:
 jobs:
   quality-checks:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-versions: ['8.4', '8.5']
-    name: Quality checks (PHP ${{ matrix.php-versions }})
+    name: Quality checks (PHP 8.5)
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -20,7 +17,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: '8.5'
           extensions: mbstring, intl, gd, exif
           ini-values: post_max_size=256M, short_open_tag=On
           coverage: xdebug
@@ -50,7 +47,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
 
       - name: Install frontend dependencies
         run: npm ci
