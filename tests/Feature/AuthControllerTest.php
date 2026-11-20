@@ -62,6 +62,47 @@ class AuthControllerTest extends TestCase
     }
 
     /**
+     * 合法來源取得 CSRF cookie 後，應能攜帶有效 token 正常登入。
+     */
+    #[Test]
+    public function it_should_authenticate_user_when_same_origin_request_has_valid_csrf_token(): void
+    {
+        config(['session.driver' => 'database', 'session.secure' => false]);
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+        $environment = $this->app->environment();
+        $this->app->instance('env', 'production');
+
+        try {
+            $csrfResponse = $this->get('/sanctum/csrf-cookie')->assertNoContent();
+            $sessionCookie = $csrfResponse->getCookie(config('session.cookie'));
+            $csrfCookie = $csrfResponse->getCookie('XSRF-TOKEN', false);
+            $this->assertNotNull($sessionCookie);
+            $this->assertNotNull($csrfCookie);
+
+            // 重新載入 session，確認登入使用的是前一次請求建立的 cookie。
+            $this->app->make('session')->forgetDrivers();
+            $this->app->forgetInstance('session.store');
+
+            $this->withCredentials()
+                ->withCookie($sessionCookie->getName(), $sessionCookie->getValue())
+                ->postJson('/login', [
+                    'email' => $user->email,
+                    'password' => 'password',
+                    'recaptcha_token' => 'test-token',
+                ], [
+                    'Origin' => 'http://localhost',
+                    'Referer' => 'http://localhost/login',
+                    'Sec-Fetch-Site' => 'same-origin',
+                    'X-XSRF-TOKEN' => $csrfCookie->getValue(),
+                ])->assertOk();
+
+            $this->assertAuthenticatedAs($user, 'web');
+        } finally {
+            $this->app->instance('env', $environment);
+        }
+    }
+
+    /**
      * 登入後以 session cookie 呼叫 API，必須保留登入狀態。
      */
     #[Test]
