@@ -6,13 +6,13 @@
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
-        "php": "~8.4.27 || ~8.5.12",
+        "php": "~8.5.13",
         "ext-exif": "*",
         "ext-gd": "*",
         "google/cloud-storage": "^1.48",
         "intervention/image": "^3.11",
         "knuckleswtf/scribe": "^5.6",
-        "laravel/framework": "^12.0",
+        "laravel/framework": "^12.71",
         "laravel/sanctum": "^4.3.3",
         "laravel/tinker": "^2.10.1",
         "spatie/laravel-csp": "^3.23",
@@ -34,6 +34,9 @@
         "spaze/phpstan-disallowed-calls": "^4.5",
         "squizlabs/php_codesniffer": "^3.13",
         "yieldstudio/grumphp-laravel-pint": "^1.0"
+    },
+    "conflict": {
+        "grpc/grpc": "<1.84.1"
     },
     "autoload": {
         "psr-4": {

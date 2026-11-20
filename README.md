@@ -59,7 +59,7 @@ npm run dev
 
 ## 技術棧
 
-- **後端**：Laravel 12.4 + PHP 8.4
+- **後端**：Laravel 12.71 + PHP 8.5.13（Docker）
 - **資料庫**：PostgreSQL / SQLite
 - **前端**：Vue.js 3.5 + Tailwind CSS 4.0
 - **圖片儲存**：本地 / Google Cloud Storage
@@ -71,7 +71,7 @@ npm run dev
 
 ### 環境需求
 
-- PHP >= 8.4
+- PHP 8.5.13 以上的 8.5.x
 - Composer
 - Node.js 24.x（版本記錄於 `.nvmrc`；使用 nvm 時執行 `nvm use`）
 - PostgreSQL >= 14（或 SQLite）
