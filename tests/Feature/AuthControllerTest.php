@@ -32,6 +32,36 @@ class AuthControllerTest extends TestCase
     }
 
     /**
+     * 不可信來源缺少 CSRF token 時，即使帳密正確也不得登入。
+     */
+    #[Test]
+    public function it_should_reject_login_when_cross_site_request_has_no_csrf_token(): void
+    {
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+        $environment = $this->app->environment();
+
+        // Laravel 在 testing 環境會略過 CSRF，暫時切換以執行真實的 middleware。
+        $this->app->instance('env', 'production');
+
+        try {
+            $this->postJson('/login', [
+                'email' => $user->email,
+                'password' => 'password',
+                'recaptcha_token' => 'test-token',
+            ], [
+                'Origin' => 'https://untrusted.example',
+                'Referer' => 'https://untrusted.example/',
+                'Sec-Fetch-Site' => 'cross-site',
+            ])->assertStatus(419);
+
+            $this->assertGuest('web');
+            $this->assertDatabaseCount('login_logs', 0);
+        } finally {
+            $this->app->instance('env', $environment);
+        }
+    }
+
+    /**
      * 登入後以 session cookie 呼叫 API，必須保留登入狀態。
      */
     #[Test]
