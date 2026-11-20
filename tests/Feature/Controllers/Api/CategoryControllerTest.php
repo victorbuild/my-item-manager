@@ -24,6 +24,35 @@ class CategoryControllerTest extends TestCase
     }
 
     /**
+     * 分類清單經資料庫快取序列化後，仍應正常回傳快取內容。
+     */
+    #[Test]
+    public function it_should_return_category_list_when_reading_serialized_database_cache(): void
+    {
+        config(['cache.default' => 'database']);
+        $category = Category::create([
+            'user_id' => $this->user->id,
+            'name' => '快取分類',
+        ]);
+
+        $firstResponse = $this->actingAs($this->user)
+            ->getJson('/api/categories?all=true')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $category->id)
+            ->assertJsonPath('data.0.name', '快取分類');
+
+        $this->assertDatabaseCount('cache', 1);
+
+        // 直接修改資料庫以保留舊快取，確認第二次回應確實來自快取。
+        Category::whereKey($category->id)->update(['name' => '資料庫新名稱']);
+
+        $this->getJson('/api/categories?all=true')
+            ->assertOk()
+            ->assertExactJson($firstResponse->json());
+    }
+
+    /**
      * 測試：成功建立分類
      */
     #[Test]
