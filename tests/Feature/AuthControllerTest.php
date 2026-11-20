@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 /**
@@ -103,12 +104,18 @@ class AuthControllerTest extends TestCase
     }
 
     /**
-     * 登入後以 session cookie 呼叫 API，必須保留登入狀態。
+     * PHP 與 JSON 格式的 session 在登入後，皆應能透過 cookie 保留登入狀態。
      */
     #[Test]
-    public function it_should_keep_session_authenticated_when_calling_user_api_after_login(): void
+    #[TestWith(['php'])]
+    #[TestWith(['json'])]
+    public function it_should_keep_session_authenticated_when_calling_user_api_after_login(string $serialization): void
     {
-        config(['session.driver' => 'database', 'session.secure' => false]);
+        config([
+            'session.driver' => 'database',
+            'session.secure' => false,
+            'session.serialization' => $serialization,
+        ]);
         $user = User::factory()->create(['password' => Hash::make('password')]);
 
         $login = $this->postJson('/login', [

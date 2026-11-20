@@ -39,6 +39,7 @@ export const useAuthForm = mode => {
             if (!active) return
             errors.value = Object.fromEntries(Object.entries(failure.response?.data?.errors || {}).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]))
             errorMessage.value = errors.value.recaptcha_token || failure.response?.data?.message || (failure.response ? '操作失敗，請稍後重試。' : failure.message?.startsWith('驗證') ? failure.message : '連線失敗，請確認網路後重試。')
+            if (failure.response?.status === 419) errorMessage.value = '安全驗證已過期，請再次提交。'
             await nextTick()
             errorSummary.value?.focus()
         } finally { submitting.value = false }

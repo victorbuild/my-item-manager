@@ -26,6 +26,17 @@ test('login keeps the existing CSRF and credential request flow without sending 
         assert.equal(vm.form.password, '')
     }, { storageFails: true })
 })
+test('expired CSRF on the login page explains how to retry and preserves entered fields', async () => {
+    await run('login', async ({ vm, calls }) => {
+        Object.assign(vm.form, { email: 'member@example.test', password: 'test-password' })
+        await vm.submit()
+        assert.equal(vm.errorMessage.value, '安全驗證已過期，請再次提交。')
+        assert.equal(vm.form.email, 'member@example.test')
+        assert.equal(vm.form.password, 'test-password')
+        assert.equal(vm.submitting.value, false)
+        assert.equal(calls.filter(call => call.url === '/login').length, 1)
+    }, { post: async () => { throw { response: { status: 419, data: { message: 'CSRF token mismatch.' } } } } })
+})
 test('register sends its own verification action and confirmation to the existing endpoint', async () => {
     await run('register', async ({ vm, calls }) => {
         Object.assign(vm.form, { name: ' 會員 ', email: 'member@example.test', password: 'test-password', password_confirmation: 'test-password' })

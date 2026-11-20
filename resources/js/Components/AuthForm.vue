@@ -5,7 +5,10 @@ import AuthPasswordInput from './AuthPasswordInput.vue'
 import { useAuthForm } from '../composables/useAuthForm'
 import '../../css/auth-forms.css'
 
-const props = defineProps({ mode: { type: String, required: true, validator: value => ['login', 'register'].includes(value) } })
+const props = defineProps({
+    mode: { type: String, required: true, validator: value => ['login', 'register'].includes(value) },
+    notice: { type: String, default: '' },
+})
 const registering = computed(() => props.mode === 'register')
 const prefix = `auth-${props.mode}`
 const { form, submitting, errors, errorMessage, errorSummary, recaptchaEnabled, labels, fieldErrors, submit } = useAuthForm(props.mode)
@@ -15,6 +18,7 @@ const focusField = key => document.getElementById(`${prefix}-${key}`)?.focus()
     <main class="auth-page">
         <section class="auth-card" :aria-labelledby="`${prefix}-title`">
             <header class="auth-heading"><h1 :id="`${prefix}-title`">{{ registering ? '建立帳號' : '登入' }}</h1><p>{{ registering ? '建立帳號，開始整理你的物品。' : '登入後繼續管理你的物品與紀錄。' }}</p></header>
+            <p v-if="notice" role="status">{{ notice }}</p>
             <form @submit.prevent="submit" :aria-busy="submitting">
                 <div v-if="errorMessage" ref="errorSummary" class="auth-error-summary" role="alert" tabindex="-1">
                     <h2>請確認後再試一次</h2><p>{{ errorMessage }}</p>
