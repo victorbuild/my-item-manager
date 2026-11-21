@@ -177,13 +177,13 @@ const submitForm = async (stay = false) => {
     submitError.value = ''
     saveNotice.value = ''
     try {
-        const response = await axios.put(`/api/items/${encodeURIComponent(id)}`, payload)
+        const response = await axios.put(`/api/items/${encodeURIComponent(id)}`, payload, { preserveDraftOnAuthFailure: true })
         if (!active || route.params.id !== id || saveGeneration !== generation) return
         applyItem(response.data.data)
         if (stay) saveNotice.value = '變更已儲存。'
         else await router.push('/items')
     } catch (error) {
-        if (!active || route.params.id !== id || saveGeneration !== generation) return
+        if (!active || route.params.id !== id || saveGeneration !== generation || error.authRecoveryHandled) return
         if (error.response?.status === 422) {
             formErrors.value = Object.fromEntries(Object.entries(error.response.data.errors || {}).map(([field, messages]) => [field, Array.isArray(messages) ? messages[0] : messages]))
             submitError.value = '儲存失敗，請修正標示的欄位後重試。'

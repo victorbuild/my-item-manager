@@ -25,6 +25,7 @@ export const useItemPhotoUploads = (photos, { client, prepare = prepareImageForU
                 data.append('image', photo.file)
                 try {
                     const response = await client.post('/api/item-images', data, {
+                        preserveDraftOnAuthFailure: true,
                         signal: controller.signal,
                         onUploadProgress: event => {
                             if (!event.total || !photos.value.includes(photo)) return
@@ -47,7 +48,7 @@ export const useItemPhotoUploads = (photos, { client, prepare = prepareImageForU
                 } catch (error) {
                     if (active && error.code !== 'ERR_CANCELED' && photos.value.includes(photo)) {
                         photo.status = 'error'
-                        photo.errorMessage = error.response?.data?.message || '上傳失敗，請重試。'
+                        photo.errorMessage = error.authRecoveryHandled ? '上傳尚未完成，確認登入後請重試。' : error.response?.data?.message || '上傳失敗，請重試。'
                     }
                 } finally { controllers.delete(photo.id) }
             }

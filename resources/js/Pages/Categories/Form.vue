@@ -46,7 +46,7 @@ const submitForm = async () => {
         if (isEdit.value) {
             await axios.put(`/api/categories/${route.params.id}`, {
                 name: form.value.name
-            })
+            }, { preserveDraftOnAuthFailure: true })
             await Swal.fire({
                 icon: 'success',
                 title: '成功',
@@ -57,7 +57,7 @@ const submitForm = async () => {
         } else {
             await axios.post('/api/categories', {
                 name: form.value.name
-            })
+            }, { preserveDraftOnAuthFailure: true })
             await Swal.fire({
                 icon: 'success',
                 title: '成功',
@@ -67,6 +67,7 @@ const submitForm = async () => {
             router.push('/categories')
         }
     } catch (e) {
+        if (e.authRecoveryHandled) return
         // 處理驗證錯誤
         let errorMessage = '操作失敗，請確認欄位是否正確'
         if (e.response?.data?.errors) {
@@ -94,6 +95,7 @@ onMounted(async () => {
             const c = res.data.items[0]
             form.value.name = c.name
         } catch (e) {
+        if (e.authRecoveryHandled) return
             await Swal.fire({
                 icon: 'error',
                 title: '錯誤',

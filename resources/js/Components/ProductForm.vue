@@ -76,7 +76,7 @@ const loadCategories = async (search = categoryQuery.value) => {
     categoryLoading.value = true
     categoryError.value = ''
     try {
-        const response = await axios.get('/api/categories', { params: { q: search.trim(), per_page: 20 }, signal: controller.signal })
+        const response = await axios.get('/api/categories', { params: { q: search.trim(), per_page: 20 }, signal: controller.signal, preserveDraftOnAuthFailure: true })
         if (active && props.modelValue && categoryController === controller) {
             categories.value = response.data.data || []
             categoryResolvedQuery.value = search.trim()
@@ -101,7 +101,7 @@ const createCategory = async () => {
     isCreatingCategory.value = true
     categoryCreateError.value = ''
     try {
-        const response = await axios.post('/api/categories', { name })
+        const response = await axios.post('/api/categories', { name }, { preserveDraftOnAuthFailure: true })
         if (!active) return
         const category = response.data.items[0]
         categories.value = [...categories.value.filter(item => item.id !== category.id), category]
@@ -109,7 +109,7 @@ const createCategory = async () => {
         categoryCreateOpen.value = false
         categoryName.value = ''
     } catch (error) {
-        if (active) categoryCreateError.value = error.response?.data?.errors?.name?.[0] || error.response?.data?.message || '分類建立失敗，請重試。'
+        if (active && !error.authRecoveryHandled) categoryCreateError.value = error.response?.data?.errors?.name?.[0] || error.response?.data?.message || '分類建立失敗，請重試。'
     } finally { if (active) isCreatingCategory.value = false }
 }
 const stopScanner = async () => {
@@ -165,15 +165,15 @@ const createProduct = async () => {
             category_id: product.value.category_id ? Number(product.value.category_id) : null,
         }
         const response = props.mode === 'edit'
-            ? await axios.put(`/api/products/${props.productId}`, payload)
-            : await axios.post('/api/products', payload)
+            ? await axios.put(`/api/products/${props.productId}`, payload, { preserveDraftOnAuthFailure: true })
+            : await axios.post('/api/products', payload, { preserveDraftOnAuthFailure: true })
         if (!active) return
         if (props.mode !== 'edit') emit('created', response.data.data)
         emit('saved', response.data.data)
         emit('update:modelValue', false)
         emit('draft-change', null)
     } catch (error) {
-        if (!active) return
+        if (!active || error.authRecoveryHandled) return
         if (error.response?.status === 422) formErrors.value = Object.fromEntries(Object.entries(error.response.data.errors || {}).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value]))
         submitError.value = error.response?.data?.message || '儲存失敗，輸入內容已保留，請重試。'
     } finally { if (active) isCreating.value = false }

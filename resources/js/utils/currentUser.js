@@ -30,5 +30,9 @@ export const createCurrentUserState = api => {
         generation++; controller?.abort(); pending = undefined; loaded = true
         user.value = null; loading.value = false; error.value = ''
     }
-    return { user, isLoggedIn, loading, error, load, clear }
+    const restore = value => {
+        clear()
+        user.value = value
+    }
+    return { user, isLoggedIn, loading, error, load, clear, restore }
 }

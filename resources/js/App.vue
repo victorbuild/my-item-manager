@@ -2,6 +2,7 @@
     <div class="app-shell">
         <AppHeader />
         <div class="page-layout">
+            <SessionRecoveryNotice />
             <router-view />
         </div>
     </div>
@@ -9,6 +10,7 @@
 
 <script setup>
 import AppHeader from './Components/AppHeader.vue'
+import SessionRecoveryNotice from './Components/SessionRecoveryNotice.vue'
 </script>
 
 <style scoped>
