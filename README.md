@@ -59,11 +59,11 @@ npm run dev
 
 ## 技術棧
 
-- **後端**：Laravel 12.71 + PHP 8.5.13（Docker）
+- **後端**：Laravel 13 + PHP 8.5.13（Docker）
 - **資料庫**：PostgreSQL / SQLite
 - **前端**：Vue.js 3.5 + Tailwind CSS 4.0
 - **圖片儲存**：本地 / Google Cloud Storage
-- **認證**：Laravel Sanctum (Token-based)
+- **認證**：Laravel Sanctum（SPA 使用 Session Cookie）
 
 ## 安裝與設定
 
@@ -114,6 +114,14 @@ php artisan db:seed
 # 8. 編譯前端資源
 npm run build
 ```
+
+### Laravel 13 升級部署
+
+此版本將 Session 儲存格式改為 JSON，既有 PHP 格式的登入狀態會失效，使用者需要重新登入一次。多個應用程式實例應統一切換版本與設定，避免新舊格式交替處理請求。
+
+部署時使用 PHP 8.5.13、安裝更新後的 `composer.lock`，並重新建立設定快取。若需回退，應將應用程式、依賴與設定一併回退，使用者需再次登入。
+
+分類快取改存純陣列並使用新版鍵值，不讀取舊的物件快取；舊鍵值會依原有期限自然過期。API 回應格式維持原本的 `success`、`message` 與 `data`。
 
 ### CORS 設定
 

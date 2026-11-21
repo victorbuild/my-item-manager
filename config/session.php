@@ -20,6 +20,9 @@ return [
 
     'driver' => env('SESSION_DRIVER', 'database'),
 
+    // 升級採用 JSON 格式，既有 PHP 格式的 session 需重新登入。
+    'serialization' => 'json',
+
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime

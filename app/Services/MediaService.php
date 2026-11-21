@@ -22,6 +22,7 @@ class MediaService
      * @param string|null $status 狀態篩選
      * @param bool|null $hasItems 是否有關聯：true=有關聯, false=沒有關聯, null=全部
      * @param int $perPage 每頁筆數
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\ItemImage>
      */
     public function paginateForUser(
         int $userId,
@@ -54,6 +55,7 @@ class MediaService
      *
      * @param int $userId 用戶 ID
      * @param int $perPage 每頁筆數
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\ItemImage>
      */
     public function paginateUnusedForUser(int $userId, int $perPage = 50): LengthAwarePaginator
     {

@@ -17,6 +17,9 @@ return [
 
     'default' => env('CACHE_STORE', 'database'),
 
+    // 快取僅儲存純資料，不允許還原 PHP 物件。
+    'serializable_classes' => false,
+
     /*
     |--------------------------------------------------------------------------
     | Cache Stores
