@@ -10,6 +10,7 @@ use App\Services\MediaService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Pagination\LengthAwarePaginator;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class MediaServiceTest extends TestCase
@@ -162,13 +163,17 @@ class MediaServiceTest extends TestCase
         $this->assertTrue($result->relationLoaded('items'));
     }
 
-    public function test_find_by_uuid_for_user_should_throw_exception_when_not_found(): void
+    /**
+     * 合法但不存在的 UUID 應回報找不到圖片。
+     */
+    #[Test]
+    public function it_should_throw_model_not_found_when_valid_uuid_does_not_exist(): void
     {
         // Assert
         $this->expectException(ModelNotFoundException::class);
 
         // Act
-        $this->service->findByUuidForUser('non-existent-uuid');
+        $this->service->findByUuidForUser('00000000-0000-4000-8000-000000000001');
     }
 
     public function test_find_by_uuid_for_user_should_return_image_even_when_belongs_to_different_user(): void

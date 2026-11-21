@@ -63,10 +63,12 @@ class AuthControllerTest extends TestCase
     }
 
     /**
-     * 合法來源取得 CSRF cookie 後，應能攜帶有效 token 正常登入。
+     * 取得 CSRF cookie 後，同源請求或缺少來源提示的請求皆應能以有效 token 登入。
      */
     #[Test]
-    public function it_should_authenticate_user_when_same_origin_request_has_valid_csrf_token(): void
+    #[TestWith(['same-origin'])]
+    #[TestWith([null])]
+    public function it_should_authenticate_user_when_request_has_valid_csrf_token(?string $fetchSite): void
     {
         config(['session.driver' => 'database', 'session.secure' => false]);
         $user = User::factory()->create(['password' => Hash::make('password')]);
@@ -90,12 +92,12 @@ class AuthControllerTest extends TestCase
                     'email' => $user->email,
                     'password' => 'password',
                     'recaptcha_token' => 'test-token',
-                ], [
+                ], array_filter([
                     'Origin' => 'http://localhost',
                     'Referer' => 'http://localhost/login',
-                    'Sec-Fetch-Site' => 'same-origin',
+                    'Sec-Fetch-Site' => $fetchSite,
                     'X-XSRF-TOKEN' => $csrfCookie->getValue(),
-                ])->assertOk();
+                ], fn (?string $value): bool => $value !== null))->assertOk();
 
             $this->assertAuthenticatedAs($user, 'web');
         } finally {
@@ -137,6 +139,39 @@ class AuthControllerTest extends TestCase
             ->getJson('/api/user', ['Referer' => 'http://localhost/'])
             ->assertOk()
             ->assertJsonPath('data.id', $user->id);
+    }
+
+    /**
+     * 切換 JSON 後舊 PHP session 應失效，重新登入後應恢復正常使用。
+     */
+    #[Test]
+    public function it_should_reauthenticate_when_php_session_is_replaced_by_json_serialization(): void
+    {
+        config(['session.driver' => 'database', 'session.secure' => false, 'session.serialization' => 'php']);
+        $user = User::factory()->create(['password' => Hash::make('password')]);
+        $credentials = ['email' => $user->email, 'password' => 'password', 'recaptcha_token' => 'test-token'];
+        $login = $this->postJson('/login', $credentials)->assertOk();
+        $oldCookie = $login->getCookie(config('session.cookie'));
+        $this->assertNotNull($oldCookie);
+
+        config(['session.serialization' => 'json']);
+        $this->app->make('auth')->forgetGuards();
+        $this->app->make('session')->forgetDrivers();
+        $this->app->forgetInstance('session.store');
+
+        $this->withCredentials()->withCookie($oldCookie->getName(), $oldCookie->getValue())
+            ->getJson('/api/user', ['Referer' => 'http://localhost/'])->assertUnauthorized();
+
+        $newLogin = $this->postJson('/login', $credentials)->assertOk();
+        $newCookie = $newLogin->getCookie(config('session.cookie'));
+        $this->assertNotNull($newCookie);
+        $this->app->make('auth')->forgetGuards();
+        $this->app->make('session')->forgetDrivers();
+        $this->app->forgetInstance('session.store');
+
+        $this->withCookie($newCookie->getName(), $newCookie->getValue())
+            ->getJson('/api/user', ['Referer' => 'http://localhost/'])
+            ->assertOk()->assertJsonPath('data.id', $user->id);
     }
 
     /**

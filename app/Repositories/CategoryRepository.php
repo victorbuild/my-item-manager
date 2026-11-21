@@ -12,18 +12,24 @@ class CategoryRepository implements CategoryRepositoryInterface
 {
     /**
      * 取得用戶的所有分類（帶快取）
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\Category>
      */
     public function getAll(int $userId): Collection
     {
-        $cacheKey = "categories:user:{$userId}";
+        $cacheKey = "categories:v2:user:{$userId}";
         $cacheTTL = 3600; // 1 小時
 
-        return Cache::remember($cacheKey, $cacheTTL, function () use ($userId) {
+        $categories = Cache::remember($cacheKey, $cacheTTL, function () use ($userId): array {
             return Category::where('user_id', $userId)
                 ->select(['id', 'name', 'uuid'])
                 ->orderBy('name')
-                ->get();
+                ->get()
+                ->map(fn (Category $category): array => $category->getAttributes())
+                ->all();
         });
+
+        return Category::hydrate($categories);
     }
 
     /**
@@ -31,7 +37,7 @@ class CategoryRepository implements CategoryRepositoryInterface
      */
     public function clearCache(int $userId): void
     {
-        $cacheKey = "categories:user:{$userId}";
+        $cacheKey = "categories:v2:user:{$userId}";
         Cache::forget($cacheKey);
     }
 

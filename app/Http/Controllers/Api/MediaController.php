@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\ImageUrlHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
+use App\Models\ItemImage;
 use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class MediaController extends Controller
         $images = $this->mediaService->paginateForUser($userId, $status, $hasItems, $perPage);
 
         // 為每個圖片產生縮圖 URL
-        $transformedData = $images->getCollection()->map(function ($image) {
+        $transformedData = $images->getCollection()->map(function (ItemImage $image): array {
             $urls = ImageUrlHelper::generateSignedUrls(
                 $image,
                 config('images.url_expiration_minutes.default', 60),
@@ -84,7 +85,7 @@ class MediaController extends Controller
         $images = $this->mediaService->paginateUnusedForUser($userId, $perPage);
 
         // 為每個圖片產生縮圖 URL
-        $transformedData = $images->getCollection()->map(function ($image) {
+        $transformedData = $images->getCollection()->map(function (ItemImage $image): array {
             $urls = ImageUrlHelper::generateSignedUrls(
                 $image,
                 config('images.url_expiration_minutes.default', 60),

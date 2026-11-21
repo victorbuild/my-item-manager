@@ -29,7 +29,7 @@ class CategoryControllerTest extends TestCase
     #[Test]
     public function it_should_return_category_list_when_reading_serialized_database_cache(): void
     {
-        config(['cache.default' => 'database']);
+        config(['cache.default' => 'database', 'cache.serializable_classes' => false]);
         $category = Category::create([
             'user_id' => $this->user->id,
             'name' => '快取分類',
