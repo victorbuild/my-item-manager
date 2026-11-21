@@ -110,13 +110,13 @@ const saveEditor = async () => {
         : { [field]: draftDate.value || null }
     saving.value = true; submitError.value = ''; serverErrors.value = {}
     try {
-        const response = await axios.patch(`/api/items/${id}`, payload)
+        const response = await axios.patch(`/api/items/${id}`, payload, { preserveDraftOnAuthFailure: true })
         if (!alive || generation !== token) return
         item.value = response.data.data
         notice.value = `${editorTitle.value}已儲存。`
         resetEditor()
     } catch (error) {
-        if (!alive || generation !== token) return
+        if (!alive || generation !== token || error.authRecoveryHandled) return
         serverErrors.value = error.response?.data?.errors || {}
         submitError.value = error.response?.status === 422 ? '無法儲存，請確認欄位內容。' : '儲存失敗，輸入內容已保留，請重試。'
         await nextTick()

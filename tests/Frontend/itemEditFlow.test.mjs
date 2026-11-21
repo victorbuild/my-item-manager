@@ -51,6 +51,18 @@ const withEditor = async (verify, { put, get } = {}) => {
     }
 }
 
+test('a handled session expiry keeps the edit without a duplicate unauthorized error', async () => {
+    await withEditor(async ({ vm, routes }) => {
+        vm.form.value.name = '尚未儲存的修改'
+        await vm.submitForm()
+        assert.equal(vm.form.value.name, '尚未儲存的修改')
+        assert.equal(vm.submitError.value, '')
+        assert.equal(vm.isSubmitting.value, false)
+        assert.equal(vm.leaveGuard.isDirty.value, true)
+        assert.deepEqual(routes, [])
+    }, { put: async () => { throw { authRecoveryHandled: true, response: { status: 401, data: { message: '未授權，請先登入' } } } } })
+})
+
 test('loading saved data establishes a clean baseline, preserves zero and protects subsequent edits', async () => {
     await withEditor(async ({ vm, gates, handlers, prompts }) => {
         assert.equal(vm.isLoading.value, false)

@@ -490,6 +490,7 @@ const startUploadQueue = async () => {
             formData.append('image', item.file)
             try {
                 const res = await axios.post('/api/item-images', formData, {
+                    preserveDraftOnAuthFailure: true,
                     headers: { 'Content-Type': 'multipart/form-data' },
                     signal: controller.signal,
                     onUploadProgress: event => {
@@ -520,7 +521,7 @@ const startUploadQueue = async () => {
             } catch (error) {
                 if (error.code !== 'ERR_CANCELED' && pageActive && uploadList.value.includes(item)) {
                     item.status = 'error'
-                    item.errorMessage = error.response?.data?.message || '上傳失敗，請重試。'
+                    item.errorMessage = error.authRecoveryHandled ? '上傳尚未完成，確認登入後請重試。' : error.response?.data?.message || '上傳失敗，請重試。'
                 }
             } finally { uploadControllers.delete(item.id) }
         }
@@ -672,11 +673,8 @@ onMounted(async () => {
     try {
         await axios.get('/api/user') // Laravel Sanctum 預設是這個
         // 如果成功，就不做事
-    } catch (error) {
-        if (error.response?.status === 401) {
-            router.push('/login') // 或使用名稱：{ name: 'Login' }
-            return
-        }
+    } catch {
+        // 登入失效由共用恢復提示處理，保留此頁內容。
     }
 
 
@@ -737,7 +735,7 @@ const submitForm = async (stay = false) => {
     }
 
     try {
-        await axios.post('/api/items', payload)
+        await axios.post('/api/items', payload, { preserveDraftOnAuthFailure: true })
         if (!pageActive) return
         dateDrafts.value = {}
         leaveGuard.markSaved()
@@ -755,7 +753,7 @@ const submitForm = async (stay = false) => {
             router.push('/items')
         }
     } catch (error) {
-        if (!pageActive) return
+        if (!pageActive || error.authRecoveryHandled) return
         console.error('儲存失敗', error.response?.data ?? error)
 
         // 處理 422 表單驗證錯誤

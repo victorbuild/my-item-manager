@@ -16,11 +16,11 @@ import { formatDateText, parseDateText, getDateTextError } from '../../resources
 
 const { descriptor } = parse(readFileSync(new URL('../../resources/js/Pages/Items/Create.vue', import.meta.url), 'utf8'))
 const source = compileScript(descriptor, { id: 'create-flow-test' }).content.replace(/^import .*\n/gm, '').replace('export default', 'return')
-const withCreate = async verify => {
+const withCreate = async (verify, { post } = {}) => {
     const previousWindow = globalThis.window, previousDocument = globalThis.document
     globalThis.window = { addEventListener() {}, removeEventListener() {}, confirm: () => false }
     globalThis.document = { querySelector: () => null, getElementById: () => null }
-    const calls = [], cleanups = [], routes = []
+    const calls = [], cleanups = [], routes = [], dialogs = []
     const bindings = {
         computed, ref, watch, nextTick, onMounted() {}, onBeforeUnmount: fn => cleanups.push(fn), onBeforeRouteLeave() {},
         useRouter: () => ({ push: path => routes.push(path) }),
@@ -29,17 +29,29 @@ const withCreate = async verify => {
         usePurchaseArrivalLink, createNumericInputHandlers, useItemPricing, getItemSaveBlockReason, requiresQuantityConfirmation, isQuantityConfirmed,
         getTodayDate, getDateMin, getDateMax, createUnsavedChangesGuard, preventImplicitSubmit,
         getAvailableItemMedia, getNewItemMedia, getUniqueItemImagePayload, imageUuidKey, formatDateText, parseDateText, getDateTextError,
-        axios: { post: async (url, payload) => { calls.push({ url, payload }); return { data: { data: {} } } } },
-        Swal: { fire: async () => ({ isConfirmed: true }) }, isDngFile: () => false, isSupportedImageFile: () => true, prepareImageForUpload: async value => value,
+        axios: { post: async (url, payload) => { calls.push({ url, payload }); return post ? post(url, payload) : { data: { data: {} } } } },
+        Swal: { fire: async options => { dialogs.push(options); return { isConfirmed: true } } }, isDngFile: () => false, isSupportedImageFile: () => true, prepareImageForUpload: async value => value,
     }
     const component = new Function(...Object.keys(bindings), source)(...Object.values(bindings))
     const scope = effectScope()
     let vm
     scope.run(() => { vm = component.setup({}, { expose() {} }) })
     vm.itemForm.value = { reportValidity: () => true }
-    try { await verify({ vm, calls, routes }) }
+    try { await verify({ vm, calls, routes, dialogs }) }
     finally { cleanups.forEach(fn => fn()); scope.stop(); globalThis.window = previousWindow; globalThis.document = previousDocument }
 }
+
+test('a handled expiry preserves new item input without opening another error dialog', async () => {
+    await withCreate(async ({ vm, routes, dialogs }) => {
+        vm.form.value.name = '尚未儲存的物品'
+        await vm.submitForm()
+        assert.equal(vm.form.value.name, '尚未儲存的物品')
+        assert.equal(vm.isSubmitting.value, false)
+        assert.equal(vm.leaveGuard.isDirty.value, true)
+        assert.deepEqual(routes, [])
+        assert.deepEqual(dialogs, [])
+    }, { post: async () => { throw { authRecoveryHandled: true, response: { status: 401 } } } })
+})
 
 test('the create page saves the selected product through the shared selector without overwriting the item name', async () => {
     await withCreate(async ({ vm, calls }) => {
